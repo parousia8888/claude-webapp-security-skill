@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-08-13
+
+Second-audit fixes: three real defects found by re-auditing v0.2.0, each frozen as a regression.
+
+### Fixed
+- **`verify-crawler-ip`: a failed range-source fetch convicted a real crawler as `spoofed`.**
+  The logic used "we have a source configured" where it needed "the source loaded this run", so
+  pointing OpenAI's range URL at an unreachable address made a genuine GPTBot IP resolve to
+  `spoofed` — which, wired to an allowlist, would wrongly block it. Now **fails open**: a source
+  that fails to fetch yields `unverifiable`, and only a *successfully-loaded* source that lacks the
+  IP yields `spoofed`. `decideVerdict` gained a `claimedVendorSourceLoaded` input; `verify()` tracks
+  per-source load success.
+- **`verify-hardening.sh`: crashed on macOS's Bash 3.2** — an empty `${HOSTHDR[@]}` under `set -u`
+  is an unbound-variable error there (the README advertises macOS/Codex support). Reworked to pass
+  the optional `Host` header without array expansion; concurrency loop rewritten to be 3.2-safe.
+- **`verify-hardening.sh`: reported the HTTP version as if it were the TLS version, and never
+  validated the certificate.** It printed `%{http_version}` (HTTP/1.1·2·3) labelled as TLS and ran
+  everything under `-k`. Now reads `%{ssl_version}` (the real TLSv1.2/1.3 protocol), fails on weak
+  TLS, and — for a bare public hostname — verifies the certificate chain without `-k`.
+
+### Added
+- `verify-crawler-ip` tests: the source-fetch-failure case as a named regression, plus 17
+  IPv4/IPv6 CIDR-boundary assertions (`inCidr`/`parseIp` now exported) — the CIDR math had zero
+  coverage before. Suite is 54 assertions.
+- CI now runs on **ubuntu + macOS** (macOS ships Bash 3.2, so the empty-array/`set -u` traps are
+  caught in CI) and adds shell smoke steps for the `.sh` tools.
+
+### Changed
+- `bot-verification.md` — documents fail-open semantics: a range list that can't be fetched is
+  `unverifiable`, never `spoofed`; the verdict table clarifies "source loaded, IP absent" (spoof)
+  vs "source failed to load" (unverifiable).
+
 ## [0.2.0] — 2026-08-13
 
 First maintenance release. Adds a test suite, CI, and four references distilled from
