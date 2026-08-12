@@ -101,8 +101,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 | Phase | Deliverable | Status | Evidence |
 |---|---|---|---|
-| G0 | Adoption contract, baseline, phase acceptance and anti-metric rules | in progress | pending |
-| G1 | Fixture-generated animated terminal demo and README placement | pending | pending |
+| G0 | Adoption contract, baseline, phase acceptance and anti-metric rules | completed | `0599f46` + checks below |
+| G1 | Fixture-generated animated terminal demo and README placement | in progress | pending |
 | G2 | Verified low-friction install channel and clean-room lifecycle | pending | pending |
 | G3 | Privacy-minimal five-session usability kit and deterministic aggregation | pending | pending |
 | G4 | Reusable English/Chinese publication and upstream case-study kit | pending | pending |
@@ -126,11 +126,21 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: in progress
-- Implementation: pending
-- Tests: pending
-- Commit / CI: pending
-- Remaining risks: pending
+- Status: completed 2026-08-13
+- Implementation: this document records the adoption funnel, reproducible baseline, G0-G5 scope,
+  engineering/external outcome separation, safety constraints, handoff register and stop conditions.
+  `scripts/check-adoption-contract.mjs` requires every phase and completion record, the external
+  validation boundary, verified-install rule, owned-fixture rule, disclosure boundary and absence
+  of numeric star/fork acceptance gates. The check runs from the normal `npm run lint` path.
+- Tests: `node scripts/check-adoption-contract.mjs`; `npm run lint`;
+  `/usr/local/bin/python3 /Users/kenn/.codex/skills/.system/skill-creator/scripts/quick_validate.py .`;
+  `git diff --check`. All passed. The default `python3` on this machine lacks PyYAML, so Skill
+  validation used the existing `/usr/local/bin/python3` environment rather than treating the
+  missing optional module as a Skill failure.
+- Commit / CI: implementation `0599f46`; phase-record commit and CI pending push.
+- Remaining risks: GitHub traffic history was not available through the public repository API;
+  launch-window traffic remains a manual owner capture. The baseline stars/forks/watchers are an
+  observation only and will not be used to pass a later phase.
 
 ## G1 - Real terminal demo in the first screen
 
