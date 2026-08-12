@@ -1,12 +1,18 @@
 {
   "name": "webapp-security-hardening",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Phased web app security audit, hardening, and crawl-boundary program (skill).",
+  "bin": {
+    "webapp-security": "scripts/webapp-security.mjs"
+  },
   "scripts": {
     "test": "for f in test/*.test.mjs; do echo \"→ $f\"; node \"$f\" || exit 1; done",
-    "lint": "for f in scripts/*.mjs scripts/lib/*.mjs test/*.test.mjs; do node --check \"$f\" || exit 1; done && bash -n scripts/aws-exposure-audit.sh && echo 'lint ok'"
+    "lint": "for f in scripts/*.mjs scripts/lib/*.mjs test/*.test.mjs; do node --check \"$f\" || exit 1; done && for f in scripts/*.sh test/*.sh; do bash -n \"$f\" || exit 1; done && echo 'lint ok'",
+    "demo": "node scripts/webapp-security.mjs demo",
+    "sbom": "node scripts/generate-sbom.mjs",
+    "check": "npm run lint && npm test && bash test/shell-smoke.sh"
   },
   "license": "MIT"
 }

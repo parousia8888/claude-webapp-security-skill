@@ -1,0 +1,37 @@
+name: "False positive"
+description: "Report a reproducible incorrect finding or verdict"
+title: "[false-positive] "
+labels: ["false-positive", "needs-triage"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: "Version or commit"
+    validations:
+      required: true
+  - type: input
+    id: finding
+    attributes:
+      label: "Finding ID or verdict"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Minimal sanitized reproduction"
+      description: "Remove tokens, cookies, account identifiers, and real client IPs."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Actual and expected result"
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: "Safety"
+      options:
+        - label: "This report contains no secrets or private target details."
+          required: true

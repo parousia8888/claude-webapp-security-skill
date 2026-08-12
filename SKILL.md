@@ -65,27 +65,35 @@ Do not run all phases just because they exist. Pick from the task:
 ## Tooling
 
 ```bash
-S=~/.claude/skills/webapp-security-hardening
+S="${HOME}/.claude/skills/webapp-security-hardening"
 
-# crawl boundary + exposure probe + crawler UA matrix
-node $S/scripts/crawl-surface-audit.mjs --site https://example.com --out ./reports/security
+# Passive crawl boundary + crawler UA matrix
+node "$S/scripts/crawl-surface-audit.mjs" --site https://example.com --out ./reports/security
+
+# Active sensitive-path probe: only after Phase 0 authorization
+node "$S/scripts/crawl-surface-audit.mjs" --site https://example.com --out ./reports/security \
+  --active-probe --acknowledge-authorization
 
 # is this IP really the crawler it claims to be
-node $S/scripts/verify-crawler-ip.mjs --ip 66.249.66.1 --ua Googlebot --ranges
+node "$S/scripts/verify-crawler-ip.mjs" --ip 66.249.66.1 --ua Googlebot --ranges
 
 # read-only AWS posture inventory
-bash $S/scripts/aws-exposure-audit.sh --profile default --region ap-northeast-1 --out ./reports/security
+bash "$S/scripts/aws-exposure-audit.sh" --profile default --region ap-northeast-1 --out ./reports/security
 
 # prove the edge hardening engages: header matrix, TLS policy (TLS<=1.1 refused / 1.2+ works), cert, redirect.
 # PASSIVE by default (read-only). The rate-limit probe is an ACTIVE test (many concurrent requests) and
 # only runs with --active-rate-limit, on a target you own.
-bash $S/scripts/verify-hardening.sh --site https://example.com
-bash $S/scripts/verify-hardening.sh --site https://example.com --active-rate-limit --n 30
+bash "$S/scripts/verify-hardening.sh" --site https://example.com
+bash "$S/scripts/verify-hardening.sh" --site https://example.com \
+  --active-rate-limit --acknowledge-authorization --n 30
 ```
 
 The `verify-crawler-ip` and `robots` logic is unit-tested — `npm test` in the skill repo runs both suites (including the two crawler-spoof regression cases). A `verified` verdict requires the IP's proven owner to **match the UA's claimed vendor**; a mismatch is `spoofed`, never `verified`. Add missing vendor range sources with `--source name=url` before relying on a `spoofed`/`verified` call for a vendor the script has no data for.
 
-All three are read-only. `crawl-surface-audit.mjs` sends live HTTP requests, so it is subject to the Phase 0 gate for anything that is not the user's own property.
+Crawler identity verification and AWS inventory are read-only. Crawl and edge verification are
+passive by default; sensitive-path probes and rate-limit bursts are active, require Phase 0 and
+must carry the explicit authorization acknowledgement flag. Any HTTP audit of a third-party host
+still requires written authorization even when the request pattern is passive.
 
 ## Hard rules
 

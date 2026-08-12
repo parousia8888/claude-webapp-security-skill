@@ -1,0 +1,30 @@
+name: "Bug report"
+description: "Report a deterministic implementation or documentation defect"
+title: "[bug] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: "Version or commit"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Minimal reproduction"
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: "Expected and actual behavior"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Environment"
+      description: "OS, Node, Bash, curl, and TLS backend where relevant."
+    validations:
+      required: true

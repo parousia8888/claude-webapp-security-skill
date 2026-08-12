@@ -1,0 +1,42 @@
+name: "Web App Security Hardening"
+description: "Audit crawl boundaries and crawler accessibility with reproducible JSON and Markdown evidence."
+author: "parousia8888"
+branding:
+  icon: "shield"
+  color: "red"
+inputs:
+  site:
+    description: "Authorized http(s) origin to audit"
+    required: true
+  acknowledge-authorization:
+    description: "Must be true to confirm ownership or written authorization"
+    required: true
+  output-dir:
+    description: "Report directory"
+    default: "webapp-security-report"
+  fail-on:
+    description: "high, medium, low, or never"
+    default: "high"
+  active-probe:
+    description: "Probe common sensitive paths; disabled by default"
+    default: "false"
+runs:
+  using: "composite"
+  steps:
+    - name: "Validate authorization"
+      shell: "bash"
+      env:
+        INPUT_SITE: "${{ inputs.site }}"
+        INPUT_ACKNOWLEDGE_AUTHORIZATION: "${{ inputs.acknowledge-authorization }}"
+        INPUT_OUTPUT_DIR: "${{ inputs.output-dir }}"
+        INPUT_FAIL_ON: "${{ inputs.fail-on }}"
+        INPUT_ACTIVE_PROBE: "${{ inputs.active-probe }}"
+      run: |
+        bash "$GITHUB_ACTION_PATH/scripts/run-action.sh"
+outputs:
+  report-json:
+    description: "JSON report path"
+    value: "${{ inputs.output-dir }}/report.json"
+  report-markdown:
+    description: "Markdown report path"
+    value: "${{ inputs.output-dir }}/report.md"

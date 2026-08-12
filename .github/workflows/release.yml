@@ -1,0 +1,56 @@
+name: "release"
+on:
+  push:
+    tags:
+      - "v*"
+permissions:
+  contents: "write"
+  id-token: "write"
+  attestations: "write"
+jobs:
+  release:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+        with:
+          fetch-depth: 0
+      - uses: "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+        with:
+          node-version: "22"
+      - name: "Verify tag and release evidence"
+        shell: "bash"
+        run: |
+          version="$(tr -d '\n' < VERSION)"
+          test "$GITHUB_REF_NAME" = "v$version"
+          test -f "docs/releases/v$version.md"
+          npm run check
+      - name: "Build source archive, SBOM, and checksums"
+        shell: "bash"
+        run: |
+          version="$(tr -d '\n' < VERSION)"
+          mkdir -p dist
+          git archive --format=tar --prefix="webapp-security-hardening-$version/" "$GITHUB_REF_NAME" \
+            | gzip -n > "dist/webapp-security-hardening-$version.tar.gz"
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct "$GITHUB_REF_NAME")" \
+            node scripts/generate-sbom.mjs --out "dist/webapp-security-hardening-$version.spdx.json"
+          (cd dist && sha256sum * > SHA256SUMS)
+      - name: "Attest release artifacts"
+        uses: "actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be"
+        with:
+          subject-path: "dist/*"
+      - name: "Publish GitHub release"
+        env:
+          GH_TOKEN: "${{ github.token }}"
+        shell: "bash"
+        run: |
+          version="$(tr -d '\n' < VERSION)"
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "docs/releases/v$version.md"
+      - name: "Upload release evidence"
+        uses: "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+        with:
+          name: "release-evidence-${{ github.ref_name }}"
+          path: "dist/"
+          if-no-files-found: "error"

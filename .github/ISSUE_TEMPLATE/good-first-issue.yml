@@ -1,0 +1,18 @@
+name: "Good first issue proposal"
+description: "Propose a bounded contribution with an objective regression test"
+title: "[good first issue] "
+labels: ["good first issue", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem and scope"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "Acceptance test"
+      description: "State the fixture and the exact behavior that should fail before the change."
+    validations:
+      required: true

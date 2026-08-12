@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-08-13
+
+### Added
+- Unified zero-dependency CLI with Claude Code, Codex and ordinary CLI installation, atomic
+  replacement and timestamped backups.
+- Deterministic local before/after demo (`13 high / 6 medium` to zero) with JSON, Markdown and
+  patch evidence.
+- Passive-by-default composite GitHub Action with explicit authorization and stable report paths.
+- Release workflow for reproducible source archive, SPDX 2.3 SBOM, SHA-256 checksums and GitHub
+  build-provenance attestation; CodeQL and full-SHA third-party Action pins.
+- Security policy, threat model, false-positive policy, compatibility matrix, issue forms, bounded
+  good-first issues and versioned release evidence.
+- Five immutable-commit source case studies: Juice Shop, NodeGoat, DVWA, Uptime Kuma and Mealie.
+
+### Changed
+- Sensitive-path crawl probes and rate-limit bursts now require an explicit authorization
+  acknowledgement; passive checks remain the default.
+- Crawl reports support stable filenames and configurable fail thresholds for CI use.
+- README now leads with the reproducible demo, one-command install, Action, release verification
+  and case-study evidence.
+
 ## [0.2.4] — 2026-08-13
 
 ### Changed

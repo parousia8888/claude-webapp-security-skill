@@ -11,7 +11,7 @@ usage() {
   cat <<'EOF'
 # Usage:
 #   scripts/verify-hardening.sh --site https://example.com
-#   scripts/verify-hardening.sh --site https://example.com --active-rate-limit --n 30
+#   scripts/verify-hardening.sh --site https://example.com --active-rate-limit --acknowledge-authorization --n 30
 #   scripts/verify-hardening.sh --site https://1.2.3.4 --host example.com
 #
 # Options:
@@ -21,11 +21,13 @@ usage() {
 #   --content-path PATH    Public content path (default /)
 #   --probe-path PATH      Probe path for active limiting (default /.env)
 #   --active-rate-limit    Send the bounded concurrent rate-limit checks
+#   --acknowledge-authorization
+#                          Confirm ownership or written authorization for the active test
 #   --n COUNT              Requests per class, 1..100 (default 30)
 EOF
 }
 
-SITE="" HTTP_SITE="" HOST="" CONTENT="/" PROBE="/.env" N=30 ACTIVE_RATE_LIMIT=0
+SITE="" HTTP_SITE="" HOST="" CONTENT="/" PROBE="/.env" N=30 ACTIVE_RATE_LIMIT=0 ACKNOWLEDGED=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --site|--http-site|--host|--content-path|--probe-path|--n)
@@ -40,6 +42,7 @@ while [ $# -gt 0 ]; do
       esac
       shift 2;;
     --active-rate-limit) ACTIVE_RATE_LIMIT=1; shift;;
+    --acknowledge-authorization) ACKNOWLEDGED=1; shift;;
     -h|--help) usage; exit 0;;
     *) echo "unknown arg: $1" >&2; exit 2;;
   esac
@@ -54,6 +57,10 @@ case "$N" in ''|*[!0-9]*) echo "error: --n must be an integer from 1 to 100" >&2
 [ "$N" -ge 1 ] && [ "$N" -le 100 ] || { echo "error: --n must be an integer from 1 to 100" >&2; exit 2; }
 case "$CONTENT" in /*) ;; *) echo "error: --content-path must start with /" >&2; exit 2;; esac
 case "$PROBE" in /*) ;; *) echo "error: --probe-path must start with /" >&2; exit 2;; esac
+[ "$ACTIVE_RATE_LIMIT" -ne 1 ] || [ "$ACKNOWLEDGED" -eq 1 ] || {
+  echo "error: --active-rate-limit requires --acknowledge-authorization" >&2
+  exit 2
+}
 
 hcurl() { if [ -n "$HOST" ]; then curl -H "Host: $HOST" "$@"; else curl "$@"; fi; }
 

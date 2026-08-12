@@ -14,16 +14,20 @@ The first three move the score; the rest move adoption.
 - [ ] CIDR math via a reviewed approach or a vetted library, if hand-rolled edge cases keep surfacing
 
 ## v0.3 — a real regression gate
-- Deterministic local HTTP/HTTPS fixtures for headers, redirect, cert-fail, 429/503, timeout, connection-refused.
-- Crawler JSON fixtures: all-ok / all-fail / partial-fail / malformed / empty / stale-cache.
-- End-to-end test for `crawl-surface-audit.mjs`; a fake `aws` CLI fixture asserting permission-denied → `UNCHECKED` for `aws-exposure-audit.sh`.
-- ShellCheck, coverage threshold, CodeQL, dependency + secret scanning in CI.
-- Matrix: Ubuntu + macOS × Node 20/22 (started).
-- Every past bug carries a plant-the-failure regression.
+- [x] Deterministic local HTTP/HTTPS fixtures for headers, redirect, TLS, 429, connection-refused,
+  passive crawl, active-probe gate, Action entrypoint, installer and SBOM.
+- [x] Crawler product-source fixtures: exact-source hit/miss/failure and sibling-source isolation.
+- [x] Ubuntu + macOS x Node 20/22 matrix and CodeQL with full-SHA Action pins.
+- [x] Composite GitHub Action, unified CLI, one-command multi-client installer and local demo.
+- [x] Signed-build release workflow: source archive, SPDX SBOM, checksums and provenance attestation.
+- [ ] Fake AWS CLI fixture asserting permission-denied -> `UNCHECKED`.
+- [ ] Malformed/empty/stale crawler JSON fixtures, ShellCheck and coverage threshold.
+- [ ] Dependency review and secret scanning after repository settings and alert policy are defined.
 
-## v0.4 — product-shaped
+## v0.4 — structured security product
 - Layered: `security-core` (pure rules + finding schema) · `security-cli` · `security-skill` · `policy-packs` (AWS/Cloudflare/nginx/OAuth/LLM).
 - CLI: `audit`, `retest --baseline`, `explain FINDING-ID`.
 - Outputs: Markdown/HTML · stable JSON schema · SARIF (GitHub code scanning) · JUnit · baseline diff (new/fixed/unchanged/regressed).
-- GitHub Action `uses: parousia8888/webapp-security-hardening@v1`, signed releases, pinned action commit, SBOM, checksums.
+- Publish or mirror `parousia8888/webapp-security-hardening`, maintain a moving `v1` Action tag,
+  and document a full immutable commit pin after the first Action release.
 - Differentiator (not a general scanner — that's Semgrep/ZAP/Nuclei's lane): turn a security recommendation into a verifiable production hardening change and prove it didn't break real users, SEO, or AI-crawler traffic. nginx/Cloudflare/AWS-WAF minimal-patch generation, before/after regression, crawl-boundary matrix, versioned `security-policy.yml`, an evidence ledger, and patch-only-by-default for high-risk fixes.

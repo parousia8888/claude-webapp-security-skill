@@ -75,7 +75,7 @@ check('TLS 1.0 is rejected', /TLS 1\.0 handshake rejected/.test(passive.stdout))
 check('certificate chain is validated', /certificate chain and hostname validate/.test(passive.stdout));
 
 const active = await command('/bin/bash', [
-  SCRIPT, '--site', secureSite, '--http-site', httpSite, '--active-rate-limit', '--n', '1',
+  SCRIPT, '--site', secureSite, '--http-site', httpSite, '--active-rate-limit', '--acknowledge-authorization', '--n', '1',
 ], { env: { ...process.env, CURL_CA_BUNDLE: cert } });
 check('active rate-limit verification succeeds', active.code === 0, active.stdout + active.stderr);
 check('probe throttling is observed', /probe class is being throttled/.test(active.stdout));
@@ -86,7 +86,10 @@ for (const value of ['0', 'nope', '101']) {
   check(`--n ${value} exits 2`, invalid.code === 2, invalid.stdout + invalid.stderr);
 }
 
-const unreachable = await command('/bin/bash', [SCRIPT, '--site', 'http://127.0.0.1:1', '--active-rate-limit', '--n', '1']);
+const noAck = await command('/bin/bash', [SCRIPT, '--site', secureSite, '--active-rate-limit', '--n', '1']);
+check('active rate-limit requires authorization acknowledgement', noAck.code === 2 && /requires --acknowledge-authorization/.test(noAck.stderr));
+
+const unreachable = await command('/bin/bash', [SCRIPT, '--site', 'http://127.0.0.1:1', '--active-rate-limit', '--acknowledge-authorization', '--n', '1']);
 check('network failure cannot pass', unreachable.code !== 0, unreachable.stdout + unreachable.stderr);
 check('network failure is not called crawler-safe', !/content class remained available/.test(unreachable.stdout));
 

@@ -10,13 +10,17 @@
  *
  * Options:
  *   --site <url>        required, origin to audit
- *   --out <dir>         write report.json + report.md here (default: stdout only)
+ *   --out <dir>         write JSON + Markdown reports here (default: stdout only)
+ *   --report-name <s>   stable basename in --out (default: timestamped)
  *   --max-urls <n>      sitemap URLs to spot-check (default 20)
  *   --matrix <n>        URLs to replay across the crawler UA matrix (default 3)
  *   --concurrency <n>   parallel requests (default 4)
  *   --delay <ms>        delay between request batches (default 200)
  *   --timeout <ms>      per-request timeout (default 15000)
- *   --no-probe          skip the private-path probe list
+ *   --active-probe      probe common private/sensitive paths (requires authorization)
+ *   --acknowledge-authorization
+ *                       confirm ownership or written authorization for active probes
+ *   --fail-on <level>   exit 1 at high, medium, low, or never (default high)
  *   --quiet             suppress progress output on stderr
  */
 
@@ -39,15 +43,46 @@ if (!SITE) {
   console.error('error: --site <url> is required');
   process.exit(2);
 }
-const ORIGIN = new URL(SITE).origin;
+let parsedSite;
+try { parsedSite = new URL(SITE); } catch { console.error('error: --site must be a valid URL'); process.exit(2); }
+if (!['http:', 'https:'].includes(parsedSite.protocol)) {
+  console.error('error: --site must use http:// or https://');
+  process.exit(2);
+}
+const ORIGIN = parsedSite.origin;
 const OUT_DIR = arg('out');
+const REPORT_NAME = arg('report-name');
 const MAX_URLS = Number(arg('max-urls', 20));
 const MATRIX_URLS = Number(arg('matrix', 3));
 const CONCURRENCY = Number(arg('concurrency', 4));
 const DELAY = Number(arg('delay', 200));
 const TIMEOUT = Number(arg('timeout', 15000));
-const PROBE = !flag('no-probe');
+const PROBE = flag('active-probe') && !flag('no-probe');
+const ACKNOWLEDGED = flag('acknowledge-authorization');
+const FAIL_ON = arg('fail-on', 'high');
 const QUIET = flag('quiet');
+
+for (const [name, value, min, max] of [
+  ['max-urls', MAX_URLS, 0, 1000], ['matrix', MATRIX_URLS, 0, 20],
+  ['concurrency', CONCURRENCY, 1, 32], ['delay', DELAY, 0, 60000], ['timeout', TIMEOUT, 100, 120000],
+]) {
+  if (!Number.isInteger(value) || value < min || value > max) {
+    console.error(`error: --${name} must be an integer from ${min} to ${max}`);
+    process.exit(2);
+  }
+}
+if (!['high', 'medium', 'low', 'never'].includes(FAIL_ON)) {
+  console.error('error: --fail-on must be high, medium, low, or never');
+  process.exit(2);
+}
+if (PROBE && !ACKNOWLEDGED) {
+  console.error('error: --active-probe requires --acknowledge-authorization');
+  process.exit(2);
+}
+if (REPORT_NAME && !/^[a-zA-Z0-9._-]+$/.test(REPORT_NAME)) {
+  console.error('error: --report-name may contain only letters, digits, dot, underscore, and dash');
+  process.exit(2);
+}
 
 const log = (...m) => { if (!QUIET) console.error('·', ...m); };
 
@@ -504,10 +539,15 @@ if (OUT_DIR) {
   mkdirSync(OUT_DIR, { recursive: true });
   const stamp = report.generatedAt.replace(/[:.]/g, '-');
   const host = new URL(ORIGIN).hostname;
-  writeFileSync(join(OUT_DIR, `crawl-surface-${host}-${stamp}.json`), JSON.stringify(report, null, 2));
-  writeFileSync(join(OUT_DIR, `crawl-surface-${host}-${stamp}.md`), md);
+  const base = REPORT_NAME || `crawl-surface-${host}-${stamp}`;
+  writeFileSync(join(OUT_DIR, `${base}.json`), JSON.stringify(report, null, 2));
+  writeFileSync(join(OUT_DIR, `${base}.md`), md);
   log(`wrote report to ${OUT_DIR}`);
 }
 
 console.log(md);
-process.exit(counts.high ? 1 : 0);
+const fail = FAIL_ON === 'never' ? false
+  : FAIL_ON === 'high' ? Boolean(counts.high)
+    : FAIL_ON === 'medium' ? Boolean(counts.high || counts.medium)
+      : Boolean(counts.high || counts.medium || counts.low);
+process.exit(fail ? 1 : 0);
