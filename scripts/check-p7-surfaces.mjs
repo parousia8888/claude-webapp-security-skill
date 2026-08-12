@@ -29,6 +29,7 @@ const surfaces = {
   tutorial: read('docs/tutorial.md'),
   tutorialZh: read('docs/tutorial.zh-CN.md'),
   launch: read('docs/launch-evidence.md'),
+  issues: read('docs/GOOD_FIRST_ISSUES.md'),
   roadmap: read('ROADMAP.md'),
   release: read(`docs/releases/v${read('VERSION').trim()}.md`),
 };
@@ -92,6 +93,17 @@ for (const label of metadata.requiredLabels) {
     fail(`issue forms do not use required label ${label.name}`);
   }
 }
+for (const issue of metadata.roadmapIssues || []) {
+  const url = `https://github.com/${metadata.repository}/issues/${issue.number}`;
+  if (!Number.isInteger(issue.number) || !issue.title || !issue.labels?.length) {
+    fail(`invalid roadmap issue source: ${issue.number}`);
+    continue;
+  }
+  if (!surfaces.issues.includes(url) || !surfaces.issues.includes(issue.title)) {
+    fail(`good-first-issue document is missing #${issue.number}`);
+  }
+  if (!surfaces.roadmap.includes(url)) fail(`roadmap is missing #${issue.number}`);
+}
 
 if (live) {
   const repoResult = spawnSync('gh', ['repo', 'view', metadata.repository, '--json', 'description,homepageUrl,repositoryTopics'], { encoding: 'utf8' });
@@ -111,6 +123,18 @@ if (live) {
       const actual = labels.get(expected.name);
       if (!actual || actual.color.toLowerCase() !== expected.color || actual.description !== expected.description) {
         fail(`live GitHub label differs from source: ${expected.name}`);
+      }
+    }
+  }
+  const issueResult = spawnSync('gh', ['issue', 'list', '--repo', metadata.repository, '--state', 'open', '--limit', '100', '--json', 'number,title,labels'], { encoding: 'utf8' });
+  if (issueResult.status !== 0) fail(issueResult.stderr || 'unable to read live GitHub issues');
+  else {
+    const issues = new Map(JSON.parse(issueResult.stdout).map((item) => [item.number, item]));
+    for (const expected of metadata.roadmapIssues || []) {
+      const actual = issues.get(expected.number);
+      const labels = (actual?.labels || []).map((item) => item.name).sort();
+      if (!actual || actual.title !== expected.title || labels.join('\n') !== [...expected.labels].sort().join('\n')) {
+        fail(`live GitHub issue differs from source: #${expected.number}`);
       }
     }
   }

@@ -24,16 +24,23 @@ See the [v0.3.0 release evidence](docs/releases/v0.3.0.md) and
 
 ## Correctness backlog
 
-- Malformed, empty and stale crawler-range JSON fixtures with fail-closed result semantics.
-- Fake AWS CLI permission-denied fixtures that preserve `UNCHECKED` rather than pass.
-- Sitemap XML entities and CDATA regression fixtures.
-- An informational `security.txt` check that never labels absence a vulnerability.
-- ShellCheck and an evidence-based coverage threshold without weakening Bash 3.2 support.
-- Dependency review and secret scanning after alert ownership and response policy are documented.
+- [#1](https://github.com/parousia8888/web-app-security-skill/issues/1): malformed, empty and stale
+  crawler-range JSON fixtures with fail-closed result semantics.
+- [#2](https://github.com/parousia8888/web-app-security-skill/issues/2): fake AWS CLI
+  permission-denied fixtures that preserve `UNCHECKED` rather than pass.
+- [#5](https://github.com/parousia8888/web-app-security-skill/issues/5): sitemap XML entities and
+  CDATA regression fixtures.
+- [#4](https://github.com/parousia8888/web-app-security-skill/issues/4): an informational
+  `security.txt` check that never labels absence a vulnerability.
+- [#6](https://github.com/parousia8888/web-app-security-skill/issues/6): ShellCheck and an
+  evidence-based coverage threshold without weakening Bash 3.2 support.
+- [#7](https://github.com/parousia8888/web-app-security-skill/issues/7): dependency review and
+  secret scanning after alert ownership and response policy are documented.
 
 ## Platform and documentation backlog
 
-- Verify and document install, lifecycle and tutorial behavior on a clean WSL2 image.
+- [#3](https://github.com/parousia8888/web-app-security-skill/issues/3): verify and document
+  install, lifecycle and tutorial behavior on a clean WSL2 image.
 - Add source adapters only with planted failure fixtures and stable evidence output.
 - Add policy packs for common deployment controls only when their patch and rollback behavior can be
   retested without claiming broad scanner coverage.
