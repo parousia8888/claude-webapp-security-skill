@@ -113,7 +113,11 @@ function haveProofSourceFor(vendor) {
  *         and whether ranges were even consulted.
  * The single rule everywhere: a proven owner that DISAGREES with a non-null claim is a spoof.
  */
-export function decideVerdict({ claimedVendor, rdnsOwner, rangeVendor, usedRanges }) {
+export function decideVerdict({ claimedVendor, rdnsOwner, rangeVendor, usedRanges, claimedVendorSourceLoaded = null }) {
+  // claimedVendorSourceLoaded: true = the claimed vendor's range source loaded this run,
+  //   false = it FAILED to load (network/URL error), null = we have no source for that vendor.
+  // This distinction is the whole point of the fix: a source that failed to fetch must never
+  // convict a real crawler as spoofed — a transient outage would then get it wrongly blocked.
   // 1. rDNS proved the IP belongs to some vendor
   if (rdnsOwner) {
     if (!claimedVendor || claimedVendor === rdnsOwner) return { verdict: 'verified', vendor: rdnsOwner, method: 'fcrdns' };
@@ -130,12 +134,17 @@ export function decideVerdict({ claimedVendor, rdnsOwner, rangeVendor, usedRange
       if (!claimedVendor || claimedVendor === rangeVendor) return { verdict: 'verified', vendor: rangeVendor, method: 'published-range' };
       return { verdict: 'spoofed', vendor: rangeVendor, method: 'published-range', mismatch: `UA claims ${claimedVendor}, IP is in ${rangeVendor}'s published range` };
     }
-    // no range matched. If we HAVE the claimed vendor's ranges and the IP isn't in them → spoof.
-    if (claimedVendor && haveProofSourceFor(claimedVendor)) {
-      return { verdict: 'spoofed', vendor: claimedVendor, method: 'published-range', note: `UA claims ${claimedVendor}; IP is in no published prefix of any checked vendor` };
+    // no range matched the claim. Only a SUCCESSFULLY-LOADED source that lacks the IP proves a spoof.
+    if (claimedVendor) {
+      if (claimedVendorSourceLoaded === true) {
+        return { verdict: 'spoofed', vendor: claimedVendor, method: 'published-range', note: `UA claims ${claimedVendor}; IP is in none of its successfully-loaded published prefixes` };
+      }
+      if (claimedVendorSourceLoaded === false) {
+        // fail OPEN, not closed: a fetch failure is not evidence of spoofing.
+        return { verdict: 'unverifiable', vendor: null, method: 'published-range', note: `${claimedVendor}'s published ranges could not be fetched this run — cannot decide; do not block on this` };
+      }
+      return { verdict: 'unverifiable', vendor: null, method: 'published-range', note: `no proof source for ${claimedVendor}; add one with --source before acting` };
     }
-    // claimed a vendor we have no source for → cannot decide, do not guess.
-    if (claimedVendor) return { verdict: 'unverifiable', vendor: null, method: 'published-range', note: `no proof source for ${claimedVendor}; add one with --source before acting` };
   }
   return { verdict: 'unverifiable', vendor: null, method: null };
 }
@@ -188,13 +197,13 @@ function v6ToBig(ip) {
   return n;
 }
 
-function parseIp(ip) {
+export function parseIp(ip) {
   if (ip.includes(':')) { const n = v6ToBig(ip); return n === null ? null : { n, bits: 128 }; }
   const n = v4ToBig(ip);
   return n === null ? null : { n, bits: 32 };
 }
 
-function inCidr(ip, cidr) {
+export function inCidr(ip, cidr) {
   const [net, lenStr] = cidr.split('/');
   const a = parseIp(ip), b = parseIp(net);
   if (!a || !b || a.bits !== b.bits) return false;
@@ -261,19 +270,27 @@ async function verify(ip, ua = '') {
     : null;
 
   let rangeVendor = null;
+  // Track whether the CLAIMED vendor's own source(s) actually loaded this run — so a fetch
+  // failure yields 'unverifiable', not a wrong 'spoofed'. null = we have no source for it.
+  let claimedVendorSourceLoaded = null;
   if (USE_RANGES) {
     for (const [name, url] of Object.entries(RANGE_SOURCES)) {
       const data = await loadRanges(name, url);
+      const vendorOfSource = RANGE_VENDOR[name] ?? name;
+      if (claimedVendor && vendorOfSource === claimedVendor) {
+        // at least one of the claimed vendor's sources loaded → true; else stays false
+        claimedVendorSourceLoaded = claimedVendorSourceLoaded === true ? true : data.ok;
+      }
       if (data.ok && data.prefixes.some((c) => inCidr(ip, c))) {
         rangeVendor = RANGE_VENDOR[name] ?? name;
         out.evidence.range = name;
-        break;
+        if (rangeVendor === claimedVendor) break; // matched the claim; no need to keep looking
       }
     }
   }
 
   // decide (pure) — claim must AGREE with proven ownership, never merely "some bot vendor"
-  const d = decideVerdict({ claimedVendor, rdnsOwner, rangeVendor, usedRanges: USE_RANGES });
+  const d = decideVerdict({ claimedVendor, rdnsOwner, rangeVendor, usedRanges: USE_RANGES, claimedVendorSourceLoaded });
   out.verdict = d.verdict;
   out.vendor = d.vendor;
   out.method = d.method;
