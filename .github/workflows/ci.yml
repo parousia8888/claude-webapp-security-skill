@@ -4,14 +4,13 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]   # macos-latest ships Bash 3.2 — catches the empty-array/set-u traps
+        os: [ubuntu-latest, macos-latest]   # macOS ships Bash 3.2
+        node: ['20', '22']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '22' }
+        with: { node-version: '${{ matrix.node }}' }
       - run: npm run lint
-      - run: npm test
-      # smoke: the shell scripts must run (not crash on unbound vars) even against an unreachable target
-      - run: bash scripts/verify-hardening.sh --site https://127.0.0.1:1 --n 1 || true
-      - run: bash scripts/aws-exposure-audit.sh --help >/dev/null 2>&1 || true
+      - run: npm test                        # unit + robots + real-CLI integration (fixture)
+      - run: bash test/shell-smoke.sh        # real gate: exit codes + Bash 3.2, no `|| true`
