@@ -1,0 +1,65 @@
+# claude-webapp-security-skill
+
+A Claude Code skill for web application security: a nine-phase audit and hardening program, three read-only audit scripts, and a decision model for what the public internet may crawl.
+
+This file is an informational map for automated readers. It is not a ranking directive and not an access control.
+
+## Documentation
+
+- English README: README.md
+- Chinese README: README.zh-CN.md
+- Install directory must be named webapp-security-hardening to match the SKILL.md name field.
+
+## What the skill does
+
+- Runs a phased security program: scope gate, frontend exposure, API security, LLM security and federated identity, server-side code audit, database isolation, supply chain, blue-team detection, reporting and retest.
+- Settles the crawl boundary: which paths stay open to every IP including AI crawlers, which must never be crawled, and which layer enforces that.
+- Keeps public content open while stopping malicious scanning, by classifying traffic on what is requested rather than on who requests it.
+- Audits AWS posture read-only: identity, network exposure, compute, storage, databases, edge, logging, cost.
+
+## Core claims
+
+- robots.txt is not access control. It is a published list of paths worth attacking.
+- Disallow plus noindex on the same path is a deadlock: a disallowed page is never fetched, so its noindex is never read.
+- Blocking training crawlers (GPTBot, ClaudeBot, CCBot) does not reduce search or AI-citation visibility. Search crawlers (Googlebot, Bingbot, OAI-SearchBot, Claude-SearchBot, PerplexityBot) are a separate decision.
+- User-triggered fetchers (ChatGPT-User, Claude-User, Perplexity-User) are live humans, not crawlers. Blocking them shows a broken site to a real person.
+- Google-Extended and Applebot-Extended are robots.txt tokens, not user agents. Blocking them at a WAF does nothing.
+- A user agent string may be used to deny, never to grant. Allowlist only on forward-confirmed reverse DNS or vendor-published IP ranges.
+- Per-client 404 rate is the highest-signal scanner detector: real crawlers almost never 404, scanners 404 on most requests.
+- Any WAF, CDN, or security-group change is also an SEO change.
+
+## Key files
+
+- SKILL.md: entry point, phase map, hard rules, output contract
+- references/phase-0-scope.md: authorization anchor and non-destructive proof patterns
+- references/phase-1-frontend.md: bundle exposure, source maps, moving prompts and pricing server-side
+- references/phase-2-api.md: ten-stage API methodology including BOLA, BFLA, rate limiting, race conditions, SSRF
+- references/phase-3-llm-identity.md: prompt injection, cost abuse, RAG boundaries, OAuth/OIDC verification and account linking
+- references/phase-4-code-audit.md: SAST, secret scanning, authorization coverage
+- references/phase-5-database.md: network isolation, least privilege, pool starvation, backups
+- references/phase-6-supply-chain.md: SBOM, SCA, SRI, CI/CD OIDC
+- references/phase-7-detection.md: real client IP, fifteen detection rules, incident response
+- references/phase-8-report.md: finding format, retest ledger, regression gates
+- references/crawl-boundary.md: the three-bucket model, crawler roster, robots.txt rules
+- references/bot-verification.md: FCrDNS and published IP ranges per vendor
+- references/enforcement-layers.md: open content, block scanners; which layer owns which rule
+- references/exposure-checks.md: source maps, dotfiles, admin panels, share links, subdomains
+- references/aws-hardening.md: prioritized AWS checklist and its interaction with crawlability
+- references/overlooked-surface.md: DNS, account recovery, cache poisoning, uploads, people and operations
+
+## Scripts
+
+- scripts/crawl-surface-audit.mjs: parses robots.txt, llms.txt and sitemaps; probes private paths; replays URLs across eleven crawler user agents to detect edge blocking and cloaking. Node 18+, no dependencies.
+- scripts/verify-crawler-ip.mjs: verifies a client IP against the crawler its user agent claims, by forward-confirmed reverse DNS or vendor-published CIDR ranges. IPv4 and IPv6.
+- scripts/aws-exposure-audit.sh: read-only AWS posture inventory. Failed checks are reported as UNCHECKED, never as passing.
+
+## Constraints the skill enforces
+
+- No active testing without a completed scope contract and proof of target ownership.
+- No destructive proof, no bulk data extraction, no denial-of-service testing.
+- No secrets, tokens, cookies, auth headers, user emails, or real client IPs in any output.
+- Findings are marked confirmed or suspected, never blended, and every report states what it does not prove.
+
+## License
+
+MIT.
