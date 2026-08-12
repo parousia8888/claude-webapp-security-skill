@@ -99,16 +99,16 @@
     {
       "id": "structured-reports",
       "name": "Stable multi-format finding reports",
-      "label": "planned",
-      "scope": "Publish one finding schema through Markdown, HTML, SARIF and JUnit renderers with baseline diffs.",
-      "evidence": ["docs/PRODUCTIZATION_PLAN.md"]
+      "label": "automated_regression_tested",
+      "scope": "Renders the versioned finding/report schema as JSON, Markdown, escaped HTML, SARIF 2.1.0 and JUnit while preserving evidence states and stable fingerprints.",
+      "evidence": ["docs/finding.schema.json", "docs/report.schema.json", "scripts/lib/evidence.mjs", "test/evidence-loop.test.mjs"]
     },
     {
       "id": "patch-retest-loop",
       "name": "General patch and retest loop",
-      "label": "planned",
-      "scope": "Prepare reviewable project-specific patches and confirm them through a reusable baseline retest path.",
-      "evidence": ["docs/PRODUCTIZATION_PLAN.md"]
+      "label": "automated_regression_tested",
+      "scope": "Runs narrow deterministic source rules, writes patch-only proposals, explains findings and compares required retest baselines as new/fixed/unchanged/regressed. Agent-guided reviews still require agent-authored findings.",
+      "evidence": ["scripts/project-audit.mjs", "scripts/lib/source-audit.mjs", "scripts/explain-finding.mjs", "test/evidence-loop.test.mjs"]
     }
   ]
 }

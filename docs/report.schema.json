@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/report.schema.json",
+  "title": "Web App Security Skill report",
+  "type": "object",
+  "required": ["schemaVersion", "tool", "generatedAt", "mode", "scope", "summary", "findings", "limitations"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "Web App Security Skill" },
+        "version": { "type": "string" }
+      }
+    },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "mode": { "enum": ["audit", "retest", "demo-before", "demo-after"] },
+    "scope": { "type": "object" },
+    "baseline": { "type": ["object", "null"] },
+    "summary": { "type": "object" },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "./finding.schema.json" }
+    },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  }
+}

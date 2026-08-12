@@ -87,6 +87,11 @@ S="${HOME}/.claude/skills/web-app-security"
 # Network-free project discovery and versioned scope
 node "$S/scripts/webapp-security.mjs" start /path/to/project
 
+# Deterministic source evidence, explanation and baseline retest
+node "$S/scripts/webapp-security.mjs" audit /path/to/project --fail-on high
+node "$S/scripts/webapp-security.mjs" explain <finding-id> --report <report.json>
+node "$S/scripts/webapp-security.mjs" retest /path/to/project --baseline <report.json>
+
 # Passive crawl boundary + crawler UA matrix
 node "$S/scripts/crawl-surface-audit.mjs" --site https://example.com --out ./reports/security
 
@@ -138,3 +143,7 @@ Every audit deliverable states:
 - **what this does not prove**: unreached surfaces, JS-rendered content, unauthenticated-only coverage, permissions the audit lacked
 - **priority plan**: this-week / high / medium / continuous, with blast-radius notes for anything that could break live traffic or crawling
 - **retest plan**: how each fix will be verified, and by whom
+
+When structured output is required, use `docs/finding.schema.json` and `docs/report.schema.json`.
+Preserve `confirmed`, `suspected`, `unknown`, and `not_applicable` in every renderer. A patch is
+review evidence only; set baseline state to `fixed` only after the check disappears on retest.

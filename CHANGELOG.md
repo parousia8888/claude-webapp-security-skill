@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Network-free `webapp-security start <project>` discovery for Node, Python and split-stack layouts,
   with a versioned `security-scope.yml`, explicit source/local/remote modes, pending authorization,
   secret-file avoidance and an installable scope schema.
+- Versioned finding/report schemas, narrow deterministic source rules, JSON/Markdown/escaped HTML/
+  SARIF/JUnit renderers, stable fingerprints, `audit`, `explain`, required-baseline `retest`,
+  patch-only proposals and `new`/`fixed`/`unchanged`/`regressed` comparison states.
 - Unified zero-dependency CLI with Claude Code, Codex and ordinary CLI installation, atomic
   replacement and timestamped backups.
 - Deterministic local before/after demo (`13 high / 6 medium` to zero) with JSON, Markdown and

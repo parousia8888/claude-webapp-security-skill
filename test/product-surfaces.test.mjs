@@ -110,6 +110,15 @@ try {
   assert.match(result.stdout, /after:\s+0 high, 0 medium/);
   assert.ok(existsSync(join(demoOut, 'before.json')));
   assert.ok(existsSync(join(demoOut, 'after.json')));
+  const demoEvidenceBefore = JSON.parse(readFileSync(join(demoOut, 'evidence-before.json'), 'utf8'));
+  const demoEvidenceAfter = JSON.parse(readFileSync(join(demoOut, 'evidence-after.json'), 'utf8'));
+  assert.equal(demoEvidenceBefore.schemaVersion, 1);
+  assert.equal(demoEvidenceBefore.mode, 'demo-before');
+  assert.equal(demoEvidenceBefore.summary.byState.confirmed, 21);
+  assert.equal(demoEvidenceAfter.mode, 'demo-after');
+  assert.equal(demoEvidenceAfter.summary.byBaseline.fixed, 21);
+  assert.ok(existsSync(join(demoOut, 'evidence-before.html')));
+  assert.ok(existsSync(join(demoOut, 'evidence-after.sarif')));
   assert.match(readFileSync(join(demoOut, 'summary.md'), 'utf8'), /\| Before \| 13 \| 6 \|/);
   assert.match(readFileSync(join(demoOut, 'summary.md'), 'utf8'), /\| Retest \| 0 \| 0 \|/);
   assert.match(readFileSync(join(demoOut, 'hardening.patch'), 'utf8'), /GET \/\.env\s+-> 404/);
@@ -130,6 +139,8 @@ try {
     assert.equal(existsSync(join(installed, 'README.md')), false, 'installer must copy only the skill payload');
     assert.ok(existsSync(join(installed, 'docs', 'capabilities.md')));
     assert.ok(existsSync(join(installed, 'docs', 'security-scope.schema.json')));
+    assert.ok(existsSync(join(installed, 'docs', 'finding.schema.json')));
+    assert.ok(existsSync(join(installed, 'docs', 'report.schema.json')));
     assert.match(readFileSync(join(installed, 'SKILL.md'), 'utf8'), /^name: web-app-security$/m);
   }
   const codexSkills = join(fakeHome, '.codex', 'skills');
@@ -156,6 +167,18 @@ try {
   assert.ok(installedScope.target.frameworks.some((item) => item.name === 'Next.js'));
   assert.equal(installedScope.target.publicOrigins[0].url, 'https://example.com/');
   assert.equal(installedScope.checkModes.remoteActive.status, 'blocked_pending_authorization');
+  const installedAuditOut = join(temp, 'installed-audit');
+  result = await run(launcher, [
+    'audit', join(ROOT, 'test', 'fixtures', 'audit-app'), '--out', installedAuditOut,
+    '--name', 'installed', '--fail-on', 'never',
+  ], { env: { ...process.env, HOME: allHome, SOURCE_DATE_EPOCH: '0' } });
+  assert.equal(result.status, 0, result.stderr);
+  const installedReport = JSON.parse(readFileSync(join(installedAuditOut, 'installed.json'), 'utf8'));
+  assert.equal(installedReport.schemaVersion, 1);
+  assert.equal(installedReport.summary.byState.confirmed, 1);
+  assert.equal(installedReport.summary.byState.suspected, 3);
+  assert.ok(existsSync(join(installedAuditOut, 'installed.html')));
+  assert.ok(existsSync(join(installedAuditOut, 'installed.sarif')));
 
   const sbomPath = join(temp, 'sbom.spdx.json');
   result = await run(process.execPath, [SBOM, '--out', sbomPath], { env: { ...process.env, SOURCE_DATE_EPOCH: '0' } });

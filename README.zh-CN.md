@@ -80,18 +80,27 @@ lockfile 与部署/配置路径，全程不访问网络。检查 scope 后，再
 在这个仓库使用 $web-app-security。先只执行源码与本地检查，记录范围和假设；把每项结果标为 confirmed、suspected、unknown 或 not_applicable；准备最小且可审查的加固补丁，未经批准不应用高风险或生产变更；复测每项已应用修复，最后列出已修复、仍存在和未覆盖的风险。
 ```
 
-预期交付物包括记录后的范围、脱敏 finding、建议或已批准补丁、复测证据，以及明确列出的剩余和
-未覆盖风险。该提示词不授权探测部署；主动流量仍要求所有权或书面授权，并通过单独门禁。
+随后可运行确定性源码路径：
+
+```bash
+webapp-security audit . --fail-on high
+webapp-security explain <finding-id> --report .webapp-security/runs/<run-id>/report.json
+webapp-security retest . --baseline .webapp-security/runs/<run-id>/report.json
+```
+
+每次 audit 会写出 JSON、Markdown、HTML、SARIF、JUnit 和 `proposed.patch`。该命令不会应用补丁；
+只有复测证据消除 finding 后才记为 fixed。更广的 Agent 任务仍需交付 scope、脱敏 finding、已审查
+变更、复测证据及剩余/未覆盖风险。这些命令都不授予部署探测权限。
 
 ## 能力边界
 
 项目公开能力严格分成 3 层能力：
 
-- **已自动化并有回归测试：** 项目识别/scope、本地 demo、crawl boundary、crawler 身份、
-  edge 复测、安装器和 GitHub Action 通过确定性产品路径运行。
+- **已自动化并有回归测试：** 项目识别/scope、窄范围源码规则、稳定多格式报告与 baseline 复测、
+  本地 demo、crawl boundary、crawler 身份、edge 复测、安装器和 GitHub Action 通过确定性路径运行。
 - **Agent 按方法论执行：** 前端、API、LLM/OAuth、服务端、数据库、供应链、检测和 AWS 审查
   依赖项目上下文与 Agent 判断，不是一条自动扫描命令。
-- **计划中：** 稳定的多格式 finding、通用补丁/基线复测闭环尚未交付。
+- **计划中：** 新框架/rule adapter 与更深的确定性检查，只有经过 planted regression 后才会加入。
 
 [生成的能力矩阵](docs/capabilities.md)为每项声明链接证据。结果只使用 `confirmed`、
 `suspected`、`unknown`、`not_applicable`；无法执行的检查不是通过。安装 Skill 不代表项目已经安全。
@@ -103,6 +112,11 @@ lockfile 与部署/配置路径，全程不访问网络。检查 scope 后，再
 ```bash
 # 无网络项目识别与版本化 scope
 webapp-security start .
+
+# 只读源码 audit、finding 解释与强制 baseline 复测
+webapp-security audit . --fail-on high
+webapp-security explain <finding-id> --report <report.json>
+webapp-security retest . --baseline <report.json> --fail-on high
 
 # 默认被动：爬取边界与 crawler 可达性
 webapp-security crawl --site https://example.com --out ./security-report

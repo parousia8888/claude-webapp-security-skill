@@ -83,21 +83,30 @@ scope, then send:
 Use $web-app-security on this repository. Start with source and local checks only. Record scope and assumptions. Classify every result as confirmed, suspected, unknown, or not_applicable. Prepare the smallest reviewable hardening patch, do not apply risky or production changes without approval, retest every applied fix, and finish with fixed, remaining, and unreached risks.
 ```
 
-The expected deliverable is a recorded scope, sanitized findings, a proposed or approved patch,
-retest evidence, and explicit remaining/unreached risks. The prompt grants no permission to probe a
-deployment; active traffic still requires ownership or written authorization and a separate gate.
+The deterministic source path can then run as:
+
+```bash
+webapp-security audit . --fail-on high
+webapp-security explain <finding-id> --report .webapp-security/runs/<run-id>/report.json
+webapp-security retest . --baseline .webapp-security/runs/<run-id>/report.json
+```
+
+Each audit writes JSON, Markdown, HTML, SARIF, JUnit and `proposed.patch`. The patch is never applied
+by this command and never counts as fixed until retest evidence removes the finding. The broader
+agent task still delivers recorded scope, sanitized findings, reviewed changes, retest evidence and
+remaining/unreached risks. None of these commands grants permission to probe a deployment.
 
 ## Capability boundary
 
 The project has 3 capability levels:
 
-- **Automated and regression-tested:** project discovery/scoping, the local demo, crawl-boundary
-  audit, crawler identity, edge verification, installer and GitHub Action run through deterministic
-  product paths.
+- **Automated and regression-tested:** project discovery/scoping, narrow source rules, stable
+  multi-format reports and baseline retest, the local demo, crawl-boundary audit, crawler identity,
+  edge verification, installer and GitHub Action run through deterministic product paths.
 - **Agent-guided methodology:** frontend, API, LLM/OAuth, server, database, supply-chain, detection
   and AWS reviews require project context and agent judgment. They are not one automatic scan.
-- **Planned:** stable multi-format findings and a general patch/retest baseline loop are not shipped
-  yet.
+- **Planned:** new framework/rule adapters and deeper deterministic checks remain planned until
+  planted regressions prove them.
 
 The [generated capability matrix](docs/capabilities.md) links every statement to evidence. Results
 are `confirmed`, `suspected`, `unknown`, or `not_applicable`; a check that could not run is never a
@@ -111,6 +120,11 @@ directly:
 ```bash
 # Network-free project discovery and versioned scope
 webapp-security start .
+
+# Source-only audit, explain and required-baseline retest
+webapp-security audit . --fail-on high
+webapp-security explain <finding-id> --report <report.json>
+webapp-security retest . --baseline <report.json> --fail-on high
 
 # Passive crawl-boundary and crawler accessibility audit
 webapp-security crawl --site https://example.com --out ./security-report

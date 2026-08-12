@@ -15,6 +15,8 @@ Skill methodology. Installing the Skill does not prove that a web project is sec
 | Edge hardening verification | Checks security headers, HTTP-to-HTTPS redirect, certificate validation and TLS policy; bounded rate-limit traffic is separately authorized. | [`scripts/verify-hardening.sh`](../scripts/verify-hardening.sh), [`test/verify-hardening.test.mjs`](../test/verify-hardening.test.mjs) |
 | Installer and GitHub Action | Installs Claude Code, Codex and CLI surfaces with conflict preflight/backups, and runs a passive-by-default composite Action with an authorization gate. | [`scripts/webapp-security.mjs`](../scripts/webapp-security.mjs), [`action.yml`](../action.yml), [`test/product-surfaces.test.mjs`](../test/product-surfaces.test.mjs) |
 | Automatic project discovery and scoped run | Detects supported Node/Python and split-stack projects, package managers, lockfiles and config/deployment paths, then creates a versioned network-free security scope. It never establishes deployment ownership. | [`scripts/project-start.mjs`](../scripts/project-start.mjs), [`scripts/lib/project-discovery.mjs`](../scripts/lib/project-discovery.mjs), [`test/project-discovery.test.mjs`](../test/project-discovery.test.mjs), [`docs/security-scope.schema.json`](../docs/security-scope.schema.json) |
+| Stable multi-format finding reports | Renders the versioned finding/report schema as JSON, Markdown, escaped HTML, SARIF 2.1.0 and JUnit while preserving evidence states and stable fingerprints. | [`docs/finding.schema.json`](../docs/finding.schema.json), [`docs/report.schema.json`](../docs/report.schema.json), [`scripts/lib/evidence.mjs`](../scripts/lib/evidence.mjs), [`test/evidence-loop.test.mjs`](../test/evidence-loop.test.mjs) |
+| General patch and retest loop | Runs narrow deterministic source rules, writes patch-only proposals, explains findings and compares required retest baselines as new/fixed/unchanged/regressed. Agent-guided reviews still require agent-authored findings. | [`scripts/project-audit.mjs`](../scripts/project-audit.mjs), [`scripts/lib/source-audit.mjs`](../scripts/lib/source-audit.mjs), [`scripts/explain-finding.mjs`](../scripts/explain-finding.mjs), [`test/evidence-loop.test.mjs`](../test/evidence-loop.test.mjs) |
 
 ## Agent-guided methodology
 
@@ -31,8 +33,6 @@ Skill methodology. Installing the Skill does not prove that a web project is sec
 
 | Capability | Current boundary | Evidence |
 |---|---|---|
-| Stable multi-format finding reports | Publish one finding schema through Markdown, HTML, SARIF and JUnit renderers with baseline diffs. | [`docs/PRODUCTIZATION_PLAN.md`](../docs/PRODUCTIZATION_PLAN.md) |
-| General patch and retest loop | Prepare reviewable project-specific patches and confirm them through a reusable baseline retest path. | [`docs/PRODUCTIZATION_PLAN.md`](../docs/PRODUCTIZATION_PLAN.md) |
 
 ## Result states
 

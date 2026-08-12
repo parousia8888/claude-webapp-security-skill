@@ -16,6 +16,9 @@ function usage(code = 0) {
 
 Commands:
   start <project> [options]    Discover stack and create a versioned, network-free scope
+  audit <project|run>          Run deterministic source checks and render evidence
+  explain <id> --report <json> Explain one finding from a structured report
+  retest <project|run>         Rerun source checks against a required baseline
   demo                         Run the deterministic local before/after demo
   crawl <crawl options>        Audit a public crawl boundary
   verify-crawler <options>     Verify a crawler IP and claimed user agent
@@ -77,6 +80,7 @@ function install() {
   const include = [
     'SKILL.md', 'VERSION', 'LICENSE', 'agents', 'assets', 'examples', 'references', 'scripts',
     'docs/capabilities.json', 'docs/capabilities.md', 'docs/security-scope.schema.json',
+    'docs/finding.schema.json', 'docs/report.schema.json',
   ];
   for (const { destination, legacy } of installs) {
     mkdirSync(dirname(destination), { recursive: true });
@@ -139,6 +143,9 @@ function install() {
 
 switch (command) {
   case 'start': run(process.execPath, [join(ROOT, 'scripts', 'project-start.mjs'), ...argv]); break;
+  case 'audit': run(process.execPath, [join(ROOT, 'scripts', 'project-audit.mjs'), 'audit', ...argv]); break;
+  case 'explain': run(process.execPath, [join(ROOT, 'scripts', 'explain-finding.mjs'), ...argv]); break;
+  case 'retest': run(process.execPath, [join(ROOT, 'scripts', 'project-audit.mjs'), 'retest', ...argv]); break;
   case 'demo': run(process.execPath, [join(ROOT, 'scripts', 'demo.mjs'), ...argv]); break;
   case 'crawl': run(process.execPath, [join(ROOT, 'scripts', 'crawl-surface-audit.mjs'), ...argv]); break;
   case 'verify-crawler': run(process.execPath, [join(ROOT, 'scripts', 'verify-crawler-ip.mjs'), ...argv]); break;

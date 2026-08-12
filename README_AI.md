@@ -41,15 +41,19 @@ Never infer ownership from repository access, DNS reachability, or a user-agent 
 ## Current execution surfaces
 
 - `node scripts/webapp-security.mjs start <project>`
+- `node scripts/webapp-security.mjs audit <project-or-run>`
+- `node scripts/webapp-security.mjs explain <finding-id> --report <report.json>`
+- `node scripts/webapp-security.mjs retest <project-or-run> --baseline <report.json>`
 - `node scripts/webapp-security.mjs demo`
 - `node scripts/webapp-security.mjs crawl ...`
 - `node scripts/webapp-security.mjs verify-crawler ...`
 - `node scripts/webapp-security.mjs verify-edge ...`
 - `node scripts/webapp-security.mjs aws ...`
 
-Stable multi-format findings and the general patch/retest baseline loop remain planned until their
-capability entries link to regression evidence. Project discovery only establishes source/local
-scope; it does not prove deployment ownership or authorize remote traffic.
+The source audit has narrow deterministic rules and stable multi-format findings; it is not a
+general SAST engine. Agent-guided findings may use the same evidence contract, but do not gain
+automatic confirmation. Project discovery only establishes source/local scope; it does not prove
+deployment ownership or authorize remote traffic.
 
 ## Stop conditions
 

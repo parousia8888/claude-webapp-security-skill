@@ -18,5 +18,10 @@ lockfiles and supported framework dependencies; Python projects from `pyproject.
 It records deployment/config file paths without reading them. Unsupported or ambiguous stacks
 remain explicit in `security-scope.yml`.
 
+The deterministic source audit currently recognizes adjacent lockfile absence, environment-named
+files without reading their contents, public Node inspector bindings in package scripts and common
+production source-map settings. JSON, Markdown, HTML, SARIF 2.1.0 and JUnit render from one report
+object. Other security domains remain agent-guided until a specific deterministic adapter ships.
+
 Node 18 may run some scripts but is not a supported release target. TLS results vary by curl TLS
 backend; protocol checks are capability-tested and stop with `unknown` if they cannot be proven.
