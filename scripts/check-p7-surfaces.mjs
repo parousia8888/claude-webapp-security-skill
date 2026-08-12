@@ -138,6 +138,18 @@ if (live) {
       }
     }
   }
+  const version = read('VERSION').trim();
+  const releaseResult = spawnSync('gh', ['release', 'view', `v${version}`, '--repo', metadata.repository, '--json', 'body,url,tagName'], { encoding: 'utf8' });
+  if (releaseResult.status !== 0) fail(releaseResult.stderr || 'unable to read live GitHub release');
+  else {
+    const release = JSON.parse(releaseResult.stdout);
+    if (release.tagName !== `v${version}` || !normalize(release.body || '').includes(normalize(metadata.promise.en))) {
+      fail(`live v${version} release differs from the canonical promise`);
+    }
+    if (release.url !== `https://github.com/${metadata.repository}/releases/tag/v${version}`) {
+      fail(`live v${version} release URL differs from source`);
+    }
+  }
 }
 
 if (!process.exitCode) {
