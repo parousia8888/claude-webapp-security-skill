@@ -124,7 +124,7 @@ Current project gaps at program start:
 | P0 | Product contract and honest capability boundary | completed | `ea90082` + checks below |
 | P1 | Unified identity and human/agent entrypoints | completed | `c27a8ec` + migration evidence below |
 | P2 | Outcome-led README and first-run packaging | completed | `cf3ae40` + checks below |
-| P3 | `start <project>` project discovery and scoped run | pending | pending |
+| P3 | `start <project>` project discovery and scoped run | completed | `91a6dc9` + checks below |
 | P4 | Finding schema, reports, patch/retest baseline loop | pending | pending |
 | P5 | Three ordinary open-source project journeys | pending | pending |
 | P6 | Install/upgrade/uninstall, Action v1, signed release | pending | pending |
@@ -261,11 +261,27 @@ Current project gaps at program start:
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Commit: pending
-- Remaining risks: pending
+- Status: completed 2026-08-13
+- Implementation: `webapp-security start <project>` performs allowlisted, network-free discovery of
+  Node, Python and split-stack layouts; records framework/package-manager evidence, manifests,
+  lockfiles, deployment/config paths and normalized origin hints; and atomically creates a private
+  run directory with a versioned `security-scope.yml`. The scope separates source, local, remote
+  passive and remote active modes. Both remote modes remain blocked pending recorded authorization,
+  even when an origin is supplied. Discovery skips symlinks and ignored/build/dependency trees,
+  reads only supported manifests under a size cap, never reads `.env` contents, strips origin
+  path/query/fragment data, and records unsupported/ambiguous evidence as unknown. The schema and
+  generated capability matrix ship inside installed Skill payloads.
+- Tests: `npm run check`; `node test/project-discovery.test.mjs`; Skill Creator
+  `quick_validate.py`; PyYAML parse of repository YAML. Fixtures cover Next.js/pnpm,
+  FastAPI/uv, split React/Vite + FastAPI/pip, unsupported projects, missing targets, duplicate run
+  IDs, symlink escape attempts, a secret sentinel, origin credential leakage, 0600 scope files,
+  0700 run directories and a preload that throws on HTTP/HTTPS/net/DNS/fetch. The installed CLI is
+  separately exercised from an isolated home and produces the same blocked scope. All passed.
+- Commit: `91a6dc9` (`feat: add network-free project discovery and scope`)
+- Remaining risks: dependency-name discovery is evidence-based, not arbitrary code execution, so
+  custom or unsupported frameworks remain `ambiguous` or `unsupported`. Manifest `homepage` and
+  user origins are unverified hints only. The scope intentionally cannot grant authorization;
+  ownership proof and rules of engagement still require a user/agent update before remote work.
 
 ## P4 - Finding, report, patch, and retest loop
 
