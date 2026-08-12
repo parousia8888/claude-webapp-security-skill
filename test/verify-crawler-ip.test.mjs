@@ -12,7 +12,7 @@
  *
  * Pure functions, no DNS or network. Run: node test/verify-crawler-ip.test.mjs
  */
-import { uaVendor, decideVerdict } from '../scripts/verify-crawler-ip.mjs';
+import { uaVendor, decideVerdict, inCidr, parseIp } from '../scripts/verify-crawler-ip.mjs';
 
 let failed = 0;
 const eq = (name, got, want) => {
@@ -61,11 +61,15 @@ const CASES = [
   ['Applebot UA + rDNS did not confirm → spoofed (rDNS vendor, no range to rescue)',
     { claimedVendor: 'apple', rdnsOwner: null, usedRanges: false }, 'spoofed', 'apple'],
 
-  ['Google UA + rDNS fail + ranges checked, IP not in google range → spoofed',
-    { claimedVendor: 'google', rdnsOwner: null, rangeVendor: null, usedRanges: true }, 'spoofed', 'google'],
+  ['Google UA + rDNS fail, google range LOADED, IP not in it → spoofed',
+    { claimedVendor: 'google', rdnsOwner: null, rangeVendor: null, usedRanges: true, claimedVendorSourceLoaded: true }, 'spoofed', 'google'],
 
-  ['ClaudeBot UA + ranges checked but no anthropic source → unverifiable (do not guess)',
-    { claimedVendor: 'anthropic', rdnsOwner: null, rangeVendor: null, usedRanges: true }, 'unverifiable', null],
+  // REPORTED: a source that FAILED to fetch must not convict a real crawler.
+  ['REPORTED#3 claimed vendor range failed to load → unverifiable, NOT spoofed',
+    { claimedVendor: 'openai', rdnsOwner: null, rangeVendor: null, usedRanges: true, claimedVendorSourceLoaded: false }, 'unverifiable', null],
+
+  ['ClaudeBot UA + ranges checked but no anthropic source at all → unverifiable (do not guess)',
+    { claimedVendor: 'anthropic', rdnsOwner: null, rangeVendor: null, usedRanges: true, claimedVendorSourceLoaded: null }, 'unverifiable', null],
 
   ['No UA + IP in openai range → verified (ownership proven, nothing claimed)',
     { claimedVendor: null, rdnsOwner: null, rangeVendor: 'openai', usedRanges: true }, 'verified', 'openai'],
@@ -80,5 +84,27 @@ for (const [name, input, wantVerdict, wantVendor] of CASES) {
   eq(name + ' [vendor]', d.vendor, wantVendor);
 }
 
+// ── CIDR membership: IPv4 / IPv6 boundaries (0 test coverage before) ────
+let cidr = 0;
+const inc = (name, ip, c, want) => { cidr++; eq(name, inCidr(ip, c), want); };
+inc('v4 inside /24', '10.0.0.5', '10.0.0.0/24', true);
+inc('v4 outside /24', '10.0.1.5', '10.0.0.0/24', false);
+inc('v4 /32 exact match', '10.0.0.7', '10.0.0.7/32', true);
+inc('v4 /32 off by one', '10.0.0.8', '10.0.0.7/32', false);
+inc('v4 /0 matches anything', '203.0.113.9', '0.0.0.0/0', true);
+inc('v4 network boundary low', '10.0.0.0', '10.0.0.0/24', true);
+inc('v4 broadcast still in /24', '10.0.0.255', '10.0.0.0/24', true);
+inc('v6 inside /32', '2001:db8::1', '2001:db8::/32', true);
+inc('v6 outside /32', '2001:db9::1', '2001:db8::/32', false);
+inc('v6 /128 exact', '2001:db8::dead', '2001:db8::dead/128', true);
+inc('v4-mapped v6 parses', '::ffff:1.2.3.4', '::ffff:1.2.3.0/120', true);
+inc('cross-family never matches (v4 vs v6 cidr)', '1.2.3.4', '2001:db8::/32', false);
+inc('malformed ip → false', 'not.an.ip', '10.0.0.0/24', false);
+inc('malformed cidr → false', '10.0.0.5', '10.0.0.0/99', false);
+eq('parseIp v4 bits', parseIp('1.2.3.4')?.bits, 32);
+eq('parseIp v6 bits', parseIp('::1')?.bits, 128);
+eq('parseIp junk → null', parseIp('999.1.1.1'), null);
+cidr += 3;
+
 if (failed) { console.error(`\n${failed} assertion(s) failed`); process.exit(1); }
-console.log(`✓ crawler-verifier: ${13 + CASES.length * 2} assertions pass (incl. both reported spoof cases)`);
+console.log(`✓ crawler-verifier: ${13 + CASES.length * 2 + cidr} assertions pass (incl. reported spoof + source-failure regressions, IPv4/IPv6 CIDR)`);
