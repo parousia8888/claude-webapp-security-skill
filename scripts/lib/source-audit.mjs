@@ -8,6 +8,7 @@ const IGNORED = new Set([
 ]);
 const CONFIG_FILES = /^(?:next|vite|nuxt|svelte|astro)\.config\.(?:js|mjs|cjs|ts)$/;
 const ENV_FILE = /^\.env(?:\.[a-z0-9_-]+)?$/i;
+const ENV_TEMPLATE = /^\.env\.(?:example|sample|template|dist|defaults)$/i;
 
 const posix = (value) => value.split(sep).join('/');
 
@@ -50,18 +51,56 @@ function patchLine(path, text, match, replacement) {
   return `--- a/${path}\n+++ b/${path}\n@@ line ${line} @@\n-${before}\n+${after}\n`;
 }
 
+function workspacePatterns(manifest) {
+  if (Array.isArray(manifest.workspaces)) return manifest.workspaces;
+  if (Array.isArray(manifest.workspaces?.packages)) return manifest.workspaces.packages;
+  return [];
+}
+
+function globMatchesPath(pattern, path) {
+  if (typeof pattern !== 'string' || pattern.startsWith('!')) return false;
+  const escaped = pattern.replace(/\\/g, '/').replace(/^\.\//, '').replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  const expression = escaped.replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*');
+  return new RegExp(`^${expression}/?$`).test(path);
+}
+
+function coveredByWorkspace(manifest, filesByPath, lockRoots) {
+  const manifestRoot = posix(dirname(manifest.path));
+  if (manifestRoot === '.' || lockRoots.has(manifestRoot)) return lockRoots.has(manifestRoot);
+  const segments = manifestRoot.split('/');
+  for (let depth = segments.length - 1; depth >= 0; depth -= 1) {
+    const ancestor = depth ? segments.slice(0, depth).join('/') : '.';
+    if (!lockRoots.has(ancestor)) continue;
+    const ancestorManifestPath = ancestor === '.' ? 'package.json' : `${ancestor}/package.json`;
+    const ancestorManifest = filesByPath.get(ancestorManifestPath);
+    if (!ancestorManifest) continue;
+    const text = readSmall(ancestorManifest);
+    if (!text) continue;
+    let parsed;
+    try { parsed = JSON.parse(text); } catch { continue; }
+    const relativeRoot = ancestor === '.' ? manifestRoot : manifestRoot.slice(ancestor.length + 1);
+    if (workspacePatterns(parsed).some((pattern) => globMatchesPath(pattern, relativeRoot))) return true;
+  }
+  return false;
+}
+
 export function auditSource(projectRoot) {
   const root = resolve(projectRoot);
   if (!existsSync(root) || !statSync(root).isDirectory()) throw new Error(`project root is invalid: ${projectRoot}`);
   const files = walk(root);
   const findings = [];
   const manifests = files.filter((file) => file.name === 'package.json' || file.name === 'pyproject.toml' || /^requirements.*\.txt$/i.test(file.name));
+  const lockCheckedManifests = manifests.filter((file) => file.name === 'package.json' || file.name === 'pyproject.toml');
   const lockNames = new Set(['package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb', 'uv.lock', 'poetry.lock', 'Pipfile.lock']);
   const lockRoots = new Set(files.filter((file) => lockNames.has(file.name)).map((file) => posix(dirname(file.path))));
+  const filesByPath = new Map(files.map((file) => [file.path, file]));
 
-  for (const manifest of manifests) {
+  for (const manifest of lockCheckedManifests) {
     const manifestRoot = posix(dirname(manifest.path));
-    if (!lockRoots.has(manifestRoot)) {
+    const hasLockfile = manifest.name === 'package.json'
+      ? coveredByWorkspace(manifest, filesByPath, lockRoots)
+      : lockRoots.has(manifestRoot);
+    if (!hasLockfile) {
       findings.push(createFinding({
         ruleId: 'dependency-lockfile-missing',
         title: 'Dependency manifest has no adjacent lockfile',
@@ -77,7 +116,7 @@ export function auditSource(projectRoot) {
   }
 
   for (const file of files) {
-    if (ENV_FILE.test(file.name)) {
+    if (ENV_FILE.test(file.name) && !ENV_TEMPLATE.test(file.name)) {
       findings.push(createFinding({
         ruleId: 'sensitive-env-file-present',
         title: 'Sensitive environment file requires repository and artifact review',

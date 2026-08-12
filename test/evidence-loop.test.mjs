@@ -156,6 +156,31 @@ try {
   assert.equal(result.status, 2);
   assert.match(result.stderr, /retest requires --baseline/);
 
+  const precisionProject = join(temp, 'precision-project');
+  mkdirSync(join(precisionProject, 'apps', 'web'), { recursive: true });
+  mkdirSync(join(precisionProject, 'backend'), { recursive: true });
+  writeFileSync(join(precisionProject, 'package.json'), JSON.stringify({
+    private: true,
+    packageManager: 'yarn@4.12.0',
+    workspaces: ['apps/*'],
+  }));
+  writeFileSync(join(precisionProject, 'yarn.lock'), '# workspace lock\n');
+  writeFileSync(join(precisionProject, 'apps', 'web', 'package.json'), JSON.stringify({ private: true }));
+  writeFileSync(join(precisionProject, 'backend', 'requirements.txt'), 'django==5.2.5\n');
+  writeFileSync(join(precisionProject, '.env.example'), 'PUBLIC_PLACEHOLDER=change-me\n');
+  writeFileSync(join(precisionProject, '.env.sample'), 'PUBLIC_PLACEHOLDER=change-me\n');
+  writeFileSync(join(precisionProject, '.env.production'), 'DO_NOT_READ_PRECISION_SECRET=fixture-only\n');
+  const precisionDir = join(temp, 'precision-report');
+  result = run(['audit', precisionProject, '--out', precisionDir, '--name', 'precision', '--fail-on', 'never']);
+  assert.equal(result.status, 0, result.stderr);
+  const precision = report(join(precisionDir, 'precision.json'));
+  assert.equal(precision.findings.some((finding) => finding.ruleId === 'dependency-lockfile-missing'), false,
+    'a declared workspace inherits its root lockfile and requirements.txt is not a lockfile manifest');
+  const environmentFindings = precision.findings.filter((finding) => finding.ruleId === 'sensitive-env-file-present');
+  assert.deepEqual(environmentFindings.map((finding) => finding.location.path), ['.env.production']);
+  assert.equal(JSON.stringify(precision).includes('DO_NOT_READ_PRECISION_SECRET'), false,
+    'environment file contents must not enter evidence');
+
   console.log('✓ evidence loop: schemas, renderers, patch-only, explain, fixed and regressed states');
 } finally {
   rmSync(temp, { recursive: true, force: true });

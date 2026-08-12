@@ -16,7 +16,7 @@
   <a href="#install">Install</a> ·
   <a href="#run-the-first-project">First project</a> ·
   <a href="#github-action">GitHub Action</a> ·
-  <a href="#5-source-case-studies">Case studies</a> ·
+  <a href="#3-ordinary-project-journeys">Project journeys</a> ·
   <a href="README.zh-CN.md">中文</a>
 </p>
 
@@ -187,10 +187,23 @@ gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
 ```
 
-## 5 source case studies
+## 3 ordinary project journeys
 
-The corpus combines three intentionally vulnerable benchmarks with two production projects. All
-five are pinned to immutable commits and reviewed source-only; no hosted instance was probed.
+The ordinary-project set runs the current deterministic path, then records manual trace,
+false-positive closure, repair/retest and unreached surfaces. All source is pinned to immutable
+commits; no hosted instance was probed.
+
+| Project | Deterministic result | Manual outcome |
+|---|---|---|
+| [Linkwarden](docs/case-studies/journeys/linkwarden.md) | 0 findings after workspace/template precision fixes | URL-fetch path traced to scheme, DNS/IP and redirect controls; scoped `not_applicable` |
+| [Healthchecks](docs/case-studies/journeys/healthchecks.md) | 0 findings after requirements/template precision fixes | Production environment values remain `unknown` from source |
+| [Open WebUI](docs/case-studies/journeys/open-webui.md) | 1 medium `suspected` source-map lead | Local representative patch retests `fixed`; public delivery remains unknown |
+
+Read the [structured journeys, exact commands and evidence boundary](docs/case-studies/journeys/README.md).
+Zero-finding and false-positive outcomes are kept visible; this is not a precision score.
+
+The **5 earlier source methodology studies** remain as a separate corpus: three intentionally
+vulnerable benchmarks and two production projects.
 
 | Project | Evidence outcome |
 |---|---|

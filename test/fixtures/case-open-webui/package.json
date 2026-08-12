@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@sveltejs/kit": "2.5.27",
+    "vite": "5.4.21"
+  }
+}

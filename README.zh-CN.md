@@ -16,7 +16,7 @@
   <a href="#安装">安装</a> ·
   <a href="#执行第一个项目">首个项目</a> ·
   <a href="#github-action">GitHub Action</a> ·
-  <a href="#5-个源码案例">案例</a> ·
+  <a href="#3-个普通项目旅程">项目旅程</a> ·
   <a href="README.md">English</a>
 </p>
 
@@ -177,9 +177,21 @@ gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
 ```
 
-## 5 个源码案例
+## 3 个普通项目旅程
 
-案例集由三个故意脆弱基准和两个生产项目组成，全部固定到不可变 commit，只读源码，不探测线上实例。
+普通项目集先运行当前确定性路径，再记录人工追踪、误报关闭、修复/复测及未覆盖面。所有源码固定到
+不可变 commit；未探测任何线上实例。
+
+| 项目 | 确定性结果 | 人工结论 |
+|---|---|---|
+| [Linkwarden](docs/case-studies/journeys/linkwarden.md) | 修正 workspace/template 精度后 0 finding | URL fetch 路径追踪到 scheme、DNS/IP 与 redirect 控制；局部归类 `not_applicable` |
+| [Healthchecks](docs/case-studies/journeys/healthchecks.md) | 修正 requirements/template 精度后 0 finding | 仅从源码无法确认生产环境值，保留 `unknown` |
+| [Open WebUI](docs/case-studies/journeys/open-webui.md) | 1 个 medium `suspected` source-map lead | 本地代表性补丁复测为 `fixed`；公开交付仍未知 |
+
+阅读[结构化旅程、精确命令与证据边界](docs/case-studies/journeys/README.md)。零 finding 与误报关闭
+同样保留；这里不计算 precision 分数。
+
+另有 **5 个既有源码方法论案例**：三个故意脆弱基准与两个生产项目，作为独立 corpus 保留。
 
 | 项目 | 证据结果 |
 |---|---|

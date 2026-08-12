@@ -17,12 +17,15 @@ function fail(message) {
 }
 
 if (contract.schemaVersion !== 1) fail('public contract schemaVersion must be 1');
-for (const path of contract.caseStudies || []) {
-  if (!existsSync(`${ROOT}/${path}`)) fail(`case study is missing: ${path}`);
+for (const path of [...(contract.projectJourneys || []), ...(contract.methodStudies || [])]) {
+  if (!existsSync(`${ROOT}/${path}`)) fail(`public evidence document is missing: ${path}`);
 }
-const caseCount = contract.caseStudies?.length ?? 0;
-if (!en.includes(`## ${caseCount} source case studies`)) fail('English case-study count is stale');
-if (!zh.includes(`## ${caseCount} 个源码案例`)) fail('Chinese case-study count is stale');
+const journeyCount = contract.projectJourneys?.length ?? 0;
+const studyCount = contract.methodStudies?.length ?? 0;
+if (!en.includes(`## ${journeyCount} ordinary project journeys`)) fail('English project-journey count is stale');
+if (!zh.includes(`## ${journeyCount} 个普通项目旅程`)) fail('Chinese project-journey count is stale');
+if (!en.includes(`${studyCount} earlier source methodology studies`)) fail('English methodology-study count is stale');
+if (!zh.includes(`${studyCount} 个既有源码方法论案例`)) fail('Chinese methodology-study count is stale');
 
 for (const [locale, text] of [['en', en], ['zh-CN', zh]]) {
   if (!normalize(text).includes(normalize(contract.firstTaskPrompt[locale]))) {
@@ -79,4 +82,4 @@ if (result) {
 }
 
 if (/Replace the placeholder|替换占位符/.test(`${en}\n${zh}`)) fail('stale Action placeholder copy remains');
-if (!process.exitCode) console.log(`public surfaces ok: ${caseCount} cases, ${labels.length} capability levels, ${states.length} result states`);
+if (!process.exitCode) console.log(`public surfaces ok: ${journeyCount} journeys, ${studyCount} methodology studies, ${labels.length} capability levels, ${states.length} result states`);
