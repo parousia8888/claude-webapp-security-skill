@@ -3,7 +3,7 @@
 Status: active  
 Owner: parousia8888  
 Started: 2026-08-13  
-Canonical repository during migration: `parousia8888/claude-webapp-security-skill`
+Canonical repository: `parousia8888/web-app-security-skill`
 
 This document is the source of truth for the P0-P7 productization program. Update a phase record
 immediately after its acceptance criteria pass. A phase is not complete because files exist; it is
@@ -122,7 +122,7 @@ Current project gaps at program start:
 | Phase | Deliverable | Status | Evidence |
 |---|---|---|---|
 | P0 | Product contract and honest capability boundary | completed | `ea90082` + checks below |
-| P1 | Unified identity and human/agent entrypoints | in progress | pending |
+| P1 | Unified identity and human/agent entrypoints | completed | `c27a8ec` + migration evidence below |
 | P2 | Outcome-led README and first-run packaging | pending | pending |
 | P3 | `start <project>` project discovery and scoped run | pending | pending |
 | P4 | Finding schema, reports, patch/retest baseline loop | pending | pending |
@@ -179,11 +179,30 @@ Current project gaps at program start:
 
 ### Completion record
 
-- Status: in progress
-- Implementation: pending
-- Tests: pending
-- Commit / migration: pending
-- Remaining risks: pending
+- Status: completed 2026-08-13
+- Implementation: all public and package identities now use **Web App Security Skill**, repository
+  `parousia8888/web-app-security-skill`, Skill ID `web-app-security`, CLI `webapp-security`, and the
+  matching Action and release artifact prefix. `README_AI.md` is the repository-mode agent entry;
+  `README.md` remains the human entry and `SKILL.md` remains the execution contract. The installer
+  detects both current and legacy paths, fails before a partial install, and backs up an existing
+  `webapp-security-hardening` install only when the user supplies `--force`. An identity gate checks
+  package, Skill, Action, README, SBOM, release workflow, and permitted legacy-name locations.
+- Tests: `npm run check`; Skill Creator `quick_validate.py`; PyYAML parse of every YAML file;
+  isolated-home Claude Code, Codex, CLI, legacy-conflict, and forced-migration tests. GitHub CI run
+  [31627604914](https://github.com/parousia8888/web-app-security-skill/actions/runs/31627604914)
+  passed on Node 20/22 and Ubuntu/macOS. CodeQL run
+  [31627604893](https://github.com/parousia8888/web-app-security-skill/actions/runs/31627604893)
+  passed.
+- Commit / migration: `c27a8ec` (`feat: unify Web App Security Skill identity`) and `10942b7`
+  (`docs: pin Action example to immutable commit`). GitHub renamed the repository in place; the new
+  URL returns HTTP 200 and the previous URL returns HTTP 301 to it. `main`, tags `v0.2.0` through
+  `v0.2.4`, stars, topics, and workflow history remained attached. Local `origin` now uses the new
+  URL. The documented immutable Action reference is
+  `c27a8ecae69271a5a2fdfb6acc314cb4ef3ea967`.
+- Remaining risks: the public `v1` Action tag and a real `v0.3.0` release do not exist until P6.
+  GitHub reports that the pinned CodeQL v3 Action will be deprecated in December 2026 and that
+  pinned Actions declaring Node 20 are being forced onto Node 24; P6 must refresh those immutable
+  pins and rerun the supply-chain checks.
 
 ## P2 - README and first-run packaging
 
