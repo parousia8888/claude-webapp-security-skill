@@ -1,15 +1,15 @@
 {
-  "name": "webapp-security-hardening",
+  "name": "web-app-security-skill",
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Phased web app security audit, hardening, and crawl-boundary program (skill).",
+  "description": "Check, harden, and retest web projects with an AI coding agent and reproducible evidence.",
   "bin": {
     "webapp-security": "scripts/webapp-security.mjs"
   },
   "scripts": {
     "test": "for f in test/*.test.mjs; do echo \"→ $f\"; node \"$f\" || exit 1; done",
-    "lint": "for f in scripts/*.mjs scripts/lib/*.mjs test/*.test.mjs; do node --check \"$f\" || exit 1; done && for f in scripts/*.sh test/*.sh; do bash -n \"$f\" || exit 1; done && node scripts/generate-capability-matrix.mjs --check && node scripts/check-product-contract.mjs && echo 'lint ok'",
+    "lint": "for f in scripts/*.mjs scripts/lib/*.mjs test/*.test.mjs; do node --check \"$f\" || exit 1; done && for f in scripts/*.sh test/*.sh; do bash -n \"$f\" || exit 1; done && node scripts/generate-capability-matrix.mjs --check && node scripts/check-product-contract.mjs && node scripts/check-identity.mjs && echo 'lint ok'",
     "demo": "node scripts/webapp-security.mjs demo",
     "sbom": "node scripts/generate-sbom.mjs",
     "check": "npm run lint && npm test && bash test/shell-smoke.sh"

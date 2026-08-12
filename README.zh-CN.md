@@ -1,12 +1,12 @@
-<h1 align="center">Web App Security Hardening</h1>
+<h1 align="center">Web App Security Skill</h1>
 <h3 align="center">面向 AI coding agent 的证据优先安全审计、加固与复测</h3>
 
 <p align="center">
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/tags"><img src="https://img.shields.io/github/v/tag/parousia8888/claude-webapp-security-skill?sort=semver" alt="latest tag"></a>
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/ci.yml"><img src="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/codeql.yml"><img src="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/stargazers"><img src="https://img.shields.io/github/stars/parousia8888/claude-webapp-security-skill?style=flat&logo=github" alt="stars"></a>
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/network/members"><img src="https://img.shields.io/github/forks/parousia8888/claude-webapp-security-skill?style=flat&logo=github" alt="forks"></a>
+  <a href="https://github.com/parousia8888/web-app-security-skill/tags"><img src="https://img.shields.io/github/v/tag/parousia8888/web-app-security-skill?sort=semver" alt="latest tag"></a>
+  <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
+  <a href="https://github.com/parousia8888/web-app-security-skill/stargazers"><img src="https://img.shields.io/github/stars/parousia8888/web-app-security-skill?style=flat&logo=github" alt="stars"></a>
+  <a href="https://github.com/parousia8888/web-app-security-skill/network/members"><img src="https://img.shields.io/github/forks/parousia8888/web-app-security-skill?style=flat&logo=github" alt="forks"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
   <a href="#信任与-release-证据"><img src="https://img.shields.io/badge/SBOM-SPDX%202.3-5965d8" alt="SPDX 2.3 SBOM"></a>
 </p>
@@ -43,8 +43,8 @@
 CLI 路径复测。全程不访问外网。
 
 ```bash
-git clone https://github.com/parousia8888/claude-webapp-security-skill.git
-cd claude-webapp-security-skill
+git clone https://github.com/parousia8888/web-app-security-skill.git
+cd web-app-security-skill
 npm run demo -- --out ./demo-output
 ```
 
@@ -66,8 +66,8 @@ after:   0 high, 0 medium
 若已有安装会直接拒绝；只有显式加入 `--force` 才会先生成带时间戳的备份再替换。
 
 ```bash
-git clone --depth 1 https://github.com/parousia8888/claude-webapp-security-skill.git /tmp/webapp-security-hardening \
-  && node /tmp/webapp-security-hardening/scripts/webapp-security.mjs install
+git clone --depth 1 https://github.com/parousia8888/web-app-security-skill.git /tmp/web-app-security-skill \
+  && node /tmp/web-app-security-skill/scripts/webapp-security.mjs install
 ```
 
 也可以只装单一入口：
@@ -83,7 +83,7 @@ node scripts/webapp-security.mjs install --target both   # Claude Code + Codex
 
 ## 使用
 
-可以让 Claude Code 或 Codex 调用 `webapp-security-hardening`，也可以直接运行相同的确定性工具：
+可以让 Claude Code 或 Codex 调用 `web-app-security`，也可以直接运行相同的确定性工具：
 
 ```bash
 # 默认被动：爬取边界与 crawler 可达性
@@ -112,7 +112,7 @@ Composite Action 默认被动，且没有授权确认时不会执行：
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/claude-webapp-security-skill@42b2d27f5d589732c8eb987c5304b7e846bfdb84
+  uses: parousia8888/web-app-security-skill@REPLACE_WITH_IMMUTABLE_COMMIT_SHA
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -120,14 +120,13 @@ Composite Action 默认被动，且没有授权确认时不会执行：
     fail-on: high
 ```
 
-上面的完整 SHA 是包含该 Action 的不可变 v0.3.0 checkpoint。计划中的稳定 API 是：
+迁移提交落地后，把占位符替换为完整 commit SHA。计划中的稳定 API 是：
 
 ```yaml
-uses: parousia8888/webapp-security-hardening@v1
+uses: parousia8888/web-app-security-skill@v1
 ```
 
-截至 2026-08-13，这个短仓库尚不存在。需要新建/镜像仓库并维护移动的 `v1` tag；仅靠本仓库代码
-无法让该引用生效。
+移动的 `v1` tag 只会在改名后的首个 release 通过 consumer test 后创建。
 
 ## 信任与 release 证据
 
@@ -142,8 +141,8 @@ uses: parousia8888/webapp-security-hardening@v1
 
 ```bash
 sha256sum -c SHA256SUMS
-gh attestation verify webapp-security-hardening-*.tar.gz \
-  --repo parousia8888/claude-webapp-security-skill
+gh attestation verify web-app-security-skill-*.tar.gz \
+  --repo parousia8888/web-app-security-skill
 ```
 
 ## 五个源码案例

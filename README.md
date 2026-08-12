@@ -1,12 +1,12 @@
-<h1 align="center">Web App Security Hardening</h1>
+<h1 align="center">Web App Security Skill</h1>
 <h3 align="center">Evidence-first audit, hardening and retest for AI coding agents</h3>
 
 <p align="center">
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/tags"><img src="https://img.shields.io/github/v/tag/parousia8888/claude-webapp-security-skill?sort=semver" alt="latest tag"></a>
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/ci.yml"><img src="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/codeql.yml"><img src="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/stargazers"><img src="https://img.shields.io/github/stars/parousia8888/claude-webapp-security-skill?style=flat&logo=github" alt="stars"></a>
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/network/members"><img src="https://img.shields.io/github/forks/parousia8888/claude-webapp-security-skill?style=flat&logo=github" alt="forks"></a>
+  <a href="https://github.com/parousia8888/web-app-security-skill/tags"><img src="https://img.shields.io/github/v/tag/parousia8888/web-app-security-skill?sort=semver" alt="latest tag"></a>
+  <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
+  <a href="https://github.com/parousia8888/web-app-security-skill/stargazers"><img src="https://img.shields.io/github/stars/parousia8888/web-app-security-skill?style=flat&logo=github" alt="stars"></a>
+  <a href="https://github.com/parousia8888/web-app-security-skill/network/members"><img src="https://img.shields.io/github/forks/parousia8888/web-app-security-skill?style=flat&logo=github" alt="forks"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
   <a href="#trust-and-release-evidence"><img src="https://img.shields.io/badge/SBOM-SPDX%202.3-5965d8" alt="SPDX 2.3 SBOM"></a>
 </p>
@@ -46,8 +46,8 @@ Run an intentionally misconfigured local web app, audit it, apply the fixture's 
 retest it. Nothing reaches the network.
 
 ```bash
-git clone https://github.com/parousia8888/claude-webapp-security-skill.git
-cd claude-webapp-security-skill
+git clone https://github.com/parousia8888/web-app-security-skill.git
+cd web-app-security-skill
 npm run demo -- --out ./demo-output
 ```
 
@@ -70,8 +70,8 @@ This one command installs the skill for Claude Code and Codex, plus the ordinary
 timestamped backups before replacement.
 
 ```bash
-git clone --depth 1 https://github.com/parousia8888/claude-webapp-security-skill.git /tmp/webapp-security-hardening \
-  && node /tmp/webapp-security-hardening/scripts/webapp-security.mjs install
+git clone --depth 1 https://github.com/parousia8888/web-app-security-skill.git /tmp/web-app-security-skill \
+  && node /tmp/web-app-security-skill/scripts/webapp-security.mjs install
 ```
 
 Select a surface when needed:
@@ -88,7 +88,7 @@ Supported environments and current limits are recorded in the
 
 ## Use it
 
-Ask Claude Code or Codex to use `webapp-security-hardening`, or run the same deterministic tools
+Ask Claude Code or Codex to use `web-app-security`, or run the same deterministic tools
 directly:
 
 ```bash
@@ -118,7 +118,7 @@ The composite Action is passive by default and will not run until authorization 
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/claude-webapp-security-skill@42b2d27f5d589732c8eb987c5304b7e846bfdb84
+  uses: parousia8888/web-app-security-skill@REPLACE_WITH_IMMUTABLE_COMMIT_SHA
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -126,15 +126,14 @@ The composite Action is passive by default and will not run until authorization 
     fail-on: high
 ```
 
-The full SHA above is the immutable v0.3.0 checkpoint and contains the Action. The planned stable
-alias is:
+Replace the placeholder with a full commit SHA after this migration lands. The planned stable alias
+is:
 
 ```yaml
-uses: parousia8888/webapp-security-hardening@v1
+uses: parousia8888/web-app-security-skill@v1
 ```
 
-That shorter repository does not exist as of 2026-08-13. Creating or mirroring it and maintaining
-the moving `v1` tag is a release operation, not something repository code can make true.
+The moving `v1` tag is created only after the first renamed release passes its consumer tests.
 
 ## Trust and release evidence
 
@@ -151,8 +150,8 @@ Verify downloaded release assets:
 
 ```bash
 sha256sum -c SHA256SUMS
-gh attestation verify webapp-security-hardening-*.tar.gz \
-  --repo parousia8888/claude-webapp-security-skill
+gh attestation verify web-app-security-skill-*.tar.gz \
+  --repo parousia8888/web-app-security-skill
 ```
 
 ## Five source case studies

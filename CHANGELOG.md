@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **webapp-security-hardening** are documented in this file.
+All notable changes to **Web App Security Skill** are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Five immutable-commit source case studies: Juice Shop, NodeGoat, DVWA, Uptime Kuma and Mealie.
 
 ### Changed
+- Public identity is unified as **Web App Security Skill**: repository `web-app-security-skill`,
+  Skill ID `web-app-security`, CLI `webapp-security`, and matching Action/release/SBOM names. The
+  installer detects the earlier `webapp-security-hardening` path and backs it up during migration.
 - Sensitive-path crawl probes and rate-limit bursts now require an explicit authorization
   acknowledgement; passive checks remain the default.
 - Crawl reports support stable filenames and configurable fail thresholds for CI use.

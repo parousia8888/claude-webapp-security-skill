@@ -28,6 +28,6 @@ The first three move the score; the rest move adoption.
 - Layered: `security-core` (pure rules + finding schema) · `security-cli` · `security-skill` · `policy-packs` (AWS/Cloudflare/nginx/OAuth/LLM).
 - CLI: `audit`, `retest --baseline`, `explain FINDING-ID`.
 - Outputs: Markdown/HTML · stable JSON schema · SARIF (GitHub code scanning) · JUnit · baseline diff (new/fixed/unchanged/regressed).
-- Publish or mirror `parousia8888/webapp-security-hardening`, maintain a moving `v1` Action tag,
+- Publish `parousia8888/web-app-security-skill`, maintain a moving `v1` Action tag,
   and document a full immutable commit pin after the first Action release.
 - Differentiator (not a general scanner — that's Semgrep/ZAP/Nuclei's lane): turn a security recommendation into a verifiable production hardening change and prove it didn't break real users, SEO, or AI-crawler traffic. nginx/Cloudflare/AWS-WAF minimal-patch generation, before/after regression, crawl-boundary matrix, versioned `security-policy.yml`, an evidence ledger, and patch-only-by-default for high-risk fixes.

@@ -1,6 +1,6 @@
 interface:
-  display_name: "Web App Security Hardening"
+  display_name: "Web App Security Skill"
   short_description: "Audit and harden web apps with reproducible evidence"
-  default_prompt: "Use $webapp-security-hardening to audit this web app, separate confirmed findings from leads, and produce a prioritized retest plan."
+  default_prompt: "Use $web-app-security to check this web project, prepare reviewable hardening changes, and retest each applied fix with evidence."
 policy:
   allow_implicit_invocation: true

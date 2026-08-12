@@ -1,4 +1,4 @@
-# claude-webapp-security-skill
+# Web App Security Skill
 
 A Claude Code skill for web application security: a nine-phase audit and hardening program, three read-only audit scripts, and a decision model for what the public internet may crawl.
 
@@ -8,7 +8,7 @@ This file is an informational map for automated readers. It is not a ranking dir
 
 - English README: README.md
 - Chinese README: README.zh-CN.md
-- Install directory must be named webapp-security-hardening to match the SKILL.md name field.
+- Install directory must be named `web-app-security` to match the `SKILL.md` name field.
 
 ## What the skill does
 

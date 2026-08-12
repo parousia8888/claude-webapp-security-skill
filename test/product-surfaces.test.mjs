@@ -117,14 +117,16 @@ try {
   writeFileSync(join(fakeHome, '.codex', 'skills', 'webapp-security-hardening', 'sentinel'), 'old');
   result = await run(process.execPath, [CLI, 'install', '--target', 'both'], { env: { ...process.env, HOME: fakeHome } });
   assert.equal(result.status, 2);
-  assert.equal(existsSync(join(fakeHome, '.claude', 'skills', 'webapp-security-hardening')), false, 'preflight must prevent partial install');
+  assert.match(result.stderr, /require migration/);
+  assert.equal(existsSync(join(fakeHome, '.claude', 'skills', 'web-app-security')), false, 'preflight must prevent partial install');
 
   result = await run(process.execPath, [CLI, 'install', '--target', 'both', '--force'], { env: { ...process.env, HOME: fakeHome } });
   assert.equal(result.status, 0, result.stderr);
   for (const client of ['.claude', '.codex']) {
-    const installed = join(fakeHome, client, 'skills', 'webapp-security-hardening');
+    const installed = join(fakeHome, client, 'skills', 'web-app-security');
     assert.ok(existsSync(join(installed, 'SKILL.md')));
     assert.equal(existsSync(join(installed, 'README.md')), false, 'installer must copy only the skill payload');
+    assert.match(readFileSync(join(installed, 'SKILL.md'), 'utf8'), /^name: web-app-security$/m);
   }
   const codexSkills = join(fakeHome, '.codex', 'skills');
   assert.ok(readdirSync(codexSkills).some((name) => name.startsWith('webapp-security-hardening.backup-')));
@@ -132,9 +134,9 @@ try {
   const allHome = join(temp, 'all-home');
   result = await run(process.execPath, [CLI, 'install'], { env: { ...process.env, HOME: allHome } });
   assert.equal(result.status, 0, result.stderr);
-  assert.ok(existsSync(join(allHome, '.claude', 'skills', 'webapp-security-hardening', 'SKILL.md')));
-  assert.ok(existsSync(join(allHome, '.codex', 'skills', 'webapp-security-hardening', 'SKILL.md')));
-  assert.ok(existsSync(join(allHome, '.local', 'share', 'webapp-security-hardening', 'SKILL.md')));
+  assert.ok(existsSync(join(allHome, '.claude', 'skills', 'web-app-security', 'SKILL.md')));
+  assert.ok(existsSync(join(allHome, '.codex', 'skills', 'web-app-security', 'SKILL.md')));
+  assert.ok(existsSync(join(allHome, '.local', 'share', 'web-app-security', 'SKILL.md')));
   const launcher = join(allHome, '.local', 'bin', 'webapp-security');
   assert.ok(existsSync(launcher));
   result = await run(launcher, ['--help'], { env: { ...process.env, HOME: allHome } });
@@ -148,6 +150,10 @@ try {
   assert.equal(sbom.spdxVersion, 'SPDX-2.3');
   assert.equal(sbom.creationInfo.created, '1970-01-01T00:00:00.000Z');
   assert.equal(sbom.packages[0].versionInfo, readFileSync(join(ROOT, 'VERSION'), 'utf8').trim());
+  assert.equal(sbom.packages[0].name, 'web-app-security-skill');
+  assert.match(sbom.documentNamespace, /^https:\/\/github\.com\/parousia8888\/web-app-security-skill\/sbom\//);
+  assert.match(sbom.packages[0].downloadLocation, /parousia8888\/web-app-security-skill\/archive\/refs\/tags/);
+  assert.match(sbom.packages[0].externalRefs[0].referenceLocator, /^pkg:github\/parousia8888\/web-app-security-skill@v/);
 
   console.log('✓ product surfaces: passive boundary, Action gate, demo, installer, and SBOM');
 } finally {

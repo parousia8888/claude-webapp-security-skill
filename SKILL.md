@@ -1,5 +1,5 @@
 ---
-name: webapp-security-hardening
+name: web-app-security
 description: End-to-end security program for a web app — scope/authorization gate, frontend exposure reduction, API security (IDOR/BOLA, brute force, rate limiting, race conditions), LLM security (prompt injection, jailbreak, cost abuse), OAuth/OIDC identity, server-side code audit, database isolation, supply chain (SBOM/SCA/SRI), blue-team detection, and AWS hardening. Also owns the crawl boundary — which paths must stay open to every IP including AI crawlers (Googlebot, Bingbot, GPTBot, OAI-SearchBot, ClaudeBot, Claude-User, PerplexityBot) versus what must never be crawled — and how to keep public content open while blocking malicious scanners. Use for security audits, pentest planning, hardening plans, robots.txt/sitemap/noindex policy, verifying a crawler is not a spoofed user agent, WAF or bot-blocking changes that hurt SEO/GEO traffic, leaked source maps or admin panels, IMDSv2/security-group/S3/IAM/CloudTrail review, or writing a phased remediation roadmap.
 metadata:
   short-description: Phased web app security audit, hardening, and crawl-boundary program
@@ -79,7 +79,7 @@ Do not run all phases just because they exist. Pick from the task:
 ## Tooling
 
 ```bash
-S="${HOME}/.claude/skills/webapp-security-hardening"
+S="${HOME}/.claude/skills/web-app-security"
 
 # Passive crawl boundary + crawler UA matrix
 node "$S/scripts/crawl-surface-audit.mjs" --site https://example.com --out ./reports/security

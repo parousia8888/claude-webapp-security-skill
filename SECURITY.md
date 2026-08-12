@@ -7,7 +7,7 @@ but are not maintained. Pin a full commit SHA or a signed release artifact for h
 
 ## Report a vulnerability
 
-Use [GitHub private vulnerability reporting](https://github.com/parousia8888/claude-webapp-security-skill/security/advisories/new).
+Use [GitHub private vulnerability reporting](https://github.com/parousia8888/web-app-security-skill/security/advisories/new).
 Do not open a public issue for a vulnerability that could expose a user's target, credentials,
 report contents, or a bypass in a security decision.
 
@@ -28,8 +28,8 @@ Tagged releases include an SPDX SBOM, `SHA256SUMS`, and a GitHub artifact attest
 
 ```bash
 sha256sum -c SHA256SUMS
-gh attestation verify webapp-security-hardening-*.tar.gz \
-  --repo parousia8888/claude-webapp-security-skill
+gh attestation verify web-app-security-skill-*.tar.gz \
+  --repo parousia8888/web-app-security-skill
 ```
 
 The attestation proves which GitHub workflow produced an artifact. It does not prove that every

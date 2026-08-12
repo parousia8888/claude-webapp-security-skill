@@ -6,6 +6,8 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const SKILL_ID = 'web-app-security';
+const LEGACY_SKILL_ID = 'webapp-security-hardening';
 const argv = process.argv.slice(2);
 const command = argv.shift();
 
@@ -46,22 +48,33 @@ function install() {
     console.error('error: --target must be claude, codex, cli, both, or all');
     process.exit(2);
   }
-  const roots = [];
-  if (['claude', 'both', 'all'].includes(target)) roots.push(join(homedir(), '.claude', 'skills', 'webapp-security-hardening'));
-  if (['codex', 'both', 'all'].includes(target)) roots.push(join(homedir(), '.codex', 'skills', 'webapp-security-hardening'));
+  const installs = [];
+  if (['claude', 'both', 'all'].includes(target)) installs.push({
+    destination: join(homedir(), '.claude', 'skills', SKILL_ID),
+    legacy: join(homedir(), '.claude', 'skills', LEGACY_SKILL_ID),
+  });
+  if (['codex', 'both', 'all'].includes(target)) installs.push({
+    destination: join(homedir(), '.codex', 'skills', SKILL_ID),
+    legacy: join(homedir(), '.codex', 'skills', LEGACY_SKILL_ID),
+  });
   const installCli = ['cli', 'all'].includes(target);
-  const cliRoot = join(homedir(), '.local', 'share', 'webapp-security-hardening');
+  const cliRoot = join(homedir(), '.local', 'share', SKILL_ID);
+  const legacyCliRoot = join(homedir(), '.local', 'share', LEGACY_SKILL_ID);
   const launcher = join(homedir(), '.local', 'bin', 'webapp-security');
-  if (installCli) roots.push(cliRoot);
+  if (installCli) installs.push({ destination: cliRoot, legacy: legacyCliRoot });
 
-  const conflicts = [...roots, ...(installCli ? [launcher] : [])].filter((destination) => existsSync(destination));
+  const conflicts = [
+    ...installs.flatMap(({ destination, legacy }) => [destination, legacy]),
+    ...(installCli ? [launcher] : []),
+  ].filter((destination) => existsSync(destination));
   if (conflicts.length && !force) {
-    console.error(`error: existing install${conflicts.length === 1 ? '' : 's'}:\n${conflicts.map((item) => `  ${item}`).join('\n')}\nre-run with --force to back up and replace`);
+    const legacyFound = conflicts.some((item) => item.endsWith(`/${LEGACY_SKILL_ID}`));
+    console.error(`error: existing install${conflicts.length === 1 ? '' : 's'}:\n${conflicts.map((item) => `  ${item}`).join('\n')}\n${legacyFound ? `legacy ${LEGACY_SKILL_ID} installs require migration; ` : ''}re-run with --force to back up and replace`);
     process.exit(2);
   }
 
   const include = ['SKILL.md', 'VERSION', 'LICENSE', 'agents', 'assets', 'examples', 'references', 'scripts'];
-  for (const destination of roots) {
+  for (const { destination, legacy } of installs) {
     mkdirSync(dirname(destination), { recursive: true });
     const stageRoot = mkdtempSync(join(dirname(destination), '.webapp-security-install-'));
     const staged = join(stageRoot, basename(destination));
@@ -70,16 +83,24 @@ function install() {
       const source = join(ROOT, entry);
       if (existsSync(source)) cpSync(source, join(staged, entry), { recursive: true });
     }
-    let backup = null;
+    const backups = [];
     if (existsSync(destination)) {
-      backup = `${destination}.backup-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+      const backup = `${destination}.backup-${new Date().toISOString().replace(/[:.]/g, '-')}`;
       renameSync(destination, backup);
+      backups.push({ backup, original: destination });
+    }
+    if (existsSync(legacy)) {
+      const backup = `${legacy}.backup-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+      renameSync(legacy, backup);
+      backups.push({ backup, original: legacy });
     }
     try {
       renameSync(staged, destination);
-      console.log(`installed: ${destination}${backup ? `\nbackup:    ${backup}` : ''}`);
+      console.log(`installed: ${destination}${backups.map(({ backup }) => `\nbackup:    ${backup}`).join('')}`);
     } catch (error) {
-      if (backup && !existsSync(destination)) renameSync(backup, destination);
+      for (const { backup, original } of backups.reverse()) {
+        if (!existsSync(original)) renameSync(backup, original);
+      }
       throw error;
     } finally {
       rmSync(stageRoot, { recursive: true, force: true });

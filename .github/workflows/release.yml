@@ -29,10 +29,10 @@ jobs:
         run: |
           version="$(tr -d '\n' < VERSION)"
           mkdir -p dist
-          git archive --format=tar --prefix="webapp-security-hardening-$version/" "$GITHUB_REF_NAME" \
-            | gzip -n > "dist/webapp-security-hardening-$version.tar.gz"
+          git archive --format=tar --prefix="web-app-security-skill-$version/" "$GITHUB_REF_NAME" \
+            | gzip -n > "dist/web-app-security-skill-$version.tar.gz"
           SOURCE_DATE_EPOCH="$(git log -1 --format=%ct "$GITHUB_REF_NAME")" \
-            node scripts/generate-sbom.mjs --out "dist/webapp-security-hardening-$version.spdx.json"
+            node scripts/generate-sbom.mjs --out "dist/web-app-security-skill-$version.spdx.json"
           (cd dist && sha256sum * > SHA256SUMS)
       - name: "Attest release artifacts"
         uses: "actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be"
