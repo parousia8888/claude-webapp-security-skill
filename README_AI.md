@@ -40,14 +40,16 @@ Never infer ownership from repository access, DNS reachability, or a user-agent 
 
 ## Current execution surfaces
 
+- `node scripts/webapp-security.mjs start <project>`
 - `node scripts/webapp-security.mjs demo`
 - `node scripts/webapp-security.mjs crawl ...`
 - `node scripts/webapp-security.mjs verify-crawler ...`
 - `node scripts/webapp-security.mjs verify-edge ...`
 - `node scripts/webapp-security.mjs aws ...`
 
-Project discovery, stable multi-format findings, and the general patch/retest baseline loop remain
-planned until their capability entries link to regression evidence.
+Stable multi-format findings and the general patch/retest baseline loop remain planned until their
+capability entries link to regression evidence. Project discovery only establishes source/local
+scope; it does not prove deployment ownership or authorize remote traffic.
 
 ## Stop conditions
 

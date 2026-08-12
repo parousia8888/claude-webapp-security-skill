@@ -15,6 +15,7 @@ function usage(code = 0) {
   console.log(`webapp-security <command> [options]
 
 Commands:
+  start <project> [options]    Discover stack and create a versioned, network-free scope
   demo                         Run the deterministic local before/after demo
   crawl <crawl options>        Audit a public crawl boundary
   verify-crawler <options>     Verify a crawler IP and claimed user agent
@@ -73,7 +74,10 @@ function install() {
     process.exit(2);
   }
 
-  const include = ['SKILL.md', 'VERSION', 'LICENSE', 'agents', 'assets', 'examples', 'references', 'scripts'];
+  const include = [
+    'SKILL.md', 'VERSION', 'LICENSE', 'agents', 'assets', 'examples', 'references', 'scripts',
+    'docs/capabilities.json', 'docs/capabilities.md', 'docs/security-scope.schema.json',
+  ];
   for (const { destination, legacy } of installs) {
     mkdirSync(dirname(destination), { recursive: true });
     const stageRoot = mkdtempSync(join(dirname(destination), '.webapp-security-install-'));
@@ -81,7 +85,11 @@ function install() {
     mkdirSync(staged);
     for (const entry of include) {
       const source = join(ROOT, entry);
-      if (existsSync(source)) cpSync(source, join(staged, entry), { recursive: true });
+      const target = join(staged, entry);
+      if (existsSync(source)) {
+        mkdirSync(dirname(target), { recursive: true });
+        cpSync(source, target, { recursive: true });
+      }
     }
     const backups = [];
     if (existsSync(destination)) {
@@ -130,6 +138,7 @@ function install() {
 }
 
 switch (command) {
+  case 'start': run(process.execPath, [join(ROOT, 'scripts', 'project-start.mjs'), ...argv]); break;
   case 'demo': run(process.execPath, [join(ROOT, 'scripts', 'demo.mjs'), ...argv]); break;
   case 'crawl': run(process.execPath, [join(ROOT, 'scripts', 'crawl-surface-audit.mjs'), ...argv]); break;
   case 'verify-crawler': run(process.execPath, [join(ROOT, 'scripts', 'verify-crawler-ip.mjs'), ...argv]); break;

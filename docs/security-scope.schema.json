@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/security-scope.schema.json",
+  "title": "Web App Security Skill scope",
+  "type": "object",
+  "required": ["schemaVersion", "generatedBy", "generatedAt", "run", "target", "authorization", "checkModes", "discoveryEvidence", "exclusions"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatedBy": {
+      "type": "object",
+      "required": ["product", "version"],
+      "properties": {
+        "product": { "const": "Web App Security Skill" },
+        "version": { "type": "string" }
+      }
+    },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "run": {
+      "type": "object",
+      "required": ["id", "directory"],
+      "properties": {
+        "id": { "type": "string" },
+        "directory": { "type": "string" }
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": ["projectRoot", "discoveryStatus", "layout", "frameworks", "packageManagers", "manifests", "lockfiles", "deploymentSurfaces", "configSurfaces", "publicOrigins"],
+      "properties": {
+        "projectRoot": { "type": "string" },
+        "discoveryStatus": { "enum": ["supported", "ambiguous", "unsupported"] },
+        "layout": { "enum": ["single-root", "monorepo", "split-stack"] },
+        "frameworks": { "type": "array" },
+        "packageManagers": { "type": "array" },
+        "manifests": { "type": "array", "items": { "type": "string" } },
+        "lockfiles": { "type": "array", "items": { "type": "string" } },
+        "deploymentSurfaces": { "type": "array", "items": { "type": "string" } },
+        "configSurfaces": { "type": "array", "items": { "type": "string" } },
+        "publicOrigins": { "type": "array" }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "required": ["status", "basis", "proof", "note"],
+      "properties": {
+        "status": { "enum": ["pending", "granted", "denied"] }
+      }
+    },
+    "checkModes": {
+      "type": "object",
+      "required": ["source", "local", "remotePassive", "remoteActive"]
+    },
+    "discoveryEvidence": {
+      "type": "object",
+      "required": ["examinedFiles", "networkAccessPerformed", "secretFilesRead", "warnings", "unknowns"],
+      "properties": {
+        "networkAccessPerformed": { "const": false },
+        "secretFilesRead": { "const": false }
+      }
+    },
+    "exclusions": { "type": "array", "items": { "type": "string" } }
+  }
+}

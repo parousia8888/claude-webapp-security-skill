@@ -69,6 +69,13 @@ node scripts/webapp-security.mjs install --target both   # Claude Code + Codex
 
 在 Claude Code 或 Codex 中打开目标仓库，然后发送：
 
+```bash
+webapp-security start .
+```
+
+命令会创建 `.webapp-security/runs/<run-id>/security-scope.yml`，记录检测到的框架、包管理器、
+lockfile 与部署/配置路径，全程不访问网络。检查 scope 后，再发送：
+
 ```text
 在这个仓库使用 $web-app-security。先只执行源码与本地检查，记录范围和假设；把每项结果标为 confirmed、suspected、unknown 或 not_applicable；准备最小且可审查的加固补丁，未经批准不应用高风险或生产变更；复测每项已应用修复，最后列出已修复、仍存在和未覆盖的风险。
 ```
@@ -80,11 +87,11 @@ node scripts/webapp-security.mjs install --target both   # Claude Code + Codex
 
 项目公开能力严格分成 3 层能力：
 
-- **已自动化并有回归测试：** 本地 demo、crawl boundary、crawler 身份、edge 复测、安装器和
-  GitHub Action 通过确定性产品路径运行。
+- **已自动化并有回归测试：** 项目识别/scope、本地 demo、crawl boundary、crawler 身份、
+  edge 复测、安装器和 GitHub Action 通过确定性产品路径运行。
 - **Agent 按方法论执行：** 前端、API、LLM/OAuth、服务端、数据库、供应链、检测和 AWS 审查
   依赖项目上下文与 Agent 判断，不是一条自动扫描命令。
-- **计划中：** 自动项目识别、稳定的多格式 finding、通用补丁/基线复测闭环尚未交付。
+- **计划中：** 稳定的多格式 finding、通用补丁/基线复测闭环尚未交付。
 
 [生成的能力矩阵](docs/capabilities.md)为每项声明链接证据。结果只使用 `confirmed`、
 `suspected`、`unknown`、`not_applicable`；无法执行的检查不是通过。安装 Skill 不代表项目已经安全。
@@ -94,6 +101,9 @@ node scripts/webapp-security.mjs install --target both   # Claude Code + Codex
 可以让 Claude Code 或 Codex 调用 `web-app-security`，也可以直接运行相同的确定性工具：
 
 ```bash
+# 无网络项目识别与版本化 scope
+webapp-security start .
+
 # 默认被动：爬取边界与 crawler 可达性
 webapp-security crawl --site https://example.com --out ./security-report
 

@@ -55,7 +55,10 @@ match or scanner lead directly to `confirmed`, and never convert unavailable evi
 
 ## How to run this
 
-1. **Always start at Phase 0.** Even for the user's own property. It takes minutes, it makes the boundary explicit, and it is the difference between an audit and an incident. Copy `assets/scope-template.md` into the workspace as `scope.md` and fill it in.
+1. **Always start at Phase 0.** Run `webapp-security start <project>` to create the versioned
+   `security-scope.yml`, then complete its authorization fields before remote work. If the CLI is
+   unavailable, copy `assets/scope-template.md` into the workspace as `scope.md`. Source discovery
+   does not prove deployment ownership.
 2. **Do the free work first.** Phases 1, 4, X-1, X-4, X-5 and the read-only half of X-3 need no permission gate and usually surface the highest-severity findings, because misconfiguration beats exploitation.
 3. **Then the 🔴 phases**, in the order 2 → 3 → 5, using non-destructive proofs (see Phase 0 §5): make an endpoint return a marker rather than real data, use accounts you created, cap request volume, never touch other users' records.
 4. **Phase 7 last but continuously** — detection is what catches everything the audit missed.
@@ -80,6 +83,9 @@ Do not run all phases just because they exist. Pick from the task:
 
 ```bash
 S="${HOME}/.claude/skills/web-app-security"
+
+# Network-free project discovery and versioned scope
+node "$S/scripts/webapp-security.mjs" start /path/to/project
 
 # Passive crawl boundary + crawler UA matrix
 node "$S/scripts/crawl-surface-audit.mjs" --site https://example.com --out ./reports/security

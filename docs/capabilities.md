@@ -14,6 +14,7 @@ Skill methodology. Installing the Skill does not prove that a web project is sec
 | Crawler identity verification | Verifies an exact crawler product through published ranges or matching forward-confirmed reverse DNS; a user-agent string is never sufficient. | [`scripts/verify-crawler-ip.mjs`](../scripts/verify-crawler-ip.mjs), [`test/verify-crawler-ip.test.mjs`](../test/verify-crawler-ip.test.mjs), [`test/integration.test.mjs`](../test/integration.test.mjs) |
 | Edge hardening verification | Checks security headers, HTTP-to-HTTPS redirect, certificate validation and TLS policy; bounded rate-limit traffic is separately authorized. | [`scripts/verify-hardening.sh`](../scripts/verify-hardening.sh), [`test/verify-hardening.test.mjs`](../test/verify-hardening.test.mjs) |
 | Installer and GitHub Action | Installs Claude Code, Codex and CLI surfaces with conflict preflight/backups, and runs a passive-by-default composite Action with an authorization gate. | [`scripts/webapp-security.mjs`](../scripts/webapp-security.mjs), [`action.yml`](../action.yml), [`test/product-surfaces.test.mjs`](../test/product-surfaces.test.mjs) |
+| Automatic project discovery and scoped run | Detects supported Node/Python and split-stack projects, package managers, lockfiles and config/deployment paths, then creates a versioned network-free security scope. It never establishes deployment ownership. | [`scripts/project-start.mjs`](../scripts/project-start.mjs), [`scripts/lib/project-discovery.mjs`](../scripts/lib/project-discovery.mjs), [`test/project-discovery.test.mjs`](../test/project-discovery.test.mjs), [`docs/security-scope.schema.json`](../docs/security-scope.schema.json) |
 
 ## Agent-guided methodology
 
@@ -30,7 +31,6 @@ Skill methodology. Installing the Skill does not prove that a web project is sec
 
 | Capability | Current boundary | Evidence |
 |---|---|---|
-| Automatic project discovery and scoped run | Detect a project's stack and create a versioned security scope through one start command. | [`docs/PRODUCTIZATION_PLAN.md`](../docs/PRODUCTIZATION_PLAN.md) |
 | Stable multi-format finding reports | Publish one finding schema through Markdown, HTML, SARIF and JUnit renderers with baseline diffs. | [`docs/PRODUCTIZATION_PLAN.md`](../docs/PRODUCTIZATION_PLAN.md) |
 | General patch and retest loop | Prepare reviewable project-specific patches and confirm them through a reusable baseline retest path. | [`docs/PRODUCTIZATION_PLAN.md`](../docs/PRODUCTIZATION_PLAN.md) |
 

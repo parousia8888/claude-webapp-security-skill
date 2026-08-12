@@ -12,5 +12,11 @@
 | AWS CLI | v2 recommended | Optional; permission failures are `UNCHECKED` |
 | Windows | WSL2 only | Native PowerShell is not currently supported |
 
+Project discovery currently identifies Node projects from `package.json`, common JavaScript
+lockfiles and supported framework dependencies; Python projects from `pyproject.toml` or
+`requirements*.txt` plus common Python lockfiles; and multi-root combinations of those ecosystems.
+It records deployment/config file paths without reading them. Unsupported or ambiguous stacks
+remain explicit in `security-scope.yml`.
+
 Node 18 may run some scripts but is not a supported release target. TLS results vary by curl TLS
 backend; protocol checks are capability-tested and stop with `unknown` if they cannot be proven.

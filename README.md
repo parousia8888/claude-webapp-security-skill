@@ -71,6 +71,14 @@ Supported environments and current limits are recorded in the
 
 Open the target repository in Claude Code or Codex and send this prompt:
 
+```bash
+webapp-security start .
+```
+
+This creates `.webapp-security/runs/<run-id>/security-scope.yml`, records detected framework,
+package manager, lockfile and deployment/config paths, and performs no network access. Review the
+scope, then send:
+
 ```text
 Use $web-app-security on this repository. Start with source and local checks only. Record scope and assumptions. Classify every result as confirmed, suspected, unknown, or not_applicable. Prepare the smallest reviewable hardening patch, do not apply risky or production changes without approval, retest every applied fix, and finish with fixed, remaining, and unreached risks.
 ```
@@ -83,12 +91,13 @@ deployment; active traffic still requires ownership or written authorization and
 
 The project has 3 capability levels:
 
-- **Automated and regression-tested:** the local demo, crawl-boundary audit, crawler identity,
-  edge verification, installer and GitHub Action run through deterministic product paths.
+- **Automated and regression-tested:** project discovery/scoping, the local demo, crawl-boundary
+  audit, crawler identity, edge verification, installer and GitHub Action run through deterministic
+  product paths.
 - **Agent-guided methodology:** frontend, API, LLM/OAuth, server, database, supply-chain, detection
   and AWS reviews require project context and agent judgment. They are not one automatic scan.
-- **Planned:** automatic project discovery, stable multi-format findings and a general patch/retest
-  baseline loop are not shipped yet.
+- **Planned:** stable multi-format findings and a general patch/retest baseline loop are not shipped
+  yet.
 
 The [generated capability matrix](docs/capabilities.md) links every statement to evidence. Results
 are `confirmed`, `suspected`, `unknown`, or `not_applicable`; a check that could not run is never a
@@ -100,6 +109,9 @@ Ask Claude Code or Codex to use `web-app-security`, or run the same deterministi
 directly:
 
 ```bash
+# Network-free project discovery and versioned scope
+webapp-security start .
+
 # Passive crawl-boundary and crawler accessibility audit
 webapp-security crawl --site https://example.com --out ./security-report
 

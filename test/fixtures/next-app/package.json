@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "dependencies": {
+    "next": "15.0.0",
+    "react": "19.0.0"
+  }
+}

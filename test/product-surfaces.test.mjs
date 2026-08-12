@@ -128,6 +128,8 @@ try {
     const installed = join(fakeHome, client, 'skills', 'web-app-security');
     assert.ok(existsSync(join(installed, 'SKILL.md')));
     assert.equal(existsSync(join(installed, 'README.md')), false, 'installer must copy only the skill payload');
+    assert.ok(existsSync(join(installed, 'docs', 'capabilities.md')));
+    assert.ok(existsSync(join(installed, 'docs', 'security-scope.schema.json')));
     assert.match(readFileSync(join(installed, 'SKILL.md'), 'utf8'), /^name: web-app-security$/m);
   }
   const codexSkills = join(fakeHome, '.codex', 'skills');
@@ -144,6 +146,16 @@ try {
   result = await run(launcher, ['--help'], { env: { ...process.env, HOME: allHome } });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /webapp-security <command>/);
+  const installedStartOut = join(temp, 'installed-start');
+  result = await run(launcher, [
+    'start', join(ROOT, 'test', 'fixtures', 'next-app'),
+    '--out', installedStartOut, '--run-id', 'installed', '--origin', 'https://example.com/path?token=redacted',
+  ], { env: { ...process.env, HOME: allHome, SOURCE_DATE_EPOCH: '0' } });
+  assert.equal(result.status, 0, result.stderr);
+  const installedScope = JSON.parse(readFileSync(join(installedStartOut, 'installed', 'security-scope.yml'), 'utf8'));
+  assert.ok(installedScope.target.frameworks.some((item) => item.name === 'Next.js'));
+  assert.equal(installedScope.target.publicOrigins[0].url, 'https://example.com/');
+  assert.equal(installedScope.checkModes.remoteActive.status, 'blocked_pending_authorization');
 
   const sbomPath = join(temp, 'sbom.spdx.json');
   result = await run(process.execPath, [SBOM, '--out', sbomPath], { env: { ...process.env, SOURCE_DATE_EPOCH: '0' } });

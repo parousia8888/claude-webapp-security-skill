@@ -92,9 +92,9 @@
     {
       "id": "project-discovery",
       "name": "Automatic project discovery and scoped run",
-      "label": "planned",
-      "scope": "Detect a project's stack and create a versioned security scope through one start command.",
-      "evidence": ["docs/PRODUCTIZATION_PLAN.md"]
+      "label": "automated_regression_tested",
+      "scope": "Detects supported Node/Python and split-stack projects, package managers, lockfiles and config/deployment paths, then creates a versioned network-free security scope. It never establishes deployment ownership.",
+      "evidence": ["scripts/project-start.mjs", "scripts/lib/project-discovery.mjs", "test/project-discovery.test.mjs", "docs/security-scope.schema.json"]
     },
     {
       "id": "structured-reports",

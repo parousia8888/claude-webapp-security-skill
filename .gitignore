@@ -1,3 +1,4 @@
 reports/
+.webapp-security/
 node_modules/
 .DS_Store

@@ -1,0 +1,3 @@
+[project]
+name = "fixture-fastapi"
+dependencies = ["fastapi==0.116.0", "uvicorn==0.35.0"]
