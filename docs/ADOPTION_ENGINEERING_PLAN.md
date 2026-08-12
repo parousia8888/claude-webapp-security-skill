@@ -102,8 +102,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | Phase | Deliverable | Status | Evidence |
 |---|---|---|---|
 | G0 | Adoption contract, baseline, phase acceptance and anti-metric rules | completed | `0599f46` + checks below |
-| G1 | Fixture-generated animated terminal demo and README placement | in progress | pending |
-| G2 | Verified low-friction install channel and clean-room lifecycle | pending | pending |
+| G1 | Fixture-generated animated terminal demo and README placement | completed | `f1f9728` + checks below |
+| G2 | Verified low-friction install channel and clean-room lifecycle | in progress | pending |
 | G3 | Privacy-minimal five-session usability kit and deterministic aggregation | pending | pending |
 | G4 | Reusable English/Chinese publication and upstream case-study kit | pending | pending |
 | G5 | Priority fail-closed correctness fixes and release-candidate evidence | pending | pending |
@@ -171,11 +171,23 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Commit / CI: pending
-- Remaining risks: pending
+- Status: completed 2026-08-13
+- Implementation: `scripts/generate-demo-gif.mjs` runs the real owned fixture, derives its five
+  scenes from `before.json`, `hardening.patch`, `after.json` and baseline evidence, then renders an
+  840x472 animated GIF with a repository-owned pixel font and pure Node GIF encoder. The committed
+  `docs/assets/demo.json` records source inputs, dimensions, frame count, duration, byte size,
+  SHA-256, observed counts and the no-third-party boundary. Both READMEs show the GIF before the
+  long-form result section and link to the static generated evidence. `npm run lint` regenerates and
+  byte-compares the asset.
+- Tests: `npm run check`; `node scripts/generate-demo-gif.mjs --check`;
+  `node test/demo-gif.test.mjs`; Skill Creator validator; `git diff --check`. All passed. Independent
+  ImageMagick and FFmpeg decoders reported GIF89a, 840x472, five frames, looping playback and 10.9
+  seconds. Visual inspection of every coalesced frame found no clipped or overlapping text.
+- Commit / CI: implementation `f1f9728`; phase-record commit and CI pending push.
+- Remaining risks: the 2,742,052-byte GIF is optimized for deterministic cross-platform generation,
+  not minimum transfer size. It remains below the 5 MB repository gate; future compression must
+  preserve byte reproducibility and legibility. The demo proves the owned crawl-boundary fixture,
+  not general automatic AppSec coverage.
 
 ## G2 - Verified low-friction installation
 
