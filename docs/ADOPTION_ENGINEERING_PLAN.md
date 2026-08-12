@@ -137,7 +137,11 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   `git diff --check`. All passed. The default `python3` on this machine lacks PyYAML, so Skill
   validation used the existing `/usr/local/bin/python3` environment rather than treating the
   missing optional module as a Skill failure.
-- Commit / CI: implementation `0599f46`; phase-record commit and CI pending push.
+- Commit / CI: implementation `0599f46`; phase record `001092a`;
+  [CI run 31652280441](https://github.com/parousia8888/web-app-security-skill/actions/runs/31652280441)
+  passed the Ubuntu/macOS x Node 20/22 matrix and
+  [CodeQL run 31652280433](https://github.com/parousia8888/web-app-security-skill/actions/runs/31652280433)
+  passed.
 - Remaining risks: GitHub traffic history was not available through the public repository API;
   launch-window traffic remains a manual owner capture. The baseline stars/forks/watchers are an
   observation only and will not be used to pass a later phase.
