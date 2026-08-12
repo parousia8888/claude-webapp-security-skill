@@ -126,7 +126,7 @@ Current project gaps at program start:
 | P2 | Outcome-led README and first-run packaging | completed | `cf3ae40` + checks below |
 | P3 | `start <project>` project discovery and scoped run | completed | `91a6dc9` + checks below |
 | P4 | Finding schema, reports, patch/retest baseline loop | completed | `6454fb1` + checks below |
-| P5 | Three ordinary open-source project journeys | pending | pending |
+| P5 | Three ordinary open-source project journeys | completed | `39eb817` + fixed-commit runs below |
 | P6 | Install/upgrade/uninstall, Action v1, signed release | pending | pending |
 | P7 | Tutorial, contribution path, launch evidence | pending | pending |
 
@@ -344,11 +344,40 @@ Current project gaps at program start:
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Commit: pending
-- Remaining risks: pending
+- Status: completed 2026-08-13
+- Implementation: `docs/case-studies/journeys/evidence.json` is the structured source for three
+  ordinary-project journeys: Linkwarden at
+  `62f1b81ff7f66001b0f5f613202f87771f3186ee`, Healthchecks at
+  `49653c350cddc47fc00a471bd1b08b5771a7967c`, and Open WebUI at
+  `01f4282f1ffe0d6212f58d3afbeae21fffd0c4be`. The current network-denied deterministic path
+  produced respectively 0, 0 and one medium `suspected` source-map result, with zero confirmed
+  findings across the three projects. Each public journey records discovery, raw leads,
+  false-positive closure, a narrow manual trace, repair/retest and unreached surfaces. The earlier
+  five methodology studies remain separate instead of being blended into the ordinary-project
+  count. Real-project feedback repaired three precision defects: declared Node workspaces inherit
+  their matching ancestor lockfile, requirements files are not required to have a second adjacent
+  lockfile, and known `.env` template suffixes are excluded while real environment filenames stay
+  filename-only suspected results. `scripts/run-case-journey.mjs` requires a clean Git checkout at
+  the exact catalog commit, canonicalizes output containment through symlinked path ancestors,
+  refuses output inside the checkout, forces the deny-network preload, and compares discovery plus
+  selected finding fields against the structured evidence. The Open WebUI upstream tree was not
+  edited; a minimal local representative changes `sourcemap: true` to `false` and required-baseline
+  retest records the suspected lead as `fixed`.
+- Tests: `npm run check`; Skill Creator `quick_validate.py`; JSON and repository YAML parse;
+  `node test/case-journeys.test.mjs`; `node test/evidence-loop.test.mjs`;
+  `node scripts/check-case-journeys.mjs`; `node scripts/check-public-surfaces.mjs`; and
+  `git diff --check` all passed. The journey test plants workspace, requirements, environment-file
+  and Open WebUI source-map regressions; asserts no secret sentinel enters evidence; and verifies
+  runner rejection of dirty, wrong-commit and in-tree-output checkouts. The runner also passed
+  against clean Git checkouts of all three recorded commits with `catalog: matched` and
+  `network: none`.
+- Commit: `39eb817` (`feat: add reproducible project security journeys`)
+- Remaining risks: zero findings means only that the four narrow deterministic rule families did
+  not produce a result. No dependency SCA, build execution, hosted artifact request, authenticated
+  API exercise, LLM/plugin/data-layer test or third-party deployment probe ran. Linkwarden proxy
+  mode, Healthchecks production environment values and Open WebUI public `.map` delivery remain
+  `unknown`. Open WebUI's source-map result remains `suspected`; the fixture retest proves the
+  rule's local repair loop, not an upstream or deployed fix.
 
 ## P6 - Distribution and release
 
