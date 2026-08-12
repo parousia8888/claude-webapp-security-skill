@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.4] — 2026-08-13
+
+### Changed
+- CI: bumped `actions/checkout` and `actions/setup-node` to `@v5`. GitHub was force-running the
+  `@v4` actions on Node 24 (the Node 20 action runtime is deprecated) and printing a deprecation
+  notice on every run; `@v5` targets the supported runtime and clears the warning. No change to the
+  test matrix (ubuntu/macOS × Node 20/22) or what runs.
+
 ## [0.2.3] — 2026-08-13
 
 ### Changed

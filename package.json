@@ -1,6 +1,6 @@
 {
   "name": "webapp-security-hardening",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "type": "module",
   "description": "Phased web app security audit, hardening, and crawl-boundary program (skill).",
