@@ -76,8 +76,8 @@ Verdicts:
 | Verdict | Meaning | Action |
 |---|---|---|
 | `verified` | FCrDNS or published range matched the claimed vendor | may be exempted from rate limits — still never from auth |
-| `spoofed` | claims a verifiable vendor, failed verification | block, and treat every other request from that client as hostile |
-| `unverifiable` | vendor publishes no usable signal | treat as an anonymous client; rate-limit normally |
+| `spoofed` | proven owner **disagrees** with the vendor the UA claims (rDNS proves vendor B, or the IP is absent from vendor A's *successfully-loaded* range) | block, and treat every other request from that client as hostile |
+| `unverifiable` | no usable signal — vendor publishes none, **or its range list could not be fetched this run** | treat as an anonymous client; rate-limit normally; do **not** block |
 | `not-a-known-bot` | UA matches no known crawler | ordinary client |
 
 ## Extracting the candidates from logs
@@ -98,5 +98,6 @@ Then feed the IP list to the script. Two things worth measuring on the verified 
 - **`Google-Extended` and `Applebot-Extended` are robots.txt tokens, not crawler user agents.** They will never appear in logs. Blocking them at the WAF does nothing; they are honored only by the respective vendor reading robots.txt.
 - **Verification is per-request identity, not per-request intent.** A verified `Claude-User` fetch is a live human's request, not a bulk crawl — do not shape it like a crawler.
 - **Never grant a verified bot access to PRIVATE paths.** Verification answers "is this really Googlebot", not "should Googlebot see this". Nothing about being a real crawler authorizes anything.
-- **IPv6.** Vendor ranges include IPv6 prefixes; a matcher that only handles IPv4 will silently return `spoofed` for legitimate traffic. The bundled script handles both.
+- **IPv6.** Vendor ranges include IPv6 prefixes; a matcher that only handles IPv4 will silently return `spoofed` for legitimate traffic. The bundled script handles both (with IPv4/IPv6 CIDR-boundary tests).
+- **Fail open on a fetch failure, never closed.** If the vendor's published range list can't be downloaded (network blip, URL moved), the verdict must be `unverifiable`, not `spoofed`. A verifier that convicts on "we couldn't check" turns a transient outage into a wrongful block of a real crawler — an SEO self-inflicted wound. The script distinguishes "source loaded, IP absent" (spoof) from "source failed to load" (unverifiable).
 - **Cache the vendor lists** and fail *open for logging, closed for privileges*: if a fetch fails, log `unverifiable` and apply normal limits rather than granting an exemption.
