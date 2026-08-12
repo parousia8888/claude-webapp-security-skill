@@ -1,8 +1,9 @@
 # Web App Security Skill productization plan
 
-Status: active  
+Status: completed
 Owner: parousia8888  
 Started: 2026-08-13  
+Completed: 2026-08-13
 Canonical repository: `parousia8888/web-app-security-skill`
 
 This document is the source of truth for the P0-P7 productization program. Update a phase record
@@ -128,7 +129,7 @@ Current project gaps at program start:
 | P4 | Finding schema, reports, patch/retest baseline loop | completed | `6454fb1` + checks below |
 | P5 | Three ordinary open-source project journeys | completed | `39eb817` + fixed-commit runs below |
 | P6 | Install/upgrade/uninstall, Action v1, signed release | completed | `dcb4975` + release evidence below |
-| P7 | Tutorial, contribution path, launch evidence | pending | pending |
+| P7 | Tutorial, contribution path, launch evidence | completed | `21a95f5` + public/live evidence below |
 
 ## P0 - Product contract and capability boundary
 
@@ -455,11 +456,45 @@ Current project gaps at program start:
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Commit / public URLs: pending
-- Remaining risks: pending
+- Status: completed 2026-08-13
+- Implementation: `docs/tutorial.md` and `docs/tutorial.zh-CN.md` cover verified release/current
+  checkout installation, first-project scope, the four result states, explanation, patch-only
+  review, retest, authorization, troubleshooting, false-positive reporting, upgrade and uninstall.
+  `README_AI.md` now gives agents the matching repository-mode lifecycle and stop conditions. The
+  network-denied `scripts/run-clean-room-tutorial.mjs` installs into an isolated home and exercises
+  `version -> start -> audit -> explain -> retest -> upgrade -> uninstall` on a planted before/after
+  fixture. `docs/launch-evidence.md` is generated from the 14-capability contract, three journey
+  records, five methodology studies, real local demo and v0.3.0 release. Stars and forks were
+  removed from the evidence surface. `CONTRIBUTING.md` and `ROADMAP.md` now describe the shipped
+  multi-surface product instead of listing shipped CLI/SARIF/Action work as future work.
+- Contribution / public surface: GitHub labels are sourced by `docs/github-metadata.json`; bounded
+  work is live as issues [#1](https://github.com/parousia8888/web-app-security-skill/issues/1)
+  through [#7](https://github.com/parousia8888/web-app-security-skill/issues/7), each with a fixture,
+  planted-failure requirement, acceptance tests and no-third-party-target boundary. The GitHub
+  description uses the canonical promise, the homepage points to the
+  [human tutorial](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/tutorial.md),
+  topics are sourced and checked, and the
+  [v0.3.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0)
+  body uses the same promise. `scripts/check-p7-surfaces.mjs --live` checks description, homepage,
+  topics, labels, open issue titles/labels, release tag/URL/body and local documentation together.
+- Tests: `npm run check`; Skill Creator `quick_validate.py`; parse all 12 YAML files with
+  `/usr/local/bin/python3` + PyYAML; `git diff --check`; focused tutorial/P7 tests; local/live P7
+  surface checks. All passed. A fresh GitHub clone at
+  `6b635437ea3c4aa9fe414e391f035363c1b86d83` remained clean, denied all network from the tutorial
+  process, reached a four-finding report (one `confirmed`, three `suspected`) and recorded four
+  `fixed`, zero unchanged/regressed results in 658 ms against a 600-second budget.
+- Commits / CI: implementation `21a95f5`, public issue inventory `2f170dc`, release live-contract
+  check `6b63543`. Implementation-head [CI run 31639404785](https://github.com/parousia8888/web-app-security-skill/actions/runs/31639404785)
+  passed the Ubuntu/macOS x Node 20/22 matrix; [CodeQL run 31639404837](https://github.com/parousia8888/web-app-security-skill/actions/runs/31639404837)
+  passed. Release tags were not moved: signed `v0.3.0` and `v1` still peel to
+  `d7df9fa6efd466c3eb13768c3b9ad259d2636e04`.
+- Remaining risks: native Windows is unsupported and the clean WSL2 verification remains tracked in
+  #3. The deterministic source audit intentionally has a narrow rule set; agent-guided domains are
+  not a general automatic scanner and the case corpus is not a precision benchmark. GitHub still
+  shows the release SSH signature as `unknown_key` until the same public key is registered to the
+  maintainer account, although repository trust-anchor verification succeeds. Open roadmap issues
+  are planned work, not shipped capability, and adoption metrics remain outside engineering
+  acceptance.
 
 ## Program completion
 
