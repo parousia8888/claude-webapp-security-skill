@@ -202,7 +202,7 @@ Verify downloaded release assets:
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
-git verify-tag v0.3.0
+git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.3.0
 ```
 
 ## 3 ordinary project journeys

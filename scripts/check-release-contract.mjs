@@ -48,6 +48,8 @@ for (const [path, markers] of [
   ]],
   ['README.md', ['webapp-security version', 'scripts/webapp-security.mjs upgrade', 'webapp-security uninstall']],
   ['README.zh-CN.md', ['webapp-security version', 'scripts/webapp-security.mjs upgrade', 'webapp-security uninstall']],
+  ['.github/release-signers', ['syx627511687@gmail.com ssh-ed25519 ']],
+  ['docs/releases/v0.3.0.md', ['gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.3.0']],
 ]) for (const marker of markers) requireText(path, marker);
 
 if (read('.github/workflows/release.yml').includes('- "v*"')) {
