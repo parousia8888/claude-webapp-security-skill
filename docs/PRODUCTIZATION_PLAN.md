@@ -125,7 +125,7 @@ Current project gaps at program start:
 | P1 | Unified identity and human/agent entrypoints | completed | `c27a8ec` + migration evidence below |
 | P2 | Outcome-led README and first-run packaging | completed | `cf3ae40` + checks below |
 | P3 | `start <project>` project discovery and scoped run | completed | `91a6dc9` + checks below |
-| P4 | Finding schema, reports, patch/retest baseline loop | pending | pending |
+| P4 | Finding schema, reports, patch/retest baseline loop | completed | `6454fb1` + checks below |
 | P5 | Three ordinary open-source project journeys | pending | pending |
 | P6 | Install/upgrade/uninstall, Action v1, signed release | pending | pending |
 | P7 | Tutorial, contribution path, launch evidence | pending | pending |
@@ -301,11 +301,31 @@ Current project gaps at program start:
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Commit: pending
-- Remaining risks: pending
+- Status: completed 2026-08-13
+- Implementation: versioned finding/report schemas define five severities, the four product result
+  states, stable SHA-256 fingerprints and `new`/`fixed`/`unchanged`/`regressed` baseline states.
+  One validated report object renders JSON, Markdown, escaped standalone HTML, SARIF 2.1.0 and
+  JUnit. `webapp-security audit` runs narrow source-only rules, writes a non-applying
+  `proposed.patch`, and refuses to overwrite existing evidence; `explain` resolves a stable finding
+  ID; `retest` requires a baseline. Only confirmed, non-fixed results trip severity gates.
+  Suspected results retain that evidence state even when fixed or regressed. The local crawl demo
+  now also emits the same evidence schema and renderer bundle without changing its original raw
+  reports or `13 high / 6 medium -> 0 high / 0 medium` result. Schemas and runtime modules ship in
+  installed Skill payloads.
+- Tests: `npm run check`; `node test/evidence-loop.test.mjs`;
+  `node scripts/check-evidence-contract.mjs`; Skill Creator `quick_validate.py`; JSON parse of all
+  three public schemas. Regressions cover new, unchanged, fixed and regressed state transitions;
+  stable fingerprints; a renderer snapshot; HTML hostile-path escaping; SARIF evidence properties;
+  JUnit confirmed-vs-suspected semantics; confirmed/suspected exit thresholds; required baseline;
+  report collision preservation; patch-only behavior; `explain`; no-network preload; demo schema
+  reuse; private output modes; and audit execution from an isolated installed CLI. All passed.
+- Commit: `6454fb1` (`feat: add structured findings and baseline retest`)
+- Remaining risks: the deterministic source audit intentionally has only four narrow rule families:
+  adjacent lockfile absence, environment-named files without reading contents, Node inspector bind
+  hints and common production source-map settings. It is not a general SAST engine. API, OAuth,
+  LLM, database and other agent-guided reviews can use the schema but still require contextual
+  evidence. SARIF and JUnit are projections for integrations; they do not upgrade a suspected
+  finding to confirmed.
 
 ## P5 - Ordinary open-source project journeys
 
