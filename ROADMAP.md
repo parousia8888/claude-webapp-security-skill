@@ -1,33 +1,43 @@
 # Roadmap
 
-Priority order (by impact on trust, then adoption):
-**correctness → deterministic integration tests → structured output/SARIF → GitHub Action → hardening patches & auto-retest → rule packs.**
-The first three move the score; the rest move adoption.
+The roadmap separates shipped behavior from proposed work. An unchecked item is not available until
+its acceptance test lands. Priorities are correctness and evidence integrity first, then platform
+coverage and adoption.
 
-## v0.2.x — result trustworthiness (in progress)
-- [x] crawler identity at product granularity (GPTBot⇄gptbot.json); fail-open on fetch failure
-- [x] real-CLI integration test for multi-source aggregation (local HTTP fixture)
-- [x] TLS: prove TLS≤1.1 refused / TLS1.2+ works (drop the non-existent `%{ssl_version}`)
-- [x] failure semantics: `000`/unreachable → ERROR, never "safe"
-- [x] `--n` bounds + strict arg exit codes; `net.isIP` parsing; version-metadata consistency
-- [x] rate-limit probe is opt-in (`--active-rate-limit`) — it is an ACTIVE test, not read-only
-- [ ] CIDR math via a reviewed approach or a vetted library, if hand-rolled edge cases keep surfacing
+## Shipped in v0.3.0
 
-## v0.3 — a real regression gate
-- [x] Deterministic local HTTP/HTTPS fixtures for headers, redirect, TLS, 429, connection-refused,
-  passive crawl, active-probe gate, Action entrypoint, installer and SBOM.
-- [x] Crawler product-source fixtures: exact-source hit/miss/failure and sibling-source isolation.
-- [x] Ubuntu + macOS x Node 20/22 matrix and CodeQL with full-SHA Action pins.
-- [x] Composite GitHub Action, unified CLI, one-command multi-client installer and local demo.
-- [x] Signed-build release workflow: source archive, SPDX SBOM, checksums and provenance attestation.
-- [ ] Fake AWS CLI fixture asserting permission-denied -> `UNCHECKED`.
-- [ ] Malformed/empty/stale crawler JSON fixtures, ShellCheck and coverage threshold.
-- [ ] Dependency review and secret scanning after repository settings and alert policy are defined.
+- Unified `webapp-security` CLI with `start`, `audit`, `explain`, required-baseline `retest`, local
+  demo and lifecycle commands.
+- Stable JSON finding/report schemas rendered to Markdown, escaped HTML, SARIF 2.1.0 and JUnit.
+- Network-free project discovery and narrow source rules with explicit `confirmed`, `suspected`,
+  `unknown` and `not_applicable` states.
+- Passive-by-default crawl and edge verification with authorization gates before active probes.
+- Composite GitHub Action, stable `v1` alias and immutable full-SHA example.
+- Claude Code, Codex and ordinary CLI installation, legacy migration, timestamped backups, upgrade
+  and guarded uninstall.
+- Reproducible source archive, SPDX SBOM, release manifest, checksums, provenance attestation and
+  signed release tags.
+- Three fixed-commit ordinary-project journeys plus five separate source methodology studies.
 
-## v0.4 — structured security product
-- Layered: `security-core` (pure rules + finding schema) · `security-cli` · `security-skill` · `policy-packs` (AWS/Cloudflare/nginx/OAuth/LLM).
-- CLI: `audit`, `retest --baseline`, `explain FINDING-ID`.
-- Outputs: Markdown/HTML · stable JSON schema · SARIF (GitHub code scanning) · JUnit · baseline diff (new/fixed/unchanged/regressed).
-- Publish `parousia8888/web-app-security-skill`, maintain a moving `v1` Action tag,
-  and document a full immutable commit pin after the first Action release.
-- Differentiator (not a general scanner — that's Semgrep/ZAP/Nuclei's lane): turn a security recommendation into a verifiable production hardening change and prove it didn't break real users, SEO, or AI-crawler traffic. nginx/Cloudflare/AWS-WAF minimal-patch generation, before/after regression, crawl-boundary matrix, versioned `security-policy.yml`, an evidence ledger, and patch-only-by-default for high-risk fixes.
+See the [v0.3.0 release evidence](docs/releases/v0.3.0.md) and
+[generated capability matrix](docs/capabilities.md) for exact boundaries.
+
+## Correctness backlog
+
+- Malformed, empty and stale crawler-range JSON fixtures with fail-closed result semantics.
+- Fake AWS CLI permission-denied fixtures that preserve `UNCHECKED` rather than pass.
+- Sitemap XML entities and CDATA regression fixtures.
+- An informational `security.txt` check that never labels absence a vulnerability.
+- ShellCheck and an evidence-based coverage threshold without weakening Bash 3.2 support.
+- Dependency review and secret scanning after alert ownership and response policy are documented.
+
+## Platform and documentation backlog
+
+- Verify and document install, lifecycle and tutorial behavior on a clean WSL2 image.
+- Add source adapters only with planted failure fixtures and stable evidence output.
+- Add policy packs for common deployment controls only when their patch and rollback behavior can be
+  retested without claiming broad scanner coverage.
+
+Tracked, contributor-ready items and acceptance tests live in
+[`docs/GOOD_FIRST_ISSUES.md`](docs/GOOD_FIRST_ISSUES.md). The GitHub issue, not this summary, owns
+implementation discussion and status.

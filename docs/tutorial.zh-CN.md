@@ -1,0 +1,174 @@
+# 第一个项目教程
+
+本教程覆盖从干净环境安装，到范围记录、源码检查、补丁审查、复测、升级和卸载的完整流程。产品承诺是：
+**把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。**
+
+这里的确定性路径只读取本地源码，不访问部署实例。它是一个经过回归测试的窄基线，不是通用 SAST，
+也不证明项目已经安全。
+
+## 环境要求
+
+- macOS 或 Linux；Windows 通过 WSL2；
+- Node.js 20 或 22；
+- Git；
+- 你有权检查和修改的项目。
+
+完整边界见[兼容矩阵](compatibility.md)。
+
+## 安装
+
+### 稳定 release
+
+下载 v0.3.0 的全部产物，验证 checksum，解包并从已验证的 payload 安装：
+
+```bash
+mkdir web-app-security-release && cd web-app-security-release
+gh release download v0.3.0 --repo parousia8888/web-app-security-skill
+sha256sum -c SHA256SUMS
+tar -xzf web-app-security-skill-0.3.0.tar.gz
+node web-app-security-skill-0.3.0/scripts/webapp-security.mjs install
+webapp-security version
+```
+
+macOS 没有 GNU `sha256sum` 时，使用 `shasum -a 256 -c SHA256SUMS`。Release 还提供 SPDX SBOM、
+源码 manifest、build provenance attestation 和签名 tag：
+[v0.3.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0)。
+
+### 当前 checkout
+
+评估当前 `main` 或参与开发时使用：
+
+```bash
+git clone https://github.com/parousia8888/web-app-security-skill.git
+cd web-app-security-skill
+node scripts/webapp-security.mjs install
+webapp-security version
+```
+
+默认安装 Claude Code、Codex 和普通 CLI。可用 `--target claude`、`codex`、`cli` 或 `both`
+选择安装面。安装器拒绝未知的既有路径；`--force` 也只替换可识别的当前或旧版本 payload，并先创建
+带时间戳的备份。
+
+## 复现本地教程
+
+在当前 checkout 中，对故意配置错误的 fixture 执行完整流程：
+
+```bash
+tutorial_output="$(mktemp -d)"
+node scripts/run-clean-room-tutorial.mjs --out "$tutorial_output"
+cat "$tutorial_output/tutorial-result.json"
+```
+
+Runner 会创建隔离 HOME、安装 CLI、禁止网络、生成 scope、检查 `before` fixture、解释一个线索、
+复测加固后的 fixture、升级并卸载。预期基线为 4 个 finding：1 个 `confirmed`、3 个 `suspected`；
+复测必须在十分钟预算内把 4 个都记录为 `fixed`。
+
+## 开始你的项目
+
+进入你拥有或获准检查的项目根目录：
+
+```bash
+cd /path/to/your-project
+webapp-security start . --run-id first-review
+```
+
+检查 `.webapp-security/runs/first-review/security-scope.yml`。它记录识别到的框架、包管理器、
+lockfile、部署/配置路径、假设以及被阻止的远程模式；它不读取 secret 值，也不授予访问部署实例的权限。
+
+在这个 scope 下运行源码检查：
+
+```bash
+webapp-security audit .webapp-security/runs/first-review \
+  --name report --fail-on never
+```
+
+输出包括 `report.json`、`report.md`、`report.html`、`report.sarif`、`report.junit.xml` 和
+`proposed.patch`。JSON 用于自动化，Markdown/HTML 用于审查，SARIF/JUnit 用于 CI；patch 只是提案。
+
+## 解释结果
+
+| 状态 | 含义 | 后续动作 |
+|---|---|---|
+| `confirmed` | 已用充分、脱敏的证据复现 | 优先修复并复测 |
+| `suspected` | 源码或 scanner 线索缺少运行时/上下文证据 | 复现或用证据关闭 |
+| `unknown` | 检查或证据源不可用 | 恢复证据能力，不能当作通过 |
+| `not_applicable` | 不在已记录范围内或组件不存在 | 保留范围理由 |
+
+在不修改项目的情况下解释一个 finding：
+
+```bash
+webapp-security explain <finding-id> \
+  --report .webapp-security/runs/first-review/report.json
+```
+
+不能把文件名匹配、静态 pattern 或 AI 建议升级为 `confirmed`。例如，生产 source map 配置只能形成
+`suspected` 线索，直到构建产物或自有部署证明它被公开交付。
+
+## 审查并应用补丁
+
+同时阅读报告和 `.webapp-security/runs/first-review/proposed.patch`。Patch 可能包含可应用 diff 和
+人工处理说明；`audit` 从不自动应用它，它也可能不覆盖全部 finding，更不构成修复证明。
+
+修改源码前：
+
+1. 确认证据对应预期组件。
+2. 判断变更是否影响生产流量、鉴权、数据、SEO 或 crawler。
+3. 保持最小且可审查的修改，并保留原始报告作为 baseline。
+4. 修改后运行项目自身测试。
+
+使用 AI coding agent 时，采用仓库 README 或 [`README_AI.md`](../README_AI.md) 的 canonical prompt，
+并明确 agent 可以应用修改，还是只能交付 patch。高风险和生产变更需要单独批准。
+
+## 复测
+
+审查并应用选定修改后，把新证据写到不同目录：
+
+```bash
+webapp-security retest . \
+  --out .webapp-security/runs/first-review-retest \
+  --name report \
+  --baseline .webapp-security/runs/first-review/report.json \
+  --fail-on high
+```
+
+检查新 JSON 报告中的 `summary.byBaseline`。只有相同 rule 和 location 不再复现时才记为 `fixed`；
+`unchanged`、`regressed` 和新增 finding 继续保留。源码层的 `suspected` 仍需运行时或部署证据。
+
+## 授权边界
+
+本地源码检查不授权远程测试。发出任何主动请求前，要记录所有权或书面授权、精确 origin/account、
+时间窗口、禁止动作和停止条件。不能拿第三方线上实例作为教程目标。
+
+被动 crawl 检查也会发送 HTTP 请求。敏感路径探测和主动 rate-limit 检查还要求
+`--acknowledge-authorization`。范围扩大、出现第三方数据、生产健康下降或证据会泄露 secret 时立即停止。
+
+## 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| `webapp-security: command not found` | 把 `~/.local/bin` 加入 `PATH`，或运行 checkout 中的 `node scripts/webapp-security.mjs` |
+| 退出码 `1` | Finding 达到 `--fail-on` 阈值；证据仍会写出 |
+| 退出码 `2` | 用法、范围、授权或证据准备失败；不能当作通过 |
+| `refusing to overwrite existing evidence` | 使用新的 `--out` 或报告名，并保留原 baseline |
+| Stack 不支持或有歧义 | 保留 `unknown`，转入 agent-guided 方法 |
+| 远程检查被阻止 | 仅对自有目标补充已记录授权和显式确认 |
+
+## 报告误报
+
+使用[误报 issue form](https://github.com/parousia8888/web-app-security-skill/issues/new?template=false-positive.yml)，
+提供版本、finding ID、最小脱敏 fixture、实际/预期状态和环境。不能包含 token、cookie、账户标识、
+私有源码或真实客户 IP。若报告本身敏感，使用 [`SECURITY.md`](../SECURITY.md) 中的私密渠道。
+
+[误报政策](false-positive-policy.md)要求先得到可复现的失败回归，再修改规则。
+
+## 升级或卸载
+
+生命周期命令不会自行下载代码。先获取并验证新 release，再运行它的 payload：
+
+```bash
+node /path/to/new-release/scripts/webapp-security.mjs upgrade
+webapp-security version
+webapp-security uninstall
+```
+
+升级会在替换可识别安装前备份。卸载只删除可识别的当前 payload 和 launcher，保留旧备份；未知目录会被拒绝。

@@ -1,12 +1,10 @@
 <h1 align="center">Web App Security Skill</h1>
-<h3 align="center">Evidence-first audit, hardening and retest for AI coding agents</h3>
+<h3 align="center">Scope, audit, harden, and retest web projects with AI coding agents and reproducible evidence.</h3>
 
 <p align="center">
   <a href="https://github.com/parousia8888/web-app-security-skill/tags"><img src="https://img.shields.io/github/v/tag/parousia8888/web-app-security-skill?sort=semver" alt="latest tag"></a>
   <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
-  <a href="https://github.com/parousia8888/web-app-security-skill/stargazers"><img src="https://img.shields.io/github/stars/parousia8888/web-app-security-skill?style=flat&logo=github" alt="stars"></a>
-  <a href="https://github.com/parousia8888/web-app-security-skill/network/members"><img src="https://img.shields.io/github/forks/parousia8888/web-app-security-skill?style=flat&logo=github" alt="forks"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
   <a href="#trust-and-release-evidence"><img src="https://img.shields.io/badge/SBOM-SPDX%202.3-5965d8" alt="SPDX 2.3 SBOM"></a>
 </p>
@@ -15,6 +13,7 @@
   <a href="#see-the-result">Demo</a> ·
   <a href="#install">Install</a> ·
   <a href="#run-the-first-project">First project</a> ·
+  <a href="docs/tutorial.md">Tutorial</a> ·
   <a href="#github-action">GitHub Action</a> ·
   <a href="#3-ordinary-project-journeys">Project journeys</a> ·
   <a href="README.zh-CN.md">中文</a>
@@ -43,6 +42,9 @@ npm run demo -- --out ./demo-output
 Read the [generated before / proposed change / retest evidence](docs/demo-evidence.md), then inspect
 `demo-output/summary.md`, `before.json`, `hardening.patch`, and `after.json`. The repository check
 regenerates this evidence and fails if the result changes without an update.
+
+For the complete install-to-uninstall path, follow the tested
+[first project tutorial](docs/tutorial.md).
 
 ## Install
 
@@ -258,5 +260,8 @@ The [roadmap](ROADMAP.md) separates correctness work from adoption work. New con
 from [bounded good-first issues](docs/GOOD_FIRST_ISSUES.md), the issue forms, and
 [`CONTRIBUTING.md`](CONTRIBUTING.md). False-positive reports need a sanitized minimal fixture and
 expected classification; sensitive details go through private vulnerability reporting.
+
+The [generated launch evidence](docs/launch-evidence.md) collects only reproducible capability,
+demo, project-journey, methodology-study and release facts.
 
 MIT licensed.

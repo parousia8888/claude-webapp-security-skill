@@ -1,0 +1,10 @@
+{
+  "name": "web-app-security-quickstart-before",
+  "private": true,
+  "scripts": {
+    "debug": "node --inspect=0.0.0.0:9229 server.js"
+  },
+  "dependencies": {
+    "next": "15.0.0"
+  }
+}

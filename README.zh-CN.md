@@ -1,12 +1,10 @@
 <h1 align="center">Web App Security Skill</h1>
-<h3 align="center">面向 AI coding agent 的证据优先安全审计、加固与复测</h3>
+<h3 align="center">用 AI coding agent 和可复现证据完成 Web 项目范围确认、检查、加固与复测</h3>
 
 <p align="center">
   <a href="https://github.com/parousia8888/web-app-security-skill/tags"><img src="https://img.shields.io/github/v/tag/parousia8888/web-app-security-skill?sort=semver" alt="latest tag"></a>
   <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
-  <a href="https://github.com/parousia8888/web-app-security-skill/stargazers"><img src="https://img.shields.io/github/stars/parousia8888/web-app-security-skill?style=flat&logo=github" alt="stars"></a>
-  <a href="https://github.com/parousia8888/web-app-security-skill/network/members"><img src="https://img.shields.io/github/forks/parousia8888/web-app-security-skill?style=flat&logo=github" alt="forks"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
   <a href="#信任与-release-证据"><img src="https://img.shields.io/badge/SBOM-SPDX%202.3-5965d8" alt="SPDX 2.3 SBOM"></a>
 </p>
@@ -15,6 +13,7 @@
   <a href="#查看结果">Demo</a> ·
   <a href="#安装">安装</a> ·
   <a href="#执行第一个项目">首个项目</a> ·
+  <a href="docs/tutorial.zh-CN.md">完整教程</a> ·
   <a href="#github-action">GitHub Action</a> ·
   <a href="#3-个普通项目旅程">项目旅程</a> ·
   <a href="README.md">English</a>
@@ -24,6 +23,8 @@
   面向使用 AI coding agent 的 Web 产品作者与开发者，不要求具备攻防背景。先查看下方本地结果，
   然后安装并执行首个项目提示词。
 </p>
+
+> 把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。
 
 ## 查看结果
 
@@ -43,6 +44,8 @@ npm run demo -- --out ./demo-output
 阅读[生成的加固前 / 变更建议 / 复测证据](docs/demo-evidence.md)，再检查
 `demo-output/summary.md`、`before.json`、`hardening.patch` 与 `after.json`。仓库门禁会重新生成证据，
 结果变化但文档未更新时会失败。
+
+完整的安装到卸载流程见经过测试的[第一个项目教程](docs/tutorial.zh-CN.md)。
 
 ## 安装
 
@@ -228,5 +231,8 @@ SAST 引擎的 CLI 精度分数。
 公开 [roadmap](ROADMAP.md) 将正确性建设与传播建设分开。新贡献者可从
 [Good First Issues](docs/GOOD_FIRST_ISSUES.md)、issue forms 和 [`CONTRIBUTING.md`](CONTRIBUTING.md)
 开始。误报报告必须提供脱敏的最小 fixture 和期望分类；敏感信息走 private vulnerability reporting。
+
+[生成式 launch evidence](docs/launch-evidence.md)只汇集可复现的能力、demo、项目旅程、方法论案例和
+release 事实。
 
 MIT License。
