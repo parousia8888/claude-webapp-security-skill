@@ -17,6 +17,7 @@
  */
 
 import { promises as dns } from 'node:dns';
+import { isIP } from 'node:net';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -72,79 +73,85 @@ const KNOWN_BOT_UA = /bot|crawler|spider|gptbot|claude|perplexity|duckassist|byt
 // line `!claimed || claimed.vendor === owner.vendor ? 'verified' : ...` then treated
 // "claims a DIFFERENT vendor" as "claims nothing" — so Googlebot-IP + GPTBot-UA verified,
 // and (range path) GPTBot-IP + ClaudeBot-UA verified. Both are spoofs.
-const UA_VENDOR = [
-  { vendor: 'google', re: /googlebot|google-inspectiontool|googleother|google-extended|feedfetcher-google|apis-google|googleimageproxy|storebot-google/i },
-  { vendor: 'bing', re: /bingbot|msnbot|bingpreview|adidxbot/i },
-  { vendor: 'apple', re: /applebot/i },
-  { vendor: 'yandex', re: /yandex(bot|images|video|media|blogs|favicons|webmaster|accessibilitybot)?/i },
-  { vendor: 'baidu', re: /baiduspider/i },
-  { vendor: 'openai', re: /gptbot|oai-searchbot|chatgpt-user/i },
-  { vendor: 'anthropic', re: /claudebot|claude-searchbot|claude-user|anthropic/i },
-  { vendor: 'perplexity', re: /perplexitybot|perplexity-user/i },
-  { vendor: 'duckduckgo', re: /duckassistbot|duckduckbot/i },
-  { vendor: 'amazon', re: /amazonbot/i },
-  { vendor: 'meta', re: /meta-externalagent|facebookexternalhit|facebookbot/i },
-  { vendor: 'commoncrawl', re: /ccbot/i },
-  { vendor: 'bytedance', re: /bytespider/i },
+// UA → { vendor, source }. `source` is the SPECIFIC published-range list this product's IPs
+// live in (a key of RANGE_SOURCES), or null for vendors verified by rDNS instead of a range.
+// Product-level, not vendor-level: GPTBot's IPs are in gptbot.json, NOT searchbot.json, so
+// only gptbot.json can confirm-or-deny a GPTBot claim. A sibling product's list loading (or
+// failing) is not evidence about this product — that was the v0.2.1 defect.
+// Order matters: put more-specific patterns first (oai-searchbot before a bare gpt match, etc.).
+const UA_PRODUCT = [
+  { vendor: 'google', source: 'googlebot', re: /googlebot|google-inspectiontool|googleother|google-extended|feedfetcher-google|apis-google|googleimageproxy|storebot-google/i },
+  { vendor: 'bing', source: 'bingbot', re: /bingbot|msnbot|bingpreview|adidxbot/i },
+  { vendor: 'apple', source: null, re: /applebot/i },
+  { vendor: 'yandex', source: null, re: /yandex(bot|images|video|media|blogs|favicons|webmaster|accessibilitybot)?/i },
+  { vendor: 'baidu', source: null, re: /baiduspider/i },
+  { vendor: 'openai', source: 'oai-searchbot', re: /oai-searchbot/i },
+  { vendor: 'openai', source: 'chatgpt-user', re: /chatgpt-user/i },
+  { vendor: 'openai', source: 'gptbot', re: /gptbot/i },
+  { vendor: 'anthropic', source: 'claude-user', re: /claude-user/i },
+  { vendor: 'anthropic', source: 'claudebot', re: /claudebot|claude-searchbot|anthropic/i },
+  { vendor: 'perplexity', source: 'perplexitybot', re: /perplexitybot|perplexity-user/i },
+  { vendor: 'duckduckgo', source: 'duckassistbot', re: /duckassistbot|duckduckbot/i },
+  { vendor: 'amazon', source: 'amazonbot', re: /amazonbot/i },
+  { vendor: 'meta', source: 'meta-externalagent', re: /meta-externalagent|facebookexternalhit|facebookbot/i },
+  { vendor: 'commoncrawl', source: 'ccbot', re: /ccbot/i },
+  { vendor: 'bytedance', source: 'bytespider', re: /bytespider/i },
 ];
 
-// Range-source name → canonical vendor. Keys must match RANGE_SOURCES above.
+// Range-source name → canonical vendor (for cross-vendor spoof detection). Only names whose
+// default URLs ship above are mapped; --source can add more (name is treated as its own vendor).
 const RANGE_VENDOR = {
   googlebot: 'google', 'google-special': 'google', 'google-user-triggered': 'google',
   bingbot: 'bing',
   gptbot: 'openai', 'oai-searchbot': 'openai', 'chatgpt-user': 'openai',
 };
 
-/** The canonical vendor a UA claims to be, or null if it claims no known crawler. */
+/** The product a UA claims: { vendor, source } or null. */
+export function uaProduct(ua = '') {
+  return UA_PRODUCT.find((p) => p.re.test(ua)) ?? null;
+}
+/** Backwards-compatible: the canonical vendor a UA claims, or null. */
 export function uaVendor(ua = '') {
-  return UA_VENDOR.find((v) => v.re.test(ua))?.vendor ?? null;
+  return uaProduct(ua)?.vendor ?? null;
 }
 
 /** Canonical vendors we have a usable proof source for (rDNS suffix list OR published range). */
 const RANGE_VENDORS = new Set(Object.values(RANGE_VENDOR));
 const RDNS_VENDOR_SET = new Set(RDNS_VENDORS.map((v) => v.vendor));
-function haveProofSourceFor(vendor) {
-  return RANGE_VENDORS.has(vendor) || RDNS_VENDOR_SET.has(vendor);
-}
 
 /**
- * Pure decision function — no IO, unit-testable.
- * Inputs: the UA's claimed vendor, the rDNS result, the matched range vendor (if any),
- *         and whether ranges were even consulted.
- * The single rule everywhere: a proven owner that DISAGREES with a non-null claim is a spoof.
+ * Pure decision — no IO, unit-testable. **Product-level**, per the reported issue:
+ * a claim is confirmed or denied ONLY by that product's own range list (GPTBot ⇄ gptbot.json),
+ * never by a sibling product's state. A proven owner (rDNS, or another vendor's loaded range)
+ * that disagrees with the claim is a spoof; otherwise the claimed product's own source decides.
+ *
+ * claimedSourceState: 'matched' (loaded, IP present) | 'absent' (loaded, IP absent)
+ *                   | 'unavailable' (fetch failed)   | 'no-source' (no URL configured) | null
  */
-export function decideVerdict({ claimedVendor, rdnsOwner, rangeVendor, usedRanges, claimedVendorSourceLoaded = null }) {
-  // claimedVendorSourceLoaded: true = the claimed vendor's range source loaded this run,
-  //   false = it FAILED to load (network/URL error), null = we have no source for that vendor.
-  // This distinction is the whole point of the fix: a source that failed to fetch must never
-  // convict a real crawler as spoofed — a transient outage would then get it wrongly blocked.
-  // 1. rDNS proved the IP belongs to some vendor
+export function decideVerdict({ claimedVendor, claimedSource, rdnsOwner, crossRangeVendor, claimedSourceState, usedRanges }) {
+  // 1. rDNS proved ownership
   if (rdnsOwner) {
     if (!claimedVendor || claimedVendor === rdnsOwner) return { verdict: 'verified', vendor: rdnsOwner, method: 'fcrdns' };
     return { verdict: 'spoofed', vendor: rdnsOwner, method: 'fcrdns', mismatch: `UA claims ${claimedVendor}, reverse DNS proves ${rdnsOwner}` };
   }
-  // 2. UA claims an rDNS-verifiable vendor but rDNS did not confirm it — suspicious;
-  //    ranges cannot rescue an rDNS vendor (they don't publish prefix lists), so it's a spoof.
-  if (claimedVendor && RDNS_VENDOR_SET.has(claimedVendor) && !RANGE_VENDORS.has(claimedVendor)) {
+  // 2. claimed an rDNS-only vendor (no range source at all) but rDNS did not confirm → spoofed
+  if (claimedVendor && !claimedSource && RDNS_VENDOR_SET.has(claimedVendor)) {
     return { verdict: 'spoofed', vendor: claimedVendor, method: 'fcrdns', mismatch: `UA claims ${claimedVendor} but reverse DNS did not confirm it` };
   }
-  // 3. published-range path
   if (usedRanges) {
-    if (rangeVendor) {
-      if (!claimedVendor || claimedVendor === rangeVendor) return { verdict: 'verified', vendor: rangeVendor, method: 'published-range' };
-      return { verdict: 'spoofed', vendor: rangeVendor, method: 'published-range', mismatch: `UA claims ${claimedVendor}, IP is in ${rangeVendor}'s published range` };
+    // 3. IP proven in ANOTHER vendor's successfully-loaded range → cross-vendor spoof
+    if (crossRangeVendor && claimedVendor && crossRangeVendor !== claimedVendor) {
+      return { verdict: 'spoofed', vendor: crossRangeVendor, method: 'published-range', mismatch: `UA claims ${claimedVendor}, IP is in ${crossRangeVendor}'s published range` };
     }
-    // no range matched the claim. Only a SUCCESSFULLY-LOADED source that lacks the IP proves a spoof.
-    if (claimedVendor) {
-      if (claimedVendorSourceLoaded === true) {
-        return { verdict: 'spoofed', vendor: claimedVendor, method: 'published-range', note: `UA claims ${claimedVendor}; IP is in none of its successfully-loaded published prefixes` };
-      }
-      if (claimedVendorSourceLoaded === false) {
-        // fail OPEN, not closed: a fetch failure is not evidence of spoofing.
-        return { verdict: 'unverifiable', vendor: null, method: 'published-range', note: `${claimedVendor}'s published ranges could not be fetched this run — cannot decide; do not block on this` };
-      }
-      return { verdict: 'unverifiable', vendor: null, method: 'published-range', note: `no proof source for ${claimedVendor}; add one with --source before acting` };
+    // 4. the claimed PRODUCT's OWN source decides — sibling products are not evidence
+    if (claimedSource) {
+      if (claimedSourceState === 'matched') return { verdict: 'verified', vendor: claimedVendor, method: 'published-range' };
+      if (claimedSourceState === 'absent') return { verdict: 'spoofed', vendor: claimedVendor, method: 'published-range', note: `UA claims ${claimedVendor}; IP absent from ${claimedSource}, which loaded` };
+      // 'unavailable' (fetch failed) or 'no-source' → fail OPEN, never convict on a missing signal
+      return { verdict: 'unverifiable', vendor: null, method: 'published-range', note: `${claimedSource} ${claimedSourceState === 'unavailable' ? 'could not be fetched this run' : 'has no configured source'} — cannot decide; do not block` };
     }
+    // 5. no product claim, but IP sits in some vendor's loaded range → that vendor, verified
+    if (crossRangeVendor) return { verdict: 'verified', vendor: crossRangeVendor, method: 'published-range' };
   }
   return { verdict: 'unverifiable', vendor: null, method: null };
 }
@@ -198,7 +205,15 @@ function v6ToBig(ip) {
 }
 
 export function parseIp(ip) {
-  if (ip.includes(':')) { const n = v6ToBig(ip); return n === null ? null : { n, bits: 128 }; }
+  // Strict syntax gate first: parseInt-based expansion silently accepts junk like
+  // `2001:db8::1g`, `1::2::3`, `:::`. node:net.isIP rejects them (0 = invalid).
+  const str = String(ip);
+  // Zone ids (`fe80::1%eth0`) are accepted by isIP on some Node versions but are meaningless
+  // for a crawler-IP check and would mis-match a CIDR after the `%` is dropped — reject them.
+  if (str.includes('%')) return null;
+  const fam = isIP(str);
+  if (fam === 0) return null;
+  if (fam === 6) { const n = v6ToBig(ip); return n === null ? null : { n, bits: 128 }; }
   const n = v4ToBig(ip);
   return n === null ? null : { n, bits: 32 };
 }
@@ -258,7 +273,9 @@ async function verify(ip, ua = '') {
 
   if (!parseIp(ip)) { out.verdict = 'invalid-ip'; return out; }
 
-  const claimedVendor = uaVendor(ua);
+  const product = uaProduct(ua);
+  const claimedVendor = product?.vendor ?? null;
+  const claimedSource = product?.source ?? null;
   const claimsRangeOnly = RANGE_ONLY_UA.test(ua);
   const claimsAnyBot = KNOWN_BOT_UA.test(ua);
 
@@ -269,28 +286,26 @@ async function verify(ip, ua = '') {
     ? (RDNS_VENDORS.find((v) => v.suffixes.some((s) => endsWithLabel(r.hostname, s)))?.vendor ?? null)
     : null;
 
-  let rangeVendor = null;
-  // Track whether the CLAIMED vendor's own source(s) actually loaded this run — so a fetch
-  // failure yields 'unverifiable', not a wrong 'spoofed'. null = we have no source for it.
-  let claimedVendorSourceLoaded = null;
+  // Per-source outcome, so the claimed PRODUCT's own list can be judged independently of siblings.
+  // crossRangeVendor = the vendor of the first successfully-loaded range that contains the IP.
+  let crossRangeVendor = null;
+  const sourceState = new Map(); // source name -> 'loaded-hit' | 'loaded-miss' | 'failed'
   if (USE_RANGES) {
     for (const [name, url] of Object.entries(RANGE_SOURCES)) {
       const data = await loadRanges(name, url);
-      const vendorOfSource = RANGE_VENDOR[name] ?? name;
-      if (claimedVendor && vendorOfSource === claimedVendor) {
-        // at least one of the claimed vendor's sources loaded → true; else stays false
-        claimedVendorSourceLoaded = claimedVendorSourceLoaded === true ? true : data.ok;
-      }
-      if (data.ok && data.prefixes.some((c) => inCidr(ip, c))) {
-        rangeVendor = RANGE_VENDOR[name] ?? name;
-        out.evidence.range = name;
-        if (rangeVendor === claimedVendor) break; // matched the claim; no need to keep looking
-      }
+      const hit = data.ok && data.prefixes.some((c) => inCidr(ip, c));
+      sourceState.set(name, !data.ok ? 'failed' : hit ? 'loaded-hit' : 'loaded-miss');
+      if (hit && !crossRangeVendor) { crossRangeVendor = RANGE_VENDOR[name] ?? name; out.evidence.range = name; }
     }
   }
+  let claimedSourceState = null;
+  if (claimedSource) {
+    const st = sourceState.get(claimedSource);
+    claimedSourceState = st === undefined ? 'no-source' : st === 'failed' ? 'unavailable' : st === 'loaded-hit' ? 'matched' : 'absent';
+  }
 
-  // decide (pure) — claim must AGREE with proven ownership, never merely "some bot vendor"
-  const d = decideVerdict({ claimedVendor, rdnsOwner, rangeVendor, usedRanges: USE_RANGES, claimedVendorSourceLoaded });
+  // decide (pure) — product-level: only the claimed product's own source confirms or denies it
+  const d = decideVerdict({ claimedVendor, claimedSource, rdnsOwner, crossRangeVendor, claimedSourceState, usedRanges: USE_RANGES });
   out.verdict = d.verdict;
   out.vendor = d.vendor;
   out.method = d.method;
