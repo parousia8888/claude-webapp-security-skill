@@ -1,127 +1,169 @@
 #!/usr/bin/env bash
-# verify-hardening.sh — prove edge hardening actually engages, from outside.
+# verify-hardening.sh — verify externally observable edge hardening.
 #
-# PASSIVE by default (read-only, one request per check): security headers, TLS policy,
-# certificate, HTTP→HTTPS redirect. The rate-limit probe is ACTIVE (many concurrent
-# requests) and only runs with --active-rate-limit, which prints the request volume and an
-# authorization reminder — you must own or be authorized to test the target.
-#
-# Usage:
-#   scripts/verify-hardening.sh --site https://example.com
-#   scripts/verify-hardening.sh --site https://example.com --active-rate-limit --n 30
-#   scripts/verify-hardening.sh --site https://1.2.3.4 --host example.com    # origin/IP directly
-#
-# Exit: 2 = bad arguments; 1 = at least one check failed or errored; 0 = all clear.
+# Passive mode sends one request per transport/header check. Rate-limit verification is
+# active and must be enabled explicitly with --active-rate-limit after Phase 0 authorization.
 # Portable to macOS Bash 3.2.
 set -uo pipefail
 
-SITE="" HOST="" CONTENT="/" PROBE="/.env" N=30 ACTIVE_RL=0
-die2() { echo "error: $1" >&2; exit 2; }
+usage() {
+  sed -n '2,16p' "$0"
+  cat <<'EOF'
+# Usage:
+#   scripts/verify-hardening.sh --site https://example.com
+#   scripts/verify-hardening.sh --site https://example.com --active-rate-limit --n 30
+#   scripts/verify-hardening.sh --site https://1.2.3.4 --host example.com
+#
+# Options:
+#   --site URL             Required http(s) origin
+#   --host HOST            Override Host header for an origin/IP check
+#   --http-site URL        HTTP origin used for redirect check (default: SITE with http scheme)
+#   --content-path PATH    Public content path (default /)
+#   --probe-path PATH      Probe path for active limiting (default /.env)
+#   --active-rate-limit    Send the bounded concurrent rate-limit checks
+#   --n COUNT              Requests per class, 1..100 (default 30)
+EOF
+}
+
+SITE="" HTTP_SITE="" HOST="" CONTENT="/" PROBE="/.env" N=30 ACTIVE_RATE_LIMIT=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --site) [ $# -ge 2 ] || die2 "--site needs a value"; SITE="$2"; shift 2;;
-    --host) [ $# -ge 2 ] || die2 "--host needs a value"; HOST="$2"; shift 2;;
-    --content-path) [ $# -ge 2 ] || die2 "--content-path needs a value"; CONTENT="$2"; shift 2;;
-    --probe-path) [ $# -ge 2 ] || die2 "--probe-path needs a value"; PROBE="$2"; shift 2;;
-    --n) [ $# -ge 2 ] || die2 "--n needs a value"; N="$2"; shift 2;;
-    --active-rate-limit) ACTIVE_RL=1; shift;;
-    -h|--help) echo "usage: $0 --site <url> [--host h] [--content-path p] [--probe-path p] [--active-rate-limit [--n 1-100]]"; exit 0;;
-    *) die2 "unknown argument: $1";;
+    --site|--http-site|--host|--content-path|--probe-path|--n)
+      [ $# -ge 2 ] || { echo "error: $1 requires a value" >&2; exit 2; }
+      case "$1" in
+        --site) SITE="$2";;
+        --http-site) HTTP_SITE="$2";;
+        --host) HOST="$2";;
+        --content-path) CONTENT="$2";;
+        --probe-path) PROBE="$2";;
+        --n) N="$2";;
+      esac
+      shift 2;;
+    --active-rate-limit) ACTIVE_RATE_LIMIT=1; shift;;
+    -h|--help) usage; exit 0;;
+    *) echo "unknown arg: $1" >&2; exit 2;;
   esac
 done
-[ -n "$SITE" ] || die2 "--site <url> is required"
-case "$SITE" in http://*|https://*) : ;; *) die2 "--site must be http(s)://…";; esac
-case "$N" in ''|*[!0-9]*) die2 "--n must be an integer";; esac
-if [ "$N" -lt 1 ] || [ "$N" -gt 100 ]; then die2 "--n must be between 1 and 100"; fi
+
+[ -n "$SITE" ] || { echo "error: --site <url> required" >&2; exit 2; }
+case "$SITE" in http://*|https://*) ;; *) echo "error: --site must start with http:// or https://" >&2; exit 2;; esac
+if [ -n "$HTTP_SITE" ]; then
+  case "$HTTP_SITE" in http://*) ;; *) echo "error: --http-site must start with http://" >&2; exit 2;; esac
+fi
+case "$N" in ''|*[!0-9]*) echo "error: --n must be an integer from 1 to 100" >&2; exit 2;; esac
+[ "$N" -ge 1 ] && [ "$N" -le 100 ] || { echo "error: --n must be an integer from 1 to 100" >&2; exit 2; }
+case "$CONTENT" in /*) ;; *) echo "error: --content-path must start with /" >&2; exit 2;; esac
+case "$PROBE" in /*) ;; *) echo "error: --probe-path must start with /" >&2; exit 2;; esac
 
 hcurl() { if [ -n "$HOST" ]; then curl -H "Host: $HOST" "$@"; else curl "$@"; fi; }
 
-pass=0; warn=0
-ok()   { echo "  ✓ $1"; pass=$((pass+1)); }
-bad()  { echo "  ✗ $1"; warn=$((warn+1)); }
-err()  { echo "  ! $1 (ERROR/UNKNOWN — not a pass)"; warn=$((warn+1)); }
-note() { echo "  · $1"; }
+pass=0; warn=0; unknown=0
+ok()      { echo "  [ok] $1"; pass=$((pass+1)); }
+bad()     { echo "  [fail] $1"; warn=$((warn+1)); }
+unknown() { echo "  [unknown] $1"; unknown=$((unknown+1)); }
+note()    { echo "  [note] $1"; }
 
 echo "== verify-hardening: $SITE =="
 
-# ── 1. security headers ─────────────────────────────────────────────────
 echo "[headers] $SITE$CONTENT"
-H="$(hcurl -skI "$SITE$CONTENT" 2>/dev/null)"; rc=$?
-if [ $rc -ne 0 ] || [ -z "$H" ]; then
-  err "could not fetch headers (curl exit $rc) — target unreachable?"
-else
-  need() { if printf '%s' "$H" | grep -iqE "$2"; then ok "$1"; else [ "${3:-}" = info ] && note "$1 — absent (optional)" || bad "$1 — missing"; fi; }
-  need "Strict-Transport-Security" "^strict-transport-security:"
-  printf '%s' "$H" | grep -iE "^strict-transport-security:" | grep -iq "includesubdomains" && ok "HSTS includeSubDomains" || note "HSTS lacks includeSubDomains"
-  need "X-Content-Type-Options: nosniff" "^x-content-type-options:[[:space:]]*nosniff"
-  need "X-Frame-Options / frame-ancestors" "^x-frame-options:|content-security-policy(-report-only)?:.*frame-ancestors"
-  need "Referrer-Policy" "^referrer-policy:"
-  need "Content-Security-Policy (enforced or report-only)" "^content-security-policy(-report-only)?:"
-  printf '%s' "$H" | grep -iq "^content-security-policy:" && ok "CSP enforced" \
-    || { printf '%s' "$H" | grep -iq "^content-security-policy-report-only:" && note "CSP is Report-Only — promote once violations are clean"; }
-  need "Permissions-Policy" "^permissions-policy:" info
+H=""
+if ! H="$(hcurl -skS --connect-timeout 5 --max-time 15 -I "$SITE$CONTENT")"; then
+  bad "header request failed; no header conclusion is possible"
 fi
+need_re() {
+  if printf '%s' "$H" | grep -iqE "$2"; then ok "$1"; else
+    if [ "${3:-warn}" = "info" ]; then note "$1 — absent (optional)"; else bad "$1 — missing"; fi
+  fi
+}
+need_re "Strict-Transport-Security" "^strict-transport-security:"
+printf '%s' "$H" | grep -iE "^strict-transport-security:" | grep -iq "includesubdomains" \
+  && ok "HSTS includeSubDomains" || note "HSTS lacks includeSubDomains (consider adding)"
+need_re "X-Content-Type-Options: nosniff" "^x-content-type-options:[[:space:]]*nosniff"
+need_re "X-Frame-Options / frame-ancestors" "^x-frame-options:|content-security-policy(-report-only)?:.*frame-ancestors"
+need_re "Referrer-Policy" "^referrer-policy:"
+need_re "Content-Security-Policy (enforced or report-only)" "^content-security-policy(-report-only)?:"
+need_re "Permissions-Policy" "^permissions-policy:" info
 
-# ── 2. transport: TLS policy + certificate + redirect ───────────────────
-echo "[transport]"
-case "$SITE" in
-  https://*)
-    # HTTP → HTTPS redirect (accept 301/302/303/307/308)
-    HTTP_URL="$(printf '%s' "$SITE" | sed 's,^https:,http:,')"
-    RC="$(hcurl -sk -o /dev/null -w '%{http_code} %{redirect_url}' "$HTTP_URL$CONTENT" 2>/dev/null)"
-    case "$RC" in 30[1235678]" "https://*) ok "HTTP → HTTPS redirect ($RC)";; *) bad "no HTTP→HTTPS redirect ($RC)";; esac
-
-    # TLS PROTOCOL policy — actively prove old TLS is refused and modern TLS works.
-    # (%{ssl_version} is NOT a curl write-out variable; the only reliable check is to force a
-    #  version and observe the handshake.) -k isolates the protocol test from cert validity.
-    if curl --help all 2>/dev/null | grep -q -- '--tls-max'; then
-      if hcurl -sk --tls-max 1.1 -o /dev/null "$SITE$CONTENT" 2>/dev/null; then
-        bad "server ACCEPTS TLS ≤ 1.1 (a --tls-max 1.1 handshake succeeded)"
-      else
-        ok "TLS ≤ 1.1 refused"
-      fi
-    else
-      note "this curl has no --tls-max; cannot prove old-TLS refusal (upgrade curl, or use testssl.sh/sslyze)"
-    fi
-    if hcurl -sk --tlsv1.2 -o /dev/null "$SITE$CONTENT" 2>/dev/null; then ok "TLS 1.2+ works"; else bad "TLS 1.2+ handshake failed"; fi
-
-    # Certificate chain: without -k, so an invalid/expired/mismatched cert is a real finding.
-    # Skipped when --host is set (name mismatch against an IP/origin is expected there).
-    if [ -z "$HOST" ]; then
-      if curl -s -o /dev/null "$SITE$CONTENT" 2>/dev/null; then ok "TLS certificate chain validates"; else bad "TLS certificate chain does NOT validate"; fi
-    else
-      note "cert chain not checked (--host set)"
-    fi
-    ;;
-  *) note "site is not https:// — skipping transport checks";;
-esac
-
-# ── 3. rate limiting (ACTIVE — opt-in) ──────────────────────────────────
 echo "[rate-limit]"
-if [ "$ACTIVE_RL" -ne 1 ]; then
-  note "skipped — this is an ACTIVE test ($N concurrent requests). Re-run with --active-rate-limit on a target you own."
+if [ "$ACTIVE_RATE_LIMIT" -ne 1 ]; then
+  note "skipped; pass --active-rate-limit only after scope/authorization is recorded"
 else
-  echo "  ⚠ ACTIVE: sending $N concurrent requests each to $PROBE and $CONTENT. Authorized targets only."
-  burst() { # url, ua(optional)
+  echo "  probe=$PROBE content=$CONTENT concurrency=$N"
+  burst() {
     local url="$1" ua="${2:-}" i=0
     while [ "$i" -lt "$N" ]; do
-      if [ -n "$ua" ]; then hcurl -sk -o /dev/null -A "$ua" -w '%{http_code}\n' "$url" & else hcurl -sk -o /dev/null -w '%{http_code}\n' "$url" & fi
+      if [ -n "$ua" ]; then
+        hcurl -skS --connect-timeout 5 --max-time 15 -o /dev/null -A "$ua" -w '%{http_code}\n' "$url" 2>/dev/null &
+      else
+        hcurl -skS --connect-timeout 5 --max-time 15 -o /dev/null -w '%{http_code}\n' "$url" 2>/dev/null &
+      fi
       i=$((i+1))
     done
     wait
   }
   PB="$(burst "$SITE$PROBE" 'probe-scanner' | sort | uniq -c | tr '\n' ' ')"
   CT="$(burst "$SITE$CONTENT" | sort | uniq -c | tr '\n' ' ')"
-  note "probe   responses: $PB"
+  note "probe responses: $PB"
   note "content responses: $CT"
-  # Failure semantics: 000/curl-error is UNKNOWN, never "safe".
-  if printf '%s' "$PB" | grep -qE '(^| )000( |$)|000'; then err "probe requests returned 000 (connection/DNS/timeout failure) — inconclusive"
-  elif printf '%s' "$PB" | grep -qE '429|503'; then ok "probe class is throttled"
-  else bad "probe class never returned 429/503 — limiter absent, below threshold, or genuinely unlimited"; fi
-  if printf '%s' "$CT" | grep -qE '(^| )000( |$)|000'; then err "content requests returned 000 — target unreachable, result inconclusive (NOT proof of safety)"
-  elif printf '%s' "$CT" | grep -qE '429|503'; then bad "CONTENT class got 429/503 — SEO outage: a crawler would be blocked"
-  else ok "content class not throttled (crawlers safe)"; fi
+  if printf '%s %s' "$PB" "$CT" | grep -qE '(^|[^0-9])000([^0-9]|$)'; then
+    bad "one or more requests failed at the network/TLS layer (HTTP 000); rate-limit result is unknown"
+  else
+    if printf '%s' "$PB" | grep -qE '(^|[^0-9])(429|503)([^0-9]|$)'; then
+      ok "probe class is being throttled"
+    else
+      bad "probe class never returned 429/503 — limiter absent or below threshold"
+    fi
+    if printf '%s' "$CT" | grep -qE '(^|[^0-9])(429|503)([^0-9]|$)'; then
+      bad "content class got 429/503 — normal users and crawlers can be blocked"
+    else
+      ok "content class remained available"
+    fi
+  fi
 fi
 
-echo "== $pass passed · $warn need attention =="
-[ "$warn" -eq 0 ]
+echo "[transport]"
+case "$SITE" in
+  https://*)
+    [ -n "$HTTP_SITE" ] || HTTP_SITE="$(printf '%s' "$SITE" | sed 's,^https:,http:,')"
+    RC="$(hcurl -skS --connect-timeout 5 --max-time 15 -o /dev/null -w '%{http_code} %{redirect_url}' "$HTTP_SITE$CONTENT" 2>/dev/null || true)"
+    case "$RC" in
+      30[12378]\ https://*) ok "HTTP redirects to HTTPS ($RC)";;
+      000*|'') unknown "HTTP redirect endpoint was unreachable";;
+      *) bad "HTTP did not redirect to HTTPS ($RC)";;
+    esac
+
+    if curl --help all 2>/dev/null | grep -q -- '--tls-max'; then
+      if hcurl -skS --connect-timeout 5 --max-time 15 --tlsv1.2 --tls-max 1.2 -o /dev/null "$SITE$CONTENT" 2>/dev/null; then
+        ok "TLS 1.2 handshake succeeds"
+      else
+        bad "TLS 1.2 handshake failed"
+      fi
+      if hcurl -skS --connect-timeout 5 --max-time 15 --tlsv1.1 --tls-max 1.1 -o /dev/null "$SITE$CONTENT" 2>/dev/null; then
+        bad "TLS 1.1 handshake succeeds; disable TLS 1.1"
+      else
+        ok "TLS 1.1 handshake rejected"
+      fi
+      if hcurl -skS --connect-timeout 5 --max-time 15 --tlsv1.0 --tls-max 1.0 -o /dev/null "$SITE$CONTENT" 2>/dev/null; then
+        bad "TLS 1.0 handshake succeeds; disable TLS 1.0"
+      else
+        ok "TLS 1.0 handshake rejected"
+      fi
+    else
+      unknown "curl lacks --tls-max; minimum TLS version was not verified"
+    fi
+
+    if [ -z "$HOST" ]; then
+      if curl -sS --connect-timeout 5 --max-time 15 -o /dev/null "$SITE$CONTENT"; then
+        ok "TLS certificate chain and hostname validate"
+      else
+        bad "TLS certificate chain or hostname validation failed"
+      fi
+    else
+      unknown "certificate validation skipped for --host origin/IP mode"
+    fi
+    ;;
+  *) note "site is not https://; TLS checks skipped";;
+esac
+
+echo "== $pass passed · $warn failed · $unknown unknown =="
+[ "$warn" -eq 0 ] && [ "$unknown" -eq 0 ]
