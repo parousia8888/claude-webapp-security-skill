@@ -157,7 +157,7 @@ Composite Action 默认被动，且没有授权确认时不会执行：
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/web-app-security-skill@c27a8ecae69271a5a2fdfb6acc314cb4ef3ea967
+  uses: parousia8888/web-app-security-skill@d7df9fa6efd466c3eb13768c3b9ad259d2636e04
   with:
     site: https://example.com
     acknowledge-authorization: true

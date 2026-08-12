@@ -10,6 +10,7 @@ const workflows = [
   '.github/workflows/release.yml',
   '.github/workflows/action-v1-consumer.yml',
 ];
+const RELEASE_ACTION_COMMIT = 'd7df9fa6efd466c3eb13768c3b9ad259d2636e04';
 let failed = false;
 
 function requireText(path, marker) {
@@ -46,8 +47,14 @@ for (const [path, markers] of [
     'acknowledge-authorization: "true"',
     'acknowledge-authorization: "false"',
   ]],
-  ['README.md', ['webapp-security version', 'scripts/webapp-security.mjs upgrade', 'webapp-security uninstall']],
-  ['README.zh-CN.md', ['webapp-security version', 'scripts/webapp-security.mjs upgrade', 'webapp-security uninstall']],
+  ['README.md', [
+    `parousia8888/web-app-security-skill@${RELEASE_ACTION_COMMIT}`,
+    'webapp-security version', 'scripts/webapp-security.mjs upgrade', 'webapp-security uninstall',
+  ]],
+  ['README.zh-CN.md', [
+    `parousia8888/web-app-security-skill@${RELEASE_ACTION_COMMIT}`,
+    'webapp-security version', 'scripts/webapp-security.mjs upgrade', 'webapp-security uninstall',
+  ]],
   ['.github/release-signers', ['syx627511687@gmail.com ssh-ed25519 ']],
   ['docs/releases/v0.3.0.md', ['gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.3.0']],
 ]) for (const marker of markers) requireText(path, marker);
