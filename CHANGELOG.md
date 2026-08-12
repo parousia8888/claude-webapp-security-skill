@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-08-13
+
+### Changed
+- **verify-hardening TLS verification is now per-version and stricter.** It checks TLS 1.0, 1.1,
+  and 1.2 handshakes independently (`--tlsvX --tls-max X`), so "1.0/1.1 refused, 1.2 works" is
+  actually proven rather than inferred; certificate + hostname validation and connect/max timeouts
+  are applied to every request.
+- **Three-state outcome: pass / fail / `unknown`.** Network- or TLS-layer failures and
+  unverifiable conditions (e.g. `curl` without `--tls-max`, an unreachable redirect endpoint) are
+  reported as `unknown`, and the script exits non-zero unless every check passed — an `unknown`
+  no longer reads as success.
+- `--content-path` / `--probe-path` must start with `/`; added `--help`/usage output.
+
+### Added
+- `test/verify-hardening.test.mjs` — a **deterministic** integration test for the shell tool: it
+  stands up a real local HTTPS origin (self-signed cert, `minVersion: TLSv1.2`) plus an HTTP→HTTPS
+  redirect server, then asserts the passive checks pass, TLS 1.0 is reported rejected while 1.2
+  succeeds, the certificate validates, `--active-rate-limit` sees the probe throttled (429) while
+  content stays available, out-of-range `--n` exits `2`, and an unreachable target can never be
+  reported crawler-safe. No network, no third-party host — the first roadmap v0.3 fixture, landed early.
+
 ## [0.2.2] — 2026-08-13
 
 Third-audit fixes — result trustworthiness. Crawler identity moved to product granularity,
