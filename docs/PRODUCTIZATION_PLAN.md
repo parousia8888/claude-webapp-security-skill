@@ -121,8 +121,8 @@ Current project gaps at program start:
 
 | Phase | Deliverable | Status | Evidence |
 |---|---|---|---|
-| P0 | Product contract and honest capability boundary | in progress | pending |
-| P1 | Unified identity and human/agent entrypoints | pending | pending |
+| P0 | Product contract and honest capability boundary | completed | `ea90082` + checks below |
+| P1 | Unified identity and human/agent entrypoints | in progress | pending |
 | P2 | Outcome-led README and first-run packaging | pending | pending |
 | P3 | `start <project>` project discovery and scoped run | pending | pending |
 | P4 | Finding schema, reports, patch/retest baseline loop | pending | pending |
@@ -147,11 +147,18 @@ Current project gaps at program start:
 
 ### Completion record
 
-- Status: in progress
-- Implementation: pending
-- Tests: pending
-- Commit: pending
-- Remaining risks: pending
+- Status: completed 2026-08-13
+- Implementation: `docs/capabilities.json` is the structured source of truth for 14 capabilities
+  across automated/regression-tested, agent-guided, and planned labels. The generated
+  `docs/capabilities.md` links every capability to repository evidence. README, Chinese README and
+  `SKILL.md` now state the same boundary and the four result states.
+- Tests: `npm run check`; `node scripts/generate-capability-matrix.mjs --check`;
+  `node scripts/check-product-contract.mjs`; Skill Creator `quick_validate.py`. All passed. The
+  contract check fails on missing states, invalid/duplicate capabilities, missing evidence files,
+  stale generated output, or missing public-surface markers.
+- Commit: `ea90082` (`feat: define product capability contract`)
+- Remaining risks: the current repository and Skill identifiers still use the pre-P1 name. The
+  capability matrix is English-only until the public documentation phase adds a localized view.
 
 ## P1 - Unified identity and entrypoints
 
@@ -172,7 +179,7 @@ Current project gaps at program start:
 
 ### Completion record
 
-- Status: pending
+- Status: in progress
 - Implementation: pending
 - Tests: pending
 - Commit / migration: pending
