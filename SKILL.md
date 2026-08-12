@@ -76,8 +76,11 @@ node $S/scripts/verify-crawler-ip.mjs --ip 66.249.66.1 --ua Googlebot --ranges
 # read-only AWS posture inventory
 bash $S/scripts/aws-exposure-audit.sh --profile default --region ap-northeast-1 --out ./reports/security
 
-# prove the edge hardening actually engages: header matrix + tiered rate-limit + TLS (read-only, small burst)
+# prove the edge hardening engages: header matrix, TLS policy (TLS<=1.1 refused / 1.2+ works), cert, redirect.
+# PASSIVE by default (read-only). The rate-limit probe is an ACTIVE test (many concurrent requests) and
+# only runs with --active-rate-limit, on a target you own.
 bash $S/scripts/verify-hardening.sh --site https://example.com
+bash $S/scripts/verify-hardening.sh --site https://example.com --active-rate-limit --n 30
 ```
 
 The `verify-crawler-ip` and `robots` logic is unit-tested — `npm test` in the skill repo runs both suites (including the two crawler-spoof regression cases). A `verified` verdict requires the IP's proven owner to **match the UA's claimed vendor**; a mismatch is `spoofed`, never `verified`. Add missing vendor range sources with `--source name=url` before relying on a `spoofed`/`verified` call for a vendor the script has no data for.
