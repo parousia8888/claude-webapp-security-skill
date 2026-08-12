@@ -26,6 +26,12 @@
 
 > 把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。
 
+<p align="center">
+  <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="自有本地 fixture：审计发现 13 个 high 和 6 个 medium 问题，展示可审查补丁，再走同一路径复测为 0 high 和 0 medium"></a>
+</p>
+
+<p align="center"><a href="docs/demo-evidence.md">查看该演示对应的生成报告与补丁证据。</a></p>
+
 ## 查看结果
 
 命令会启动一个故意配置错误的本地 Web 应用，执行审计，切换到加固后的 fixture，再走同一条真实

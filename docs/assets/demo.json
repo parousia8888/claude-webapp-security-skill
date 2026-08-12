@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "generator": "scripts/generate-demo-gif.mjs",
+  "sources": [
+    "scripts/demo.mjs",
+    "before.json",
+    "hardening.patch",
+    "after.json",
+    "evidence-after.json"
+  ],
+  "width": 840,
+  "height": 472,
+  "frames": 5,
+  "durationMilliseconds": 10900,
+  "bytes": 2742052,
+  "sha256": "037cf1e7bf832c27272bdb1a484c921d404fbbef401a0925621ac26bfacc57ab",
+  "result": {
+    "before": {
+      "high": 13,
+      "medium": 6
+    },
+    "after": {
+      "high": 0,
+      "medium": 0
+    },
+    "fixed": 21
+  },
+  "boundary": "owned-local-fixture-no-third-party-target"
+}

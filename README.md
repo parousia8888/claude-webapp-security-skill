@@ -24,6 +24,12 @@
   required. Start with the local result below, then install and run the first-project prompt.
 </p>
 
+<p align="center">
+  <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="Owned local fixture: audit finds 13 high and 6 medium issues, a reviewable patch is shown, and the same path retests at 0 high and 0 medium"></a>
+</p>
+
+<p align="center"><a href="docs/demo-evidence.md">Read the generated reports and patch behind this demo.</a></p>
+
 ## See the result
 
 Run an intentionally misconfigured local web app, audit it, apply the fixture's hardening, and
