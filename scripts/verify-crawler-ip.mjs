@@ -62,6 +62,84 @@ for (const s of all('source')) {
 const RANGE_ONLY_UA = /gptbot|oai-searchbot|chatgpt-user|claudebot|claude-searchbot|claude-user|anthropic|perplexity|duckassist|amazonbot|meta-externalagent|ccbot|bytespider/i;
 const KNOWN_BOT_UA = /bot|crawler|spider|gptbot|claude|perplexity|duckassist|bytespider|ccbot|externalagent/i;
 
+// ── UA → canonical vendor ────────────────────────────────────────────────
+// The whole point of the verifier is to answer: does this IP belong to the vendor
+// the UA CLAIMS to be? So the UA claim must be resolved to the SAME vendor namespace
+// that rDNS ownership and range membership resolve to, and then compared strictly.
+//
+// The bug this fixes: the old code only recognised a UA claim if it matched one of
+// the five rDNS vendors. A UA of "GPTBot" produced claimed=undefined, and the verdict
+// line `!claimed || claimed.vendor === owner.vendor ? 'verified' : ...` then treated
+// "claims a DIFFERENT vendor" as "claims nothing" — so Googlebot-IP + GPTBot-UA verified,
+// and (range path) GPTBot-IP + ClaudeBot-UA verified. Both are spoofs.
+const UA_VENDOR = [
+  { vendor: 'google', re: /googlebot|google-inspectiontool|googleother|google-extended|feedfetcher-google|apis-google|googleimageproxy|storebot-google/i },
+  { vendor: 'bing', re: /bingbot|msnbot|bingpreview|adidxbot/i },
+  { vendor: 'apple', re: /applebot/i },
+  { vendor: 'yandex', re: /yandex(bot|images|video|media|blogs|favicons|webmaster|accessibilitybot)?/i },
+  { vendor: 'baidu', re: /baiduspider/i },
+  { vendor: 'openai', re: /gptbot|oai-searchbot|chatgpt-user/i },
+  { vendor: 'anthropic', re: /claudebot|claude-searchbot|claude-user|anthropic/i },
+  { vendor: 'perplexity', re: /perplexitybot|perplexity-user/i },
+  { vendor: 'duckduckgo', re: /duckassistbot|duckduckbot/i },
+  { vendor: 'amazon', re: /amazonbot/i },
+  { vendor: 'meta', re: /meta-externalagent|facebookexternalhit|facebookbot/i },
+  { vendor: 'commoncrawl', re: /ccbot/i },
+  { vendor: 'bytedance', re: /bytespider/i },
+];
+
+// Range-source name → canonical vendor. Keys must match RANGE_SOURCES above.
+const RANGE_VENDOR = {
+  googlebot: 'google', 'google-special': 'google', 'google-user-triggered': 'google',
+  bingbot: 'bing',
+  gptbot: 'openai', 'oai-searchbot': 'openai', 'chatgpt-user': 'openai',
+};
+
+/** The canonical vendor a UA claims to be, or null if it claims no known crawler. */
+export function uaVendor(ua = '') {
+  return UA_VENDOR.find((v) => v.re.test(ua))?.vendor ?? null;
+}
+
+/** Canonical vendors we have a usable proof source for (rDNS suffix list OR published range). */
+const RANGE_VENDORS = new Set(Object.values(RANGE_VENDOR));
+const RDNS_VENDOR_SET = new Set(RDNS_VENDORS.map((v) => v.vendor));
+function haveProofSourceFor(vendor) {
+  return RANGE_VENDORS.has(vendor) || RDNS_VENDOR_SET.has(vendor);
+}
+
+/**
+ * Pure decision function — no IO, unit-testable.
+ * Inputs: the UA's claimed vendor, the rDNS result, the matched range vendor (if any),
+ *         and whether ranges were even consulted.
+ * The single rule everywhere: a proven owner that DISAGREES with a non-null claim is a spoof.
+ */
+export function decideVerdict({ claimedVendor, rdnsOwner, rangeVendor, usedRanges }) {
+  // 1. rDNS proved the IP belongs to some vendor
+  if (rdnsOwner) {
+    if (!claimedVendor || claimedVendor === rdnsOwner) return { verdict: 'verified', vendor: rdnsOwner, method: 'fcrdns' };
+    return { verdict: 'spoofed', vendor: rdnsOwner, method: 'fcrdns', mismatch: `UA claims ${claimedVendor}, reverse DNS proves ${rdnsOwner}` };
+  }
+  // 2. UA claims an rDNS-verifiable vendor but rDNS did not confirm it — suspicious;
+  //    ranges cannot rescue an rDNS vendor (they don't publish prefix lists), so it's a spoof.
+  if (claimedVendor && RDNS_VENDOR_SET.has(claimedVendor) && !RANGE_VENDORS.has(claimedVendor)) {
+    return { verdict: 'spoofed', vendor: claimedVendor, method: 'fcrdns', mismatch: `UA claims ${claimedVendor} but reverse DNS did not confirm it` };
+  }
+  // 3. published-range path
+  if (usedRanges) {
+    if (rangeVendor) {
+      if (!claimedVendor || claimedVendor === rangeVendor) return { verdict: 'verified', vendor: rangeVendor, method: 'published-range' };
+      return { verdict: 'spoofed', vendor: rangeVendor, method: 'published-range', mismatch: `UA claims ${claimedVendor}, IP is in ${rangeVendor}'s published range` };
+    }
+    // no range matched. If we HAVE the claimed vendor's ranges and the IP isn't in them → spoof.
+    if (claimedVendor && haveProofSourceFor(claimedVendor)) {
+      return { verdict: 'spoofed', vendor: claimedVendor, method: 'published-range', note: `UA claims ${claimedVendor}; IP is in no published prefix of any checked vendor` };
+    }
+    // claimed a vendor we have no source for → cannot decide, do not guess.
+    if (claimedVendor) return { verdict: 'unverifiable', vendor: null, method: 'published-range', note: `no proof source for ${claimedVendor}; add one with --source before acting` };
+  }
+  return { verdict: 'unverifiable', vendor: null, method: null };
+}
+
 // --------------------------------------------------------------- ip math
 
 function v4ToBig(ip) {
@@ -171,55 +249,36 @@ async function verify(ip, ua = '') {
 
   if (!parseIp(ip)) { out.verdict = 'invalid-ip'; return out; }
 
-  const claimed = RDNS_VENDORS.find((v) => v.ua.test(ua));
+  const claimedVendor = uaVendor(ua);
   const claimsRangeOnly = RANGE_ONLY_UA.test(ua);
   const claimsAnyBot = KNOWN_BOT_UA.test(ua);
 
-  // 1. rDNS path
+  // gather evidence (IO)
   const r = await fcrdns(ip);
   out.evidence.rdns = r.ok ? { hostname: r.hostname } : { failed: r.reason, ptrNames: r.names };
+  const rdnsOwner = r.ok
+    ? (RDNS_VENDORS.find((v) => v.suffixes.some((s) => endsWithLabel(r.hostname, s)))?.vendor ?? null)
+    : null;
 
-  if (r.ok) {
-    const owner = RDNS_VENDORS.find((v) => v.suffixes.some((s) => endsWithLabel(r.hostname, s)));
-    if (owner) {
-      out.vendor = owner.vendor;
-      out.method = 'fcrdns';
-      // matches a vendor, and the UA either claims that vendor or claims nothing
-      out.verdict = !claimed || claimed.vendor === owner.vendor ? 'verified' : 'spoofed';
-      if (out.verdict === 'spoofed') out.evidence.mismatch = `UA claims ${claimed.vendor}, rDNS says ${owner.vendor}`;
-      if (!USE_RANGES || out.verdict === 'verified') return out;
-    }
-  }
-
-  if (claimed && out.verdict !== 'verified') {
-    // UA claims an rDNS-verifiable vendor but rDNS did not confirm it
-    out.verdict = 'spoofed';
-    out.vendor = claimed.vendor;
-    out.method = 'fcrdns';
-    out.evidence.mismatch = `UA claims ${claimed.vendor} but reverse DNS did not confirm it`;
-    if (!USE_RANGES) return out;
-  }
-
-  // 2. published-range path
+  let rangeVendor = null;
   if (USE_RANGES) {
     for (const [name, url] of Object.entries(RANGE_SOURCES)) {
       const data = await loadRanges(name, url);
-      if (!data.ok) continue;
-      if (data.prefixes.some((c) => inCidr(ip, c))) {
-        out.vendor = name;
-        out.method = 'published-range';
-        out.verdict = 'verified';
+      if (data.ok && data.prefixes.some((c) => inCidr(ip, c))) {
+        rangeVendor = RANGE_VENDOR[name] ?? name;
         out.evidence.range = name;
-        return out;
+        break;
       }
     }
-    if (claimsRangeOnly) {
-      out.verdict = 'spoofed';
-      out.method = 'published-range';
-      out.evidence.note = 'UA claims a vendor whose ranges were checked; no published prefix matched. If the vendor is one this script has no source for, add it with --source and re-run before acting.';
-      return out;
-    }
   }
+
+  // decide (pure) — claim must AGREE with proven ownership, never merely "some bot vendor"
+  const d = decideVerdict({ claimedVendor, rdnsOwner, rangeVendor, usedRanges: USE_RANGES });
+  out.verdict = d.verdict;
+  out.vendor = d.vendor;
+  out.method = d.method;
+  if (d.mismatch) out.evidence.mismatch = d.mismatch;
+  if (d.note) out.evidence.note = d.note;
 
   if (out.verdict === 'unverifiable' && !claimsAnyBot) out.verdict = 'not-a-known-bot';
   if (out.verdict === 'unverifiable' && claimsRangeOnly && !USE_RANGES) {
@@ -229,6 +288,11 @@ async function verify(ip, ua = '') {
 }
 
 // --------------------------------------------------------------- main
+
+// Only run the CLI when executed directly. When imported (by the test suite),
+// stop here so uaVendor / decideVerdict can be unit-tested without touching argv/DNS/network.
+const RUN_CLI = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
+if (!RUN_CLI) { /* imported as a module */ } else {
 
 const targets = [];
 const fileArg = arg('file');
@@ -272,3 +336,5 @@ if (OUT_DIR) {
 
 console.log(md);
 process.exit(tally.spoofed ? 1 : 0);
+
+} // end RUN_CLI
