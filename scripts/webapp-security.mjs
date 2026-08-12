@@ -1,13 +1,18 @@
 #!/usr/bin/env node
-import { cpSync, existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync } from 'node:fs';
+import {
+  cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync,
+  renameSync, rmSync, symlinkSync, writeFileSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SKILL_ID = 'web-app-security';
 const LEGACY_SKILL_ID = 'webapp-security-hardening';
+const VERSION = readFileSync(join(ROOT, 'VERSION'), 'utf8').trim();
+const INSTALL_MARKER = '.web-app-security-install.json';
 const argv = process.argv.slice(2);
 const command = argv.shift();
 
@@ -25,11 +30,15 @@ Commands:
   verify-edge <options>        Verify headers, redirects, TLS, and optional rate limiting
   aws <aws audit options>      Run the read-only AWS posture inventory
   install [options]            Install for Claude Code, Codex, and/or the CLI
+  upgrade [options]            Replace recognized installs from this release payload
+  uninstall [options]          Remove recognized installs while preserving prior backups
+  version                      Print the release version
 
-Install options:
+Lifecycle options:
   --target claude|codex|cli|both|all
                                Default: all; both means Claude Code + Codex
-  --force                      Replace an existing install after making a backup
+Install only:
+  --force                      Replace existing paths after making backups
 `);
   process.exit(code);
 }
@@ -40,104 +49,264 @@ function run(program, args) {
   child.on('exit', (code, signal) => process.exit(signal ? 1 : (code ?? 1)));
 }
 
-function arg(name, fallback = null) {
-  const index = argv.indexOf(`--${name}`);
-  return index === -1 ? fallback : argv[index + 1];
+function pathExists(path) {
+  try { lstatSync(path); return true; } catch { return false; }
 }
 
-function install() {
-  const target = arg('target', 'all');
-  const force = argv.includes('--force');
+function lifecycleOptions({ allowForce = false } = {}) {
+  const args = [...argv];
+  const targetIndex = args.indexOf('--target');
+  let target = 'all';
+  if (targetIndex !== -1) {
+    if (!args[targetIndex + 1] || args[targetIndex + 1].startsWith('--')) {
+      console.error('error: --target requires a value');
+      process.exit(2);
+    }
+    target = args[targetIndex + 1];
+    args.splice(targetIndex, 2);
+  }
+  const forceIndex = args.indexOf('--force');
+  const force = forceIndex !== -1;
+  if (force) args.splice(forceIndex, 1);
+  if (force && !allowForce) {
+    console.error('error: --force is only valid for install');
+    process.exit(2);
+  }
+  if (args.length) {
+    console.error(`error: unknown lifecycle option ${args[0]}`);
+    process.exit(2);
+  }
   if (!['claude', 'codex', 'cli', 'both', 'all'].includes(target)) {
     console.error('error: --target must be claude, codex, cli, both, or all');
     process.exit(2);
   }
+  return { target, force };
+}
+
+function installSpecs(target) {
   const installs = [];
   if (['claude', 'both', 'all'].includes(target)) installs.push({
+    surface: 'claude',
     destination: join(homedir(), '.claude', 'skills', SKILL_ID),
     legacy: join(homedir(), '.claude', 'skills', LEGACY_SKILL_ID),
   });
   if (['codex', 'both', 'all'].includes(target)) installs.push({
+    surface: 'codex',
     destination: join(homedir(), '.codex', 'skills', SKILL_ID),
     legacy: join(homedir(), '.codex', 'skills', LEGACY_SKILL_ID),
   });
-  const installCli = ['cli', 'all'].includes(target);
-  const cliRoot = join(homedir(), '.local', 'share', SKILL_ID);
-  const legacyCliRoot = join(homedir(), '.local', 'share', LEGACY_SKILL_ID);
-  const launcher = join(homedir(), '.local', 'bin', 'webapp-security');
-  if (installCli) installs.push({ destination: cliRoot, legacy: legacyCliRoot });
+  if (['cli', 'all'].includes(target)) installs.push({
+    surface: 'cli',
+    destination: join(homedir(), '.local', 'share', SKILL_ID),
+    legacy: join(homedir(), '.local', 'share', LEGACY_SKILL_ID),
+    launcher: join(homedir(), '.local', 'bin', 'webapp-security'),
+  });
+  return installs;
+}
 
-  const conflicts = [
-    ...installs.flatMap(({ destination, legacy }) => [destination, legacy]),
-    ...(installCli ? [launcher] : []),
-  ].filter((destination) => existsSync(destination));
-  if (conflicts.length && !force) {
+function recognizedInstall(path) {
+  if (!pathExists(path) || lstatSync(path).isSymbolicLink()) return false;
+  try {
+    const markerPath = join(path, INSTALL_MARKER);
+    if (existsSync(markerPath)) {
+      const marker = JSON.parse(readFileSync(markerPath, 'utf8'));
+      return marker.schemaVersion === 1 && marker.product === 'Web App Security Skill'
+        && [SKILL_ID, LEGACY_SKILL_ID].includes(marker.skillId);
+    }
+    return /^name:\s+(?:web-app-security|webapp-security-hardening)\s*$/m
+      .test(readFileSync(join(path, 'SKILL.md'), 'utf8'));
+  } catch {
+    return false;
+  }
+}
+
+function launcherTargetsInstall(launcher, destinations) {
+  if (!pathExists(launcher)) return false;
+  try {
+    if (!lstatSync(launcher).isSymbolicLink()) return false;
+    const target = resolve(dirname(launcher), readlinkSync(launcher));
+    return destinations.some((destination) =>
+      target === join(destination, 'scripts', 'webapp-security.mjs'));
+  } catch {
+    return false;
+  }
+}
+
+const include = [
+  'SKILL.md', 'VERSION', 'LICENSE', 'agents', 'assets', 'examples', 'references', 'scripts',
+  'docs/capabilities.json', 'docs/capabilities.md', 'docs/security-scope.schema.json',
+  'docs/finding.schema.json', 'docs/report.schema.json',
+];
+
+function stagePayload(spec) {
+  mkdirSync(dirname(spec.destination), { recursive: true });
+  const stageRoot = mkdtempSync(join(dirname(spec.destination), '.webapp-security-install-'));
+  const staged = join(stageRoot, basename(spec.destination));
+  mkdirSync(staged);
+  for (const entry of include) {
+    const source = join(ROOT, entry);
+    const target = join(staged, entry);
+    if (!existsSync(source)) continue;
+    mkdirSync(dirname(target), { recursive: true });
+    cpSync(source, target, { recursive: true });
+  }
+  writeFileSync(join(staged, INSTALL_MARKER), `${JSON.stringify({
+    schemaVersion: 1,
+    product: 'Web App Security Skill',
+    skillId: SKILL_ID,
+    version: VERSION,
+    surface: spec.surface,
+  }, null, 2)}\n`, { mode: 0o600 });
+  return { ...spec, stageRoot, staged };
+}
+
+function backupName(path) {
+  const base = `${path}.backup-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+  let candidate = base;
+  let suffix = 1;
+  while (pathExists(candidate)) {
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return candidate;
+}
+
+function installOrUpgrade(mode) {
+  const { target, force } = lifecycleOptions({ allowForce: mode === 'install' });
+  const installs = installSpecs(target);
+  const conflicts = installs.flatMap(({ destination, legacy, launcher }) =>
+    [destination, legacy, launcher].filter((path) => path && pathExists(path)));
+  if (mode === 'install' && conflicts.length && !force) {
     const legacyFound = conflicts.some((item) => item.endsWith(`/${LEGACY_SKILL_ID}`));
     console.error(`error: existing install${conflicts.length === 1 ? '' : 's'}:\n${conflicts.map((item) => `  ${item}`).join('\n')}\n${legacyFound ? `legacy ${LEGACY_SKILL_ID} installs require migration; ` : ''}re-run with --force to back up and replace`);
     process.exit(2);
   }
-
-  const include = [
-    'SKILL.md', 'VERSION', 'LICENSE', 'agents', 'assets', 'examples', 'references', 'scripts',
-    'docs/capabilities.json', 'docs/capabilities.md', 'docs/security-scope.schema.json',
-    'docs/finding.schema.json', 'docs/report.schema.json',
-  ];
-  for (const { destination, legacy } of installs) {
-    mkdirSync(dirname(destination), { recursive: true });
-    const stageRoot = mkdtempSync(join(dirname(destination), '.webapp-security-install-'));
-    const staged = join(stageRoot, basename(destination));
-    mkdirSync(staged);
-    for (const entry of include) {
-      const source = join(ROOT, entry);
-      const target = join(staged, entry);
-      if (existsSync(source)) {
-        mkdirSync(dirname(target), { recursive: true });
-        cpSync(source, target, { recursive: true });
+  if (mode === 'install' && conflicts.length && force) {
+    const invalid = [];
+    for (const spec of installs) {
+      const payloads = [spec.destination, spec.legacy].filter((path) => pathExists(path));
+      const recognizedPayloads = payloads.filter(recognizedInstall);
+      invalid.push(...payloads.filter((path) => !recognizedInstall(path)));
+      if (spec.launcher && pathExists(spec.launcher)
+          && (!recognizedPayloads.length
+            || !launcherTargetsInstall(spec.launcher, recognizedPayloads))) invalid.push(spec.launcher);
+    }
+    if (invalid.length) {
+      console.error(`error: --force refuses unrecognized paths:\n${invalid.map((path) => `  ${path}`).join('\n')}`);
+      process.exit(2);
+    }
+  }
+  if (mode === 'upgrade') {
+    const invalid = [];
+    let found = 0;
+    for (const spec of installs) {
+      const current = pathExists(spec.destination);
+      const legacy = pathExists(spec.legacy);
+      if (current) {
+        if (!recognizedInstall(spec.destination)) invalid.push(spec.destination);
+        else found += 1;
       }
-    }
-    const backups = [];
-    if (existsSync(destination)) {
-      const backup = `${destination}.backup-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-      renameSync(destination, backup);
-      backups.push({ backup, original: destination });
-    }
-    if (existsSync(legacy)) {
-      const backup = `${legacy}.backup-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-      renameSync(legacy, backup);
-      backups.push({ backup, original: legacy });
-    }
-    try {
-      renameSync(staged, destination);
-      console.log(`installed: ${destination}${backups.map(({ backup }) => `\nbackup:    ${backup}`).join('')}`);
-    } catch (error) {
-      for (const { backup, original } of backups.reverse()) {
-        if (!existsSync(original)) renameSync(backup, original);
+      if (legacy) {
+        if (!recognizedInstall(spec.legacy)) invalid.push(spec.legacy);
+        else found += 1;
       }
-      throw error;
-    } finally {
-      rmSync(stageRoot, { recursive: true, force: true });
+      if (spec.launcher && pathExists(spec.launcher)
+          && !launcherTargetsInstall(spec.launcher, [spec.destination, spec.legacy])) invalid.push(spec.launcher);
+    }
+    if (invalid.length || !found) {
+      const detail = invalid.length
+        ? `\n${invalid.map((path) => `  ${path}`).join('\n')}`
+        : '';
+      console.error(`error: upgrade requires at least one recognized selected install and refuses unrecognized paths${detail}`);
+      process.exit(2);
     }
   }
 
-  if (installCli) {
-    mkdirSync(dirname(launcher), { recursive: true });
-    const stagedLauncher = `${launcher}.install-${process.pid}`;
-    rmSync(stagedLauncher, { force: true });
-    symlinkSync(join(cliRoot, 'scripts', 'webapp-security.mjs'), stagedLauncher);
-    let backup = null;
-    if (existsSync(launcher)) {
-      backup = `${launcher}.backup-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-      renameSync(launcher, backup);
+  const stagedInstalls = installs.map(stagePayload);
+  const installed = [];
+  try {
+    for (const spec of stagedInstalls) {
+      const existingPaths = [spec.destination, spec.legacy, spec.launcher]
+        .filter((path) => path && pathExists(path));
+      if (mode === 'upgrade' && !existingPaths.length) continue;
+      const backups = [];
+      try {
+        for (const existing of existingPaths) {
+          const backup = backupName(existing);
+          renameSync(existing, backup);
+          backups.push({ backup, original: existing });
+        }
+        renameSync(spec.staged, spec.destination);
+        if (spec.launcher) {
+          mkdirSync(dirname(spec.launcher), { recursive: true });
+          symlinkSync(join(spec.destination, 'scripts', 'webapp-security.mjs'), spec.launcher);
+        }
+        installed.push({ spec, backups });
+        console.log(`${mode === 'upgrade' ? 'upgraded' : 'installed'}: ${spec.destination}`);
+        for (const { backup } of backups) console.log(`backup:    ${backup}`);
+      } catch (error) {
+        rmSync(spec.destination, { recursive: true, force: true });
+        if (spec.launcher) rmSync(spec.launcher, { force: true });
+        for (const { backup, original } of backups.reverse()) {
+          if (!pathExists(original)) renameSync(backup, original);
+        }
+        throw error;
+      }
     }
-    try {
-      renameSync(stagedLauncher, launcher);
-      console.log(`installed: ${launcher}${backup ? `\nbackup:    ${backup}` : ''}`);
-    } catch (error) {
-      if (backup && !existsSync(launcher)) renameSync(backup, launcher);
-      throw error;
-    } finally {
-      rmSync(stagedLauncher, { force: true });
+  } catch (error) {
+    for (const { spec, backups } of installed.reverse()) {
+      rmSync(spec.destination, { recursive: true, force: true });
+      if (spec.launcher) rmSync(spec.launcher, { force: true });
+      for (const { backup, original } of backups.reverse()) {
+        if (!pathExists(original)) renameSync(backup, original);
+      }
     }
+    throw error;
+  } finally {
+    for (const { stageRoot } of stagedInstalls) rmSync(stageRoot, { recursive: true, force: true });
+  }
+}
+
+function uninstall() {
+  const { target } = lifecycleOptions();
+  const installs = installSpecs(target);
+  const invalid = [];
+  const removable = [];
+  for (const spec of installs) {
+    for (const path of [spec.destination, spec.legacy]) {
+      if (!pathExists(path)) continue;
+      if (!recognizedInstall(path)) invalid.push(path);
+      else removable.push(path);
+    }
+    if (spec.launcher && pathExists(spec.launcher)) {
+      if (!launcherTargetsInstall(spec.launcher, [spec.destination, spec.legacy])) invalid.push(spec.launcher);
+      else removable.push(spec.launcher);
+    }
+  }
+  if (invalid.length) {
+    console.error(`error: refusing to remove unrecognized paths:\n${invalid.map((path) => `  ${path}`).join('\n')}`);
+    process.exit(2);
+  }
+  if (!removable.length) {
+    console.error('error: no recognized selected installs were found');
+    process.exit(2);
+  }
+  const staged = [];
+  try {
+    for (const path of removable) {
+      const temporary = `${path}.uninstall-${process.pid}`;
+      renameSync(path, temporary);
+      staged.push({ path, temporary });
+    }
+  } catch (error) {
+    for (const { path, temporary } of staged.reverse()) {
+      if (!pathExists(path)) renameSync(temporary, path);
+    }
+    throw error;
+  }
+  for (const { path, temporary } of staged) {
+    rmSync(temporary, { recursive: true, force: true });
+    console.log(`uninstalled: ${path}`);
   }
 }
 
@@ -151,7 +320,13 @@ switch (command) {
   case 'verify-crawler': run(process.execPath, [join(ROOT, 'scripts', 'verify-crawler-ip.mjs'), ...argv]); break;
   case 'verify-edge': run('/bin/bash', [join(ROOT, 'scripts', 'verify-hardening.sh'), ...argv]); break;
   case 'aws': run('/bin/bash', [join(ROOT, 'scripts', 'aws-exposure-audit.sh'), ...argv]); break;
-  case 'install': install(); break;
+  case 'install': installOrUpgrade('install'); break;
+  case 'upgrade': installOrUpgrade('upgrade'); break;
+  case 'uninstall': uninstall(); break;
+  case 'version':
+    if (argv.length) { console.error(`error: unknown version option ${argv[0]}`); process.exit(2); }
+    console.log(`Web App Security Skill ${VERSION}`);
+    break;
   case '-h': case '--help': case undefined: usage(command ? 0 : 2); break;
   default: console.error(`error: unknown command ${JSON.stringify(command)}`); usage(2);
 }

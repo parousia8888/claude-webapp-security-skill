@@ -3,10 +3,24 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
-const argv = process.argv.slice(2);
-const outIndex = argv.indexOf('--out');
-const output = resolve(outIndex === -1 ? 'dist/web-app-security-skill.spdx.json' : argv[outIndex + 1]);
-const version = readFileSync(new URL('../VERSION', import.meta.url), 'utf8').trim();
+const args = process.argv.slice(2);
+let output = 'dist/web-app-security-skill.spdx.json';
+let version = readFileSync(new URL('../VERSION', import.meta.url), 'utf8').trim();
+while (args.length) {
+  const option = args.shift();
+  const value = args.shift();
+  if (!['--out', '--version'].includes(option) || !value || value.startsWith('--')) {
+    console.error('usage: node scripts/generate-sbom.mjs [--out <path>] [--version <semver>]');
+    process.exit(2);
+  }
+  if (option === '--out') output = value;
+  if (option === '--version') version = value;
+}
+if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+  console.error('error: --version must be semantic');
+  process.exit(2);
+}
+output = resolve(output);
 const digest = createHash('sha256').update(`${version}:parousia8888/web-app-security-skill`).digest('hex');
 const created = process.env.SOURCE_DATE_EPOCH
   ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000).toISOString()

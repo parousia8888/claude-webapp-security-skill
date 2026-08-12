@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import {
+  existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -125,6 +127,10 @@ try {
 
   const fakeHome = join(temp, 'home');
   mkdirSync(join(fakeHome, '.codex', 'skills', 'webapp-security-hardening'), { recursive: true });
+  writeFileSync(
+    join(fakeHome, '.codex', 'skills', 'webapp-security-hardening', 'SKILL.md'),
+    '---\nname: webapp-security-hardening\ndescription: legacy\n---\n',
+  );
   writeFileSync(join(fakeHome, '.codex', 'skills', 'webapp-security-hardening', 'sentinel'), 'old');
   result = await run(process.execPath, [CLI, 'install', '--target', 'both'], { env: { ...process.env, HOME: fakeHome } });
   assert.equal(result.status, 2);
@@ -152,11 +158,24 @@ try {
   assert.ok(existsSync(join(allHome, '.claude', 'skills', 'web-app-security', 'SKILL.md')));
   assert.ok(existsSync(join(allHome, '.codex', 'skills', 'web-app-security', 'SKILL.md')));
   assert.ok(existsSync(join(allHome, '.local', 'share', 'web-app-security', 'SKILL.md')));
+  for (const [surface, installed] of [
+    ['claude', join(allHome, '.claude', 'skills', 'web-app-security')],
+    ['codex', join(allHome, '.codex', 'skills', 'web-app-security')],
+    ['cli', join(allHome, '.local', 'share', 'web-app-security')],
+  ]) {
+    const marker = JSON.parse(readFileSync(join(installed, '.web-app-security-install.json'), 'utf8'));
+    assert.equal(marker.product, 'Web App Security Skill');
+    assert.equal(marker.version, readFileSync(join(ROOT, 'VERSION'), 'utf8').trim());
+    assert.equal(marker.surface, surface);
+  }
   const launcher = join(allHome, '.local', 'bin', 'webapp-security');
   assert.ok(existsSync(launcher));
   result = await run(launcher, ['--help'], { env: { ...process.env, HOME: allHome } });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /webapp-security <command>/);
+  result = await run(launcher, ['version'], { env: { ...process.env, HOME: allHome } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), `Web App Security Skill ${readFileSync(join(ROOT, 'VERSION'), 'utf8').trim()}`);
   const installedStartOut = join(temp, 'installed-start');
   result = await run(launcher, [
     'start', join(ROOT, 'test', 'fixtures', 'next-app'),
@@ -179,6 +198,67 @@ try {
   assert.equal(installedReport.summary.byState.suspected, 3);
   assert.ok(existsSync(join(installedAuditOut, 'installed.html')));
   assert.ok(existsSync(join(installedAuditOut, 'installed.sarif')));
+
+  result = await run(launcher, ['upgrade'], { env: { ...process.env, HOME: allHome } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /upgraded:/);
+  const backupRoots = [
+    join(allHome, '.claude', 'skills'),
+    join(allHome, '.codex', 'skills'),
+    join(allHome, '.local', 'share'),
+  ];
+  const lifecycleBackups = backupRoots.flatMap((directory) =>
+    readdirSync(directory).filter((name) => name.includes('.backup-')).map((name) => join(directory, name)));
+  assert.ok(lifecycleBackups.length >= 3, 'upgrade must preserve prior Claude, Codex and CLI payloads');
+  result = await run(launcher, ['version'], { env: { ...process.env, HOME: allHome } });
+  assert.equal(result.status, 0, result.stderr);
+
+  result = await run(launcher, ['uninstall'], { env: { ...process.env, HOME: allHome } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(existsSync(join(allHome, '.claude', 'skills', 'web-app-security')), false);
+  assert.equal(existsSync(join(allHome, '.codex', 'skills', 'web-app-security')), false);
+  assert.equal(existsSync(join(allHome, '.local', 'share', 'web-app-security')), false);
+  assert.equal(existsSync(launcher), false);
+  assert.ok(lifecycleBackups.every((path) => existsSync(path)), 'uninstall must preserve timestamped backups');
+
+  const unknownHome = join(temp, 'unknown-home');
+  const unknownInstall = join(unknownHome, '.codex', 'skills', 'web-app-security');
+  mkdirSync(unknownInstall, { recursive: true });
+  writeFileSync(join(unknownInstall, 'sentinel'), 'unrecognized');
+  result = await run(process.execPath, [CLI, 'uninstall', '--target', 'codex'], {
+    env: { ...process.env, HOME: unknownHome },
+  });
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /refusing to remove unrecognized paths/);
+  assert.equal(readFileSync(join(unknownInstall, 'sentinel'), 'utf8'), 'unrecognized');
+  result = await run(process.execPath, [CLI, 'install', '--target', 'codex', '--force'], {
+    env: { ...process.env, HOME: unknownHome },
+  });
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /--force refuses unrecognized paths/);
+  assert.equal(readFileSync(join(unknownInstall, 'sentinel'), 'utf8'), 'unrecognized');
+  result = await run(process.execPath, [CLI, 'upgrade', '--target', 'codex'], {
+    env: { ...process.env, HOME: unknownHome },
+  });
+  assert.equal(result.status, 2);
+  assert.ok(existsSync(unknownInstall), 'upgrade must not replace an unrecognized path');
+
+  const legacyCliHome = join(temp, 'legacy-cli-home');
+  const legacyCliRoot = join(legacyCliHome, '.local', 'share', 'webapp-security-hardening');
+  const legacyLauncher = join(legacyCliHome, '.local', 'bin', 'webapp-security');
+  mkdirSync(join(legacyCliRoot, 'scripts'), { recursive: true });
+  mkdirSync(join(legacyCliHome, '.local', 'bin'), { recursive: true });
+  writeFileSync(join(legacyCliRoot, 'SKILL.md'), '---\nname: webapp-security-hardening\ndescription: legacy\n---\n');
+  writeFileSync(join(legacyCliRoot, 'scripts', 'webapp-security.mjs'), '#!/usr/bin/env node\n');
+  symlinkSync(join(legacyCliRoot, 'scripts', 'webapp-security.mjs'), legacyLauncher);
+  result = await run(process.execPath, [CLI, 'upgrade', '--target', 'cli'], {
+    env: { ...process.env, HOME: legacyCliHome },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(existsSync(join(legacyCliHome, '.local', 'share', 'web-app-security', 'SKILL.md')));
+  assert.equal(existsSync(legacyCliRoot), false);
+  result = await run(legacyLauncher, ['version'], { env: { ...process.env, HOME: legacyCliHome } });
+  assert.equal(result.status, 0, result.stderr);
 
   const sbomPath = join(temp, 'sbom.spdx.json');
   result = await run(process.execPath, [SBOM, '--out', sbomPath], { env: { ...process.env, SOURCE_DATE_EPOCH: '0' } });

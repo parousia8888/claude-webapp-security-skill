@@ -1,0 +1,83 @@
+name: "Action v1 consumer"
+on:
+  workflow_dispatch:
+permissions:
+  contents: "read"
+jobs:
+  consumer:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803" # v6
+      - uses: "actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38" # v6
+        with:
+          node-version: "22"
+      - name: "Start owned local fixture"
+        shell: "bash"
+        run: |
+          nohup node -e '
+            const fs = require("node:fs");
+            const http = require("node:http");
+            const log = process.env.REQUEST_LOG;
+            http.createServer((request, response) => {
+              fs.appendFileSync(log, `${request.url}\n`);
+              if (request.url === "/robots.txt") {
+                response.writeHead(200, { "content-type": "text/plain" });
+                response.end("User-agent: *\nAllow: /\n");
+              } else if (request.url === "/") {
+                response.writeHead(200, { "content-type": "text/html" });
+                response.end(`<html><body>${"owned fixture ".repeat(300)}</body></html>`);
+              } else {
+                response.writeHead(404, { "content-type": "text/plain" });
+                response.end("not found");
+              }
+            }).listen(4173, "127.0.0.1");
+          ' >"$RUNNER_TEMP/action-v1-server.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/action-v1-server.pid"
+          for attempt in 1 2 3 4 5; do
+            curl --fail --silent "http://127.0.0.1:4173/" >/dev/null && exit 0
+            sleep 1
+          done
+          exit 1
+        env:
+          REQUEST_LOG: "${{ runner.temp }}/action-v1-requests.log"
+      - name: "Consume the stable major Action"
+        uses: "parousia8888/web-app-security-skill@v1"
+        with:
+          site: "http://127.0.0.1:4173"
+          acknowledge-authorization: "true"
+          active-probe: "false"
+          fail-on: "never"
+          output-dir: "action-v1-success"
+      - name: "Verify passive success evidence"
+        shell: "bash"
+        run: |
+          test -s action-v1-success/report.json
+          test -s action-v1-success/report.md
+          if grep -Fx '/.env' "$RUNNER_TEMP/action-v1-requests.log"; then
+            echo "passive Action requested an active-probe path" >&2
+            exit 1
+          fi
+      - name: "Exercise authorization rejection"
+        id: "denied"
+        continue-on-error: true
+        uses: "parousia8888/web-app-security-skill@v1"
+        with:
+          site: "http://127.0.0.1:4173"
+          acknowledge-authorization: "false"
+          active-probe: "false"
+          fail-on: "never"
+          output-dir: "action-v1-denied"
+      - name: "Verify authorization rejection"
+        shell: "bash"
+        env:
+          DENIED_OUTCOME: "${{ steps.denied.outcome }}"
+        run: |
+          test "$DENIED_OUTCOME" = "failure"
+          test ! -e action-v1-denied/report.json
+      - name: "Stop fixture"
+        if: "always()"
+        shell: "bash"
+        run: |
+          if test -f "$RUNNER_TEMP/action-v1-server.pid"; then
+            kill "$(cat "$RUNNER_TEMP/action-v1-server.pid")" 2>/dev/null || true
+          fi

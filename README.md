@@ -67,6 +67,20 @@ node scripts/webapp-security.mjs install --target both   # Claude Code + Codex
 Supported environments and current limits are recorded in the
 [compatibility matrix](docs/compatibility.md).
 
+Check, upgrade, or remove an installation:
+
+```bash
+webapp-security version
+# Run upgrade from the newer release payload; it never downloads code by itself.
+node /path/to/new-release/scripts/webapp-security.mjs upgrade
+webapp-security uninstall
+```
+
+`upgrade` replaces only installations carrying a recognized Web App Security Skill marker (or the
+documented legacy Skill identity), and keeps timestamped backups. `uninstall` removes recognized
+current installs but preserves those backups. Unknown directories and launchers are refused even
+with `install --force`.
+
 ## Run the first project
 
 Open the target repository in Claude Code or Codex and send this prompt:
@@ -160,21 +174,24 @@ The composite Action is passive by default and will not run until authorization 
     fail-on: high
 ```
 
-The example is pinned to an immutable commit. The planned stable major-version alias is:
+For repeatable CI, use the immutable commit above. The stable major-version alias is:
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-The moving `v1` tag is created only after the first renamed release passes its consumer tests.
+The moving `v1` tag is updated only after a versioned release passes the real consumer workflow;
+review release notes before accepting an update to it.
 
 ## Trust and release evidence
 
 - CI runs Ubuntu/macOS x Node 20/22, deterministic HTTP/HTTPS fixtures and Bash 3.2 smoke tests.
 - Third-party Actions in release and CodeQL workflows are pinned to full commit SHAs.
-- Tagged releases require matching `VERSION`, changelog and a versioned evidence note.
+- Tagged releases require matching `VERSION`, changelog and a versioned evidence note. The tag is
+  signed and the release records its source commit.
 - Release assets contain a reproducible source archive, SPDX 2.3 SBOM, `SHA256SUMS` and GitHub
-  build-provenance attestation.
+  build-provenance attestation. CI builds the archive twice, compares every byte, then runs the
+  lifecycle from the extracted archive in an isolated home with network access denied.
 - [`SECURITY.md`](SECURITY.md), [threat model](docs/threat-model.md),
   [false-positive policy](docs/false-positive-policy.md) and
   [compatibility matrix](docs/compatibility.md) make the trust boundary reviewable.
@@ -185,6 +202,7 @@ Verify downloaded release assets:
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
+git verify-tag v0.3.0
 ```
 
 ## 3 ordinary project journeys

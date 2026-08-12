@@ -22,10 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   patch evidence.
 - Passive-by-default composite GitHub Action with explicit authorization and stable report paths.
 - Release workflow for reproducible source archive, SPDX 2.3 SBOM, SHA-256 checksums and GitHub
-  build-provenance attestation; CodeQL and full-SHA third-party Action pins.
+  build-provenance attestation; release manifest, byte-for-byte rebuild comparison, clean archive
+  lifecycle test, CodeQL v4 and full-SHA third-party Action pins.
 - Security policy, threat model, false-positive policy, compatibility matrix, issue forms, bounded
   good-first issues and versioned release evidence.
 - Five immutable-commit source case studies: Juice Shop, NodeGoat, DVWA, Uptime Kuma and Mealie.
+- Versioned install markers plus network-free `version`, `upgrade` and `uninstall` paths for Claude
+  Code, Codex and the ordinary CLI; a manual real `@v1` Action consumer workflow.
 
 ### Changed
 - Public identity is unified as **Web App Security Skill**: repository `web-app-security-skill`,

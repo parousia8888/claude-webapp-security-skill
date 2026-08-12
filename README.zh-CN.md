@@ -65,6 +65,19 @@ node scripts/webapp-security.mjs install --target both   # Claude Code + Codex
 
 系统支持范围与当前限制见[兼容矩阵](docs/compatibility.md)。
 
+查看版本、升级或卸载：
+
+```bash
+webapp-security version
+# 必须从已下载的新版 release payload 执行；upgrade 自身不会联网下载代码。
+node /path/to/new-release/scripts/webapp-security.mjs upgrade
+webapp-security uninstall
+```
+
+`upgrade` 只替换带有 Web App Security Skill 可识别 marker（或已记录旧 Skill 身份）的安装，并保留
+时间戳备份。`uninstall` 删除可识别的当前安装但保留这些备份。未知目录或 launcher 即使配合
+`install --force` 也会被拒绝。
+
 ## 执行第一个项目
 
 在 Claude Code 或 Codex 中打开目标仓库，然后发送：
@@ -152,20 +165,21 @@ Composite Action 默认被动，且没有授权确认时不会执行：
     fail-on: high
 ```
 
-示例已经固定到不可变 commit。计划中的稳定大版本别名是：
+需要可重复 CI 时使用上面的不可变 commit。稳定大版本别名是：
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-移动的 `v1` tag 只会在改名后的首个 release 通过 consumer test 后创建。
+移动的 `v1` tag 只在版本化 release 通过真实 consumer workflow 后更新；接受更新前应检查 release note。
 
 ## 信任与 release 证据
 
 - CI 覆盖 Ubuntu/macOS x Node 20/22、确定性 HTTP/HTTPS fixture 和 Bash 3.2 smoke test。
 - release 与 CodeQL workflow 的第三方 Action 使用完整 commit SHA。
-- tag 必须同时匹配 `VERSION`、changelog 和该版本的证据文件。
+- tag 必须同时匹配 `VERSION`、changelog 和该版本的证据文件；tag 带签名，release 记录来源 commit。
 - release 产物包含可复现源码包、SPDX 2.3 SBOM、`SHA256SUMS` 与 GitHub build provenance attestation。
+  CI 会构建两次并逐字节比较全部产物，再在禁止网络的隔离 HOME 中从解包产物执行完整生命周期。
 - [`SECURITY.md`](SECURITY.md)、[威胁模型](docs/threat-model.md)、
   [误报政策](docs/false-positive-policy.md)和[兼容矩阵](docs/compatibility.md)可供独立复核。
 
@@ -175,6 +189,7 @@ uses: parousia8888/web-app-security-skill@v1
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
+git verify-tag v0.3.0
 ```
 
 ## 3 个普通项目旅程
