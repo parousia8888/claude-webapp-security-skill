@@ -1,0 +1,12 @@
+{
+  "name": "webapp-security-hardening",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Phased web app security audit, hardening, and crawl-boundary program (skill).",
+  "scripts": {
+    "test": "for f in test/*.test.mjs; do echo \"→ $f\"; node \"$f\" || exit 1; done",
+    "lint": "for f in scripts/*.mjs scripts/lib/*.mjs test/*.test.mjs; do node --check \"$f\" || exit 1; done && bash -n scripts/aws-exposure-audit.sh && echo 'lint ok'"
+  },
+  "license": "MIT"
+}
