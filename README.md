@@ -2,7 +2,7 @@
 <h3 align="center">Evidence-first audit, hardening and retest for AI coding agents</h3>
 
 <p align="center">
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/releases"><img src="https://img.shields.io/github/v/release/parousia8888/claude-webapp-security-skill?display_name=tag" alt="release"></a>
+  <a href="https://github.com/parousia8888/claude-webapp-security-skill/tags"><img src="https://img.shields.io/github/v/tag/parousia8888/claude-webapp-security-skill?sort=semver" alt="latest tag"></a>
   <a href="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/ci.yml"><img src="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/codeql.yml"><img src="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
   <a href="https://github.com/parousia8888/claude-webapp-security-skill/stargazers"><img src="https://img.shields.io/github/stars/parousia8888/claude-webapp-security-skill?style=flat&logo=github" alt="stars"></a>
@@ -103,7 +103,7 @@ The composite Action is passive by default and will not run until authorization 
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/claude-webapp-security-skill@30be25ef353683fde402a83de8613baa52088c76
+  uses: parousia8888/claude-webapp-security-skill@42b2d27f5d589732c8eb987c5304b7e846bfdb84
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -111,8 +111,8 @@ The composite Action is passive by default and will not run until authorization 
     fail-on: high
 ```
 
-The SHA above is the existing `v0.2.4` tag and predates `action.yml`; use it only as the pinning
-format example until the next release publishes this Action. The planned stable alias is:
+The full SHA above is the immutable v0.3.0 checkpoint and contains the Action. The planned stable
+alias is:
 
 ```yaml
 uses: parousia8888/webapp-security-hardening@v1

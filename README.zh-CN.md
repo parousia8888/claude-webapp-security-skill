@@ -2,7 +2,7 @@
 <h3 align="center">面向 AI coding agent 的证据优先安全审计、加固与复测</h3>
 
 <p align="center">
-  <a href="https://github.com/parousia8888/claude-webapp-security-skill/releases"><img src="https://img.shields.io/github/v/release/parousia8888/claude-webapp-security-skill?display_name=tag" alt="release"></a>
+  <a href="https://github.com/parousia8888/claude-webapp-security-skill/tags"><img src="https://img.shields.io/github/v/tag/parousia8888/claude-webapp-security-skill?sort=semver" alt="latest tag"></a>
   <a href="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/ci.yml"><img src="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/codeql.yml"><img src="https://github.com/parousia8888/claude-webapp-security-skill/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
   <a href="https://github.com/parousia8888/claude-webapp-security-skill/stargazers"><img src="https://img.shields.io/github/stars/parousia8888/claude-webapp-security-skill?style=flat&logo=github" alt="stars"></a>
@@ -100,7 +100,7 @@ Composite Action 默认被动，且没有授权确认时不会执行：
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/claude-webapp-security-skill@30be25ef353683fde402a83de8613baa52088c76
+  uses: parousia8888/claude-webapp-security-skill@42b2d27f5d589732c8eb987c5304b7e846bfdb84
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -108,8 +108,7 @@ Composite Action 默认被动，且没有授权确认时不会执行：
     fail-on: high
 ```
 
-上面的 SHA 是现有 `v0.2.4` tag，本身早于 `action.yml`，因此目前只用于展示完整 SHA 固定格式；
-要等下一个 release 包含 Action 后再换成对应 SHA。计划中的稳定 API 是：
+上面的完整 SHA 是包含该 Action 的不可变 v0.3.0 checkpoint。计划中的稳定 API 是：
 
 ```yaml
 uses: parousia8888/webapp-security-hardening@v1
