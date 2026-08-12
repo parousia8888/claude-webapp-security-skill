@@ -104,6 +104,27 @@ Notes:
 - Do **not** send `X-Robots-Tag: noindex` from a global middleware "for safety" — it is the fastest way to deindex a whole site. Scope it to PRIVATE and UNLISTED responses only, and assert its absence on PUBLIC in the audit.
 - CORS is not access control. `Access-Control-Allow-Origin: *` on a PUBLIC JSON feed is fine; on anything cookie-authenticated it is a vulnerability.
 
+## 7b. Real client IP — the control that silently unblocks every IP-based defense
+
+Rate limits, per-IP throttles, IP-hash analytics, geo/ASN rules — all of them are only as trustworthy as the IP the app believes a request came from. Get this wrong and every one of them is bypassable by setting a header, with nothing in the logs to show for it. This is a common, high-impact, and quiet bug.
+
+**The trap.** Behind a proxy, `X-Forwarded-For` is a *chain* the client can prepend to. The proxy appends the real peer at the **end**; the client controls the **front**. So:
+- Node/Express `app.set('trust proxy', true)` makes `req.ip` read the **left-most** (client-controlled) XFF entry.
+- Any code doing `xff.split(',')[0]` takes the same forgeable value.
+
+Result: `curl -H 'X-Forwarded-For: 1.2.3.4'` gives every request a fresh "IP", so per-IP rate limits never accumulate and IP-based analytics can be poisoned to arbitrary values.
+
+**The fix — trust exactly the hops you control, and no more.**
+- At the proxy, *set* (overwrite, don't append) a header from the connection's real peer:
+  ```nginx
+  proxy_set_header X-Real-IP $remote_addr;   # overwrites any client-sent X-Real-IP
+  ```
+  `$remote_addr` is the TCP peer nginx sees — the client cannot forge it. Direct-connect → true client; behind a CDN → the CDN egress (stable, still unforgeable). The app then reads **only** this header.
+- If you must rely on Express's `req.ip`, set `trust proxy` to the **exact hop count** (`1` for one nginx in front, `2` if a gateway/CDN adds another), never `true`. With a correct count, `req.ip` reads the entry the trusted hop appended, not the client's prepended one.
+- Behind Cloudflare specifically: trust `CF-Connecting-IP` and restrict the origin to Cloudflare's ranges (`enforcement-layers.md` §2 origin lock), or the header is spoofable by hitting the origin directly.
+
+**Prove it.** Send the same request several times with different forged `X-Forwarded-For` values and confirm they all resolve to one real source (in logs, in the rate-limit bucket key, or in the analytics row) — not to the forged values. A behavioural regression test on the IP-deriving function belongs in the gate (`regression-gate.md`): feed it a real `X-Real-IP` plus a forged `X-Forwarded-For` and assert it returns the former.
+
 ## 8. Verification checklist after any change
 
 1. `curl -sI https://site/` as a plain browser UA → `200`, no `noindex`.

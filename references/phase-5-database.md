@@ -24,6 +24,17 @@ nc -zv -w3 <public-ip> 27017 6379 9200 3306
 - No shared credential across environments.
 - Per-tenant isolation strategy explicit: schema-per-tenant, row filter, or app-level scoping — and whichever it is, enforced in the data layer, not in each handler (ties back to Phase 2 Stage 3).
 
+**Verify it, don't assume it.** "Uses a dedicated account" is often true while that account is still a superuser/owner — which is the whole risk, because a superuser can turn one SQL injection into RCE (`COPY … TO/FROM PROGRAM` on Postgres, `xp_cmdshell` on MSSQL, `LOAD_FILE`/`INTO OUTFILE` on MySQL) and read/write server files. Prove the runtime role cannot:
+
+```sql
+-- Postgres, connected AS THE RUNTIME ROLE (not as postgres/admin):
+SELECT current_user, (SELECT rolsuper FROM pg_roles WHERE rolname = current_user);  -- rolsuper must be f
+CREATE TABLE _priv_probe(x int);          -- must fail: permission denied
+COPY (SELECT 1) TO PROGRAM 'id';          -- must fail: permission denied (this is the RCE path)
+```
+
+Set it up as: a restricted `app_rt` role with `SELECT/INSERT/UPDATE/DELETE` on the tables + sequences it uses and nothing else; `ALTER DEFAULT PRIVILEGES FOR ROLE <owner> … GRANT …` so tables created by future migrations are auto-granted. Migrations keep the DDL-capable owner role and run as a **separate step with an overridden connection string** — the runtime container never holds DDL rights. (See `deploy-safety.md` for the migration-credential split, or a routine `migrate` breaks with `permission denied` and reads like an outage.)
+
 ## 3. Encryption and key handling
 
 - At rest: storage-level encryption on, with a customer-managed key where the compliance story needs one.

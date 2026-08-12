@@ -62,11 +62,15 @@ That test is worth more than any scanner, because it holds after the next refact
 - Secrets never logged: check log statements that dump whole request objects, config objects, or error objects containing headers.
 - Distinct credentials per environment; production secrets not readable by developers by default.
 - Rotation path documented for each secret, including third-party API keys.
+- **Startup self-check covers *every* security secret, not just the obvious ones.** A weak or missing secret that boots silently is the trap: teams validate `JWT_SECRET` and forget the QR/venue-token signing key, the webhook HMAC, the fingerprint/PII salt. Fail the boot in production if any is `<32` chars or absent — a signing secret that is weak but present is invisible until it is forged.
+- **Derived-secret salts must not fall back to the signing key.** A fallback chain like `FINGERPRINT_SALT ?? JWT_SECRET` couples two independent secrets: if the hashes (and their inputs) ever leak they become an offline oracle against the signing key. Watch for fallbacks to a *non-existent* env var too — `?? config.get('JWT_SECRET')` where the real name is `JWT_ACCESS_SECRET` silently lands on the next fallback (often a hardcoded default), so an IP/PII hash ends up salted with a value the whole world knows.
 
 ## 5. Framework and configuration review
 
 - Security middleware present and correctly ordered: helmet-style headers, body size limits, CORS policy, CSRF for cookie-authenticated state changes.
-- **CSP disabled "temporarily"** is a standing finding — check `contentSecurityPolicy: false` and similar.
+- **JWT verification pins `algorithms`.** `jwt.verify(t, secret)` without an explicit `algorithms: ['HS256']` (or the RS variant) leaves the alg-confusion door ajar; harmless with a string secret today, a footgun the day someone adds an asymmetric key.
+- **CORS fails closed.** `origin: process.env.CORS_ORIGIN?.split(',') ?? true` reflects *any* origin when the env var is unset — one forgotten variable turns a control off. In production, missing config should be `origin: false`, not `true`.
+- **CSP disabled "temporarily"** is a standing finding — check `contentSecurityPolicy: false` and similar. When enabling CSP on a live app, ship it **`Content-Security-Policy-Report-Only` first**: a mis-scoped enforced policy white-screens the SPA (inline scripts, Google GSI/Fonts/Maps), whereas Report-Only observes violations without blocking. Promote to enforced once the violation stream is clean.
 - Cookie flags set centrally, not per-route.
 - Trust-proxy setting correct: too permissive and `X-Forwarded-For` becomes attacker-controlled (breaks every rate limit); absent and you rate-limit the CDN.
 - Error handler: no stack traces to clients; unhandled rejection and uncaught exception handlers present.
