@@ -28,8 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Sensitive-path crawl probes and rate-limit bursts now require an explicit authorization
   acknowledgement; passive checks remain the default.
 - Crawl reports support stable filenames and configurable fail thresholds for CI use.
-- README now leads with the reproducible demo, one-command install, Action, release verification
-  and case-study evidence.
+- README now follows result, install, first-project prompt, capability boundary, deterministic
+  tools, trust and case-study evidence. English and Chinese claims, demo counts and case counts are
+  checked against structured or generated sources.
 
 ## [0.2.4] — 2026-08-13
 

@@ -110,6 +110,8 @@ try {
   assert.match(result.stdout, /after:\s+0 high, 0 medium/);
   assert.ok(existsSync(join(demoOut, 'before.json')));
   assert.ok(existsSync(join(demoOut, 'after.json')));
+  assert.match(readFileSync(join(demoOut, 'summary.md'), 'utf8'), /\| Before \| 13 \| 6 \|/);
+  assert.match(readFileSync(join(demoOut, 'summary.md'), 'utf8'), /\| Retest \| 0 \| 0 \|/);
   assert.match(readFileSync(join(demoOut, 'hardening.patch'), 'utf8'), /GET \/\.env\s+-> 404/);
 
   const fakeHome = join(temp, 'home');

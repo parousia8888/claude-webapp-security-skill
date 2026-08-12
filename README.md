@@ -12,38 +12,27 @@
 </p>
 
 <p align="center">
-  <a href="#see-the-full-loop-in-under-a-second">Demo</a> ·
-  <a href="#install-once">Install</a> ·
-  <a href="#use-it">CLI</a> ·
+  <a href="#see-the-result">Demo</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#run-the-first-project">First project</a> ·
   <a href="#github-action">GitHub Action</a> ·
-  <a href="#five-source-case-studies">Case studies</a> ·
+  <a href="#5-source-case-studies">Case studies</a> ·
   <a href="README.zh-CN.md">中文</a>
 </p>
 
 <p align="center">
-  Give an AI coding agent a web project. The Skill scopes the work, finds explainable risks,
-  prepares reviewable hardening changes, retests them, and records what is fixed and what remains.
+  For web product owners and builders using AI coding agents; no offensive-security background is
+  required. Start with the local result below, then install and run the first-project prompt.
 </p>
 
-## Capability boundary
-
-The project has three explicit capability levels:
-
-- **Automated and regression-tested:** the local demo, crawl-boundary audit, crawler identity,
-  edge verification, installer and GitHub Action run through deterministic product paths.
-- **Agent-guided methodology:** frontend, API, LLM/OAuth, server, database, supply-chain, detection
-  and AWS reviews require project context and agent judgment. They are not one automatic scan.
-- **Planned:** automatic project discovery, stable multi-format findings and a general patch/retest
-  baseline loop are not shipped yet.
-
-The [generated capability matrix](docs/capabilities.md) links every statement to evidence. Results
-are `confirmed`, `suspected`, `unknown`, or `not_applicable`; a check that could not run is never a
-pass. Installing the Skill does not prove a project secure.
-
-## See the full loop in under a second
+## See the result
 
 Run an intentionally misconfigured local web app, audit it, apply the fixture's hardening, and
-retest it. Nothing reaches the network.
+retest it through the same product path. Nothing reaches the network.
+
+| Input | Confirmed before | Reviewable change | Retest |
+|---|---|---|---|
+| Owned local fixture | 13 high, 6 medium | crawl policy, exposed artifacts, unknown-route status | 0 high, 0 medium |
 
 ```bash
 git clone https://github.com/parousia8888/web-app-security-skill.git
@@ -51,19 +40,11 @@ cd web-app-security-skill
 npm run demo -- --out ./demo-output
 ```
 
-```text
-before: 13 high, 6 medium
-after:   0 high, 0 medium
-```
+Read the [generated before / proposed change / retest evidence](docs/demo-evidence.md), then inspect
+`demo-output/summary.md`, `before.json`, `hardening.patch`, and `after.json`. The repository check
+regenerates this evidence and fails if the result changes without an update.
 
-| Input | Before | Patch evidence | Retest |
-|---|---|---|---|
-| Local insecure fixture | robots blocks search/AI, sitemap is disallowed, `/.env` and source map return 200, unknown routes soft-404 | public crawl policy restored; sensitive artifacts and unknown routes return 404 | same real CLI path, `13H / 6M -> 0H / 0M` |
-
-Inspect [`before.md`](examples/insecure-demo/README.md), generated `demo-output/hardening.patch`,
-and `demo-output/after.md`. The counts are regression-tested; they are not hand-written screenshots.
-
-## Install once
+## Install
 
 This one command installs the skill for Claude Code and Codex, plus the ordinary CLI under
 `~/.local/bin`. Existing installs are refused unless you explicitly pass `--force`, which creates
@@ -86,7 +67,34 @@ node scripts/webapp-security.mjs install --target both   # Claude Code + Codex
 Supported environments and current limits are recorded in the
 [compatibility matrix](docs/compatibility.md).
 
-## Use it
+## Run the first project
+
+Open the target repository in Claude Code or Codex and send this prompt:
+
+```text
+Use $web-app-security on this repository. Start with source and local checks only. Record scope and assumptions. Classify every result as confirmed, suspected, unknown, or not_applicable. Prepare the smallest reviewable hardening patch, do not apply risky or production changes without approval, retest every applied fix, and finish with fixed, remaining, and unreached risks.
+```
+
+The expected deliverable is a recorded scope, sanitized findings, a proposed or approved patch,
+retest evidence, and explicit remaining/unreached risks. The prompt grants no permission to probe a
+deployment; active traffic still requires ownership or written authorization and a separate gate.
+
+## Capability boundary
+
+The project has 3 capability levels:
+
+- **Automated and regression-tested:** the local demo, crawl-boundary audit, crawler identity,
+  edge verification, installer and GitHub Action run through deterministic product paths.
+- **Agent-guided methodology:** frontend, API, LLM/OAuth, server, database, supply-chain, detection
+  and AWS reviews require project context and agent judgment. They are not one automatic scan.
+- **Planned:** automatic project discovery, stable multi-format findings and a general patch/retest
+  baseline loop are not shipped yet.
+
+The [generated capability matrix](docs/capabilities.md) links every statement to evidence. Results
+are `confirmed`, `suspected`, `unknown`, or `not_applicable`; a check that could not run is never a
+pass. Installing the Skill does not prove a project secure.
+
+## Deterministic tools
 
 Ask Claude Code or Codex to use `web-app-security`, or run the same deterministic tools
 directly:
@@ -126,8 +134,7 @@ The composite Action is passive by default and will not run until authorization 
     fail-on: high
 ```
 
-Replace the placeholder with a full commit SHA after this migration lands. The planned stable alias
-is:
+The example is pinned to an immutable commit. The planned stable major-version alias is:
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
@@ -154,7 +161,7 @@ gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
 ```
 
-## Five source case studies
+## 5 source case studies
 
 The corpus combines three intentionally vulnerable benchmarks with two production projects. All
 five are pinned to immutable commits and reviewed source-only; no hosted instance was probed.

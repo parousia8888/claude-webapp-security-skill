@@ -55,11 +55,14 @@ writeFileSync(join(out, 'hardening.patch'), `--- insecure-demo/before.conf
 const before = JSON.parse(await (await import('node:fs/promises')).readFile(join(out, 'before.json'), 'utf8'));
 const after = JSON.parse(await (await import('node:fs/promises')).readFile(join(out, 'after.json'), 'utf8'));
 const count = (report, severity) => report.findings.filter((finding) => finding.severity === severity).length;
+const summary = `# Demo result\n\n| Stage | High | Medium | Evidence |\n|---|---:|---:|---|\n| Before | ${count(before, 'high')} | ${count(before, 'medium')} | \`before.json\`, \`before.md\` |\n| Proposed hardening | - | - | \`hardening.patch\` |\n| Retest | ${count(after, 'high')} | ${count(after, 'medium')} | \`after.json\`, \`after.md\` |\n\nThe patch is evidence for review. A fix is counted only from the retest output.\n`;
+writeFileSync(join(out, 'summary.md'), summary);
 console.log(`Demo complete in ${out}
 before: ${count(before, 'high')} high, ${count(before, 'medium')} medium
 after:  ${count(after, 'high')} high, ${count(after, 'medium')} medium
 
 Reports:
+  ${join(out, 'summary.md')}
   ${join(out, 'before.md')}
   ${join(out, 'after.md')}
 Patch evidence:

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "firstTaskPrompt": {
+    "en": "Use $web-app-security on this repository. Start with source and local checks only. Record scope and assumptions. Classify every result as confirmed, suspected, unknown, or not_applicable. Prepare the smallest reviewable hardening patch, do not apply risky or production changes without approval, retest every applied fix, and finish with fixed, remaining, and unreached risks.",
+    "zh-CN": "在这个仓库使用 $web-app-security。先只执行源码与本地检查，记录范围和假设；把每项结果标为 confirmed、suspected、unknown 或 not_applicable；准备最小且可审查的加固补丁，未经批准不应用高风险或生产变更；复测每项已应用修复，最后列出已修复、仍存在和未覆盖的风险。"
+  },
+  "caseStudies": [
+    "docs/case-studies/juice-shop.md",
+    "docs/case-studies/nodegoat.md",
+    "docs/case-studies/dvwa.md",
+    "docs/case-studies/uptime-kuma.md",
+    "docs/case-studies/mealie.md"
+  ]
+}
