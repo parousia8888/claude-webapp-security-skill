@@ -127,7 +127,7 @@ Current project gaps at program start:
 | P3 | `start <project>` project discovery and scoped run | completed | `91a6dc9` + checks below |
 | P4 | Finding schema, reports, patch/retest baseline loop | completed | `6454fb1` + checks below |
 | P5 | Three ordinary open-source project journeys | completed | `39eb817` + fixed-commit runs below |
-| P6 | Install/upgrade/uninstall, Action v1, signed release | pending | pending |
+| P6 | Install/upgrade/uninstall, Action v1, signed release | completed | `dcb4975` + release evidence below |
 | P7 | Tutorial, contribution path, launch evidence | pending | pending |
 
 ## P0 - Product contract and capability boundary
@@ -397,11 +397,44 @@ Current project gaps at program start:
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Release / Action pin: pending
-- Remaining risks: pending
+- Status: completed 2026-08-13
+- Implementation: `webapp-security` now supports versioned install markers, `version`, network-free
+  `upgrade` from an explicitly obtained payload, `uninstall`, current/legacy migration, timestamped
+  backups and refusal of unknown payloads or launchers even with `install --force`. Release builders
+  derive version, commit and epoch from the selected Git ref; create a reproducible archive, SPDX
+  SBOM, release manifest and sorted checksums; verify archive paths/content and metadata; build twice
+  byte-for-byte; and run `install -> version -> start -> upgrade -> uninstall` from the extracted
+  archive in a network-denied isolated home. Release/CI Actions use full SHAs, CodeQL is v4, the
+  release trigger excludes moving major tags, and a manual consumer workflow executes the public
+  `@v1` Action against an owned local fixture for both passive success and authorization rejection.
+- Tests: local `npm run check`, `node test/release-artifacts.test.mjs`, release-contract checks,
+  workflow YAML parsing and Skill Creator `quick_validate.py` passed. The final public-surface pin
+  passed [CI 31637125096](https://github.com/parousia8888/web-app-security-skill/actions/runs/31637125096)
+  on Node 20/22 and Ubuntu/macOS plus
+  [CodeQL 31637125115](https://github.com/parousia8888/web-app-security-skill/actions/runs/31637125115).
+  [Release run 31636806872](https://github.com/parousia8888/web-app-security-skill/actions/runs/31636806872)
+  passed every build, lifecycle, attestation, publication and evidence-upload step. Downloaded public
+  assets independently passed all three checksums, the archive/manifest verifier, the network-denied
+  lifecycle and `gh attestation verify`. The
+  [real `@v1` consumer run 31636995276](https://github.com/parousia8888/web-app-security-skill/actions/runs/31636995276)
+  passed passive evidence/no-`/.env` assertions and the expected fail-closed authorization path.
+- Release / Action pin: implementation `dcb4975`, signing trust anchor `d7df9fa`, public pin update
+  `930b7d2`; [v0.3.0](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0)
+  is a signed annotated tag (`fc353ea`, peeled commit `d7df9fa6efd466c3eb13768c3b9ad259d2636e04`).
+  Its public asset SHA-256 digests are archive
+  `1964253e9057b802fd4ef61eeda9059c230daa8cf066b2b556fa0cbdf4d7bda2`, SBOM
+  `6b2abe6e8974255f24e150db3733f3dc2366a641fdb315c9179a7a2aa51c3f19`, manifest
+  `045b3ab3130b34c6eb4ee6111472dc5e936f7f84fa853c02763daafdf3599eb4` and checksum file
+  `472d7552ad4e5bc54dc0982798a0b59cc5114efb8292e105502f533c64e44d46`. Signed `v1` tag object `440da72`
+  peels to the same release commit; the immutable Action reference is
+  `parousia8888/web-app-security-skill@d7df9fa6efd466c3eb13768c3b9ad259d2636e04`.
+- Remaining risks: GitHub reports the SSH tag signature as `unknown_key` because the public key is
+  not registered as an account signing key. The signature itself verifies against the repository's
+  `.github/release-signers` trust anchor with fingerprint
+  `SHA256:DmZYVL1dLhUmgaJnfZKpZIexgzMv5jk9+YCoBT3zRIg`; registering that same key is required only for
+  GitHub's green Verified UI. `v1` is intentionally moving, so security-sensitive consumers should
+  keep the immutable SHA pin. Checksums, signatures and attestations prove artifact identity and
+  build origin, not that every agent-guided security conclusion is correct.
 
 ## P7 - Tutorial, contribution, and launch evidence
 
