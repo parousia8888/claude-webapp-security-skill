@@ -123,7 +123,7 @@ Current project gaps at program start:
 |---|---|---|---|
 | P0 | Product contract and honest capability boundary | completed | `ea90082` + checks below |
 | P1 | Unified identity and human/agent entrypoints | completed | `c27a8ec` + migration evidence below |
-| P2 | Outcome-led README and first-run packaging | pending | pending |
+| P2 | Outcome-led README and first-run packaging | completed | `cf3ae40` + checks below |
 | P3 | `start <project>` project discovery and scoped run | pending | pending |
 | P4 | Finding schema, reports, patch/retest baseline loop | pending | pending |
 | P5 | Three ordinary open-source project journeys | pending | pending |
@@ -221,11 +221,25 @@ Current project gaps at program start:
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Commit: pending
-- Remaining risks: pending
+- Status: completed 2026-08-13
+- Implementation: English and Chinese README surfaces now follow result -> install -> first-project
+  prompt -> capability boundary -> deterministic tools -> trust -> cases. The shared
+  `docs/public-contract.json` holds both first-task prompts and the case-study inventory.
+  `scripts/generate-demo-evidence.mjs` executes the owned local fixture through the real product
+  path and generates `docs/demo-evidence.md` with the observed `13 high / 6 medium -> 0 high /
+  0 medium` comparison and patch. `scripts/check-public-surfaces.mjs` verifies the outcome-led
+  section order, navigation anchors, exact localized prompts, generated demo counts, case count,
+  capability-level count, result states, and absence of stale Action placeholder copy. The first
+  prompt permits source/local work only; it does not imply authorization for deployment probing.
+- Tests: `npm run check`; `node scripts/generate-demo-evidence.mjs --check`;
+  `node scripts/check-public-surfaces.mjs`; Skill Creator `quick_validate.py`. The product-surface
+  regression also asserts that every demo run produces `summary.md`, JSON reports and patch
+  evidence. All passed.
+- Commit: `cf3ae40` (`docs: make first-run security outcome reproducible`)
+- Remaining risks: the first-project path is still an agent prompt over repository context; it
+  does not yet create a versioned scope or detect the target stack. P3 owns that CLI contract. The
+  demo covers the existing crawl-boundary automation and must not be read as evidence that every
+  agent-guided review is automated.
 
 ## P3 - Project start and discovery
 
