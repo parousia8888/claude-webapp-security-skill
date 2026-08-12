@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "labels": {
+    "automated_regression_tested": "Automated and regression-tested",
+    "agent_guided": "Agent-guided methodology",
+    "planned": "Planned"
+  },
+  "resultStates": {
+    "confirmed": "Reproduced with sufficient sanitized evidence.",
+    "suspected": "A lead that still needs context or reproduction.",
+    "unknown": "The check or evidence source was unavailable.",
+    "not_applicable": "Outside the recorded scope or absent from the project."
+  },
+  "capabilities": [
+    {
+      "id": "local-before-after-demo",
+      "name": "Local before/after demo",
+      "label": "automated_regression_tested",
+      "scope": "Runs the real crawl audit against an intentionally misconfigured local fixture, records JSON/Markdown evidence and a fixture patch, then retests.",
+      "evidence": ["scripts/demo.mjs", "test/product-surfaces.test.mjs"]
+    },
+    {
+      "id": "crawl-boundary-audit",
+      "name": "Crawl-boundary audit",
+      "label": "automated_regression_tested",
+      "scope": "Checks robots, sitemap, crawler accessibility, soft-404 behavior and optional authorized sensitive-path probes.",
+      "evidence": ["scripts/crawl-surface-audit.mjs", "test/integration.test.mjs", "test/product-surfaces.test.mjs"]
+    },
+    {
+      "id": "crawler-identity",
+      "name": "Crawler identity verification",
+      "label": "automated_regression_tested",
+      "scope": "Verifies an exact crawler product through published ranges or matching forward-confirmed reverse DNS; a user-agent string is never sufficient.",
+      "evidence": ["scripts/verify-crawler-ip.mjs", "test/verify-crawler-ip.test.mjs", "test/integration.test.mjs"]
+    },
+    {
+      "id": "edge-verification",
+      "name": "Edge hardening verification",
+      "label": "automated_regression_tested",
+      "scope": "Checks security headers, HTTP-to-HTTPS redirect, certificate validation and TLS policy; bounded rate-limit traffic is separately authorized.",
+      "evidence": ["scripts/verify-hardening.sh", "test/verify-hardening.test.mjs"]
+    },
+    {
+      "id": "distribution-surfaces",
+      "name": "Installer and GitHub Action",
+      "label": "automated_regression_tested",
+      "scope": "Installs Claude Code, Codex and CLI surfaces with conflict preflight/backups, and runs a passive-by-default composite Action with an authorization gate.",
+      "evidence": ["scripts/webapp-security.mjs", "action.yml", "test/product-surfaces.test.mjs"]
+    },
+    {
+      "id": "frontend-review",
+      "name": "Frontend exposure review",
+      "label": "agent_guided",
+      "scope": "Guides source/build-artifact review for secrets, source maps, endpoints, client-side trust and CSP. It is not a general automatic frontend scanner.",
+      "evidence": ["references/phase-1-frontend.md", "references/exposure-checks.md"]
+    },
+    {
+      "id": "api-review",
+      "name": "API and business-logic review",
+      "label": "agent_guided",
+      "scope": "Guides scoped review of authentication, object/function authorization, abuse controls, races, injection, SSRF and data exposure.",
+      "evidence": ["references/phase-2-api.md"]
+    },
+    {
+      "id": "llm-identity-review",
+      "name": "LLM and OAuth/OIDC review",
+      "label": "agent_guided",
+      "scope": "Guides context-dependent review of prompt injection, cost abuse, tool permissions, OAuth state/PKCE and identity linking.",
+      "evidence": ["references/phase-3-llm-identity.md"]
+    },
+    {
+      "id": "server-data-review",
+      "name": "Server code and data-layer review",
+      "label": "agent_guided",
+      "scope": "Guides source and architecture review for dangerous sinks, authorization coverage, secret handling, tenant isolation, least privilege, backup and integrity.",
+      "evidence": ["references/phase-4-code-audit.md", "references/phase-5-database.md"]
+    },
+    {
+      "id": "supply-detection-review",
+      "name": "Supply-chain and detection review",
+      "label": "agent_guided",
+      "scope": "Guides dependency, browser script, container, CI/CD, logging, alerting and incident-response review; existing release SBOM generation covers this repository only.",
+      "evidence": ["references/phase-6-supply-chain.md", "references/phase-7-detection.md"]
+    },
+    {
+      "id": "aws-posture-review",
+      "name": "AWS posture review",
+      "label": "agent_guided",
+      "scope": "Provides a read-only inventory helper and an agent review guide. The helper is not yet backed by a deterministic fake-AWS regression fixture.",
+      "evidence": ["scripts/aws-exposure-audit.sh", "references/aws-hardening.md"]
+    },
+    {
+      "id": "project-discovery",
+      "name": "Automatic project discovery and scoped run",
+      "label": "planned",
+      "scope": "Detect a project's stack and create a versioned security scope through one start command.",
+      "evidence": ["docs/PRODUCTIZATION_PLAN.md"]
+    },
+    {
+      "id": "structured-reports",
+      "name": "Stable multi-format finding reports",
+      "label": "planned",
+      "scope": "Publish one finding schema through Markdown, HTML, SARIF and JUnit renderers with baseline diffs.",
+      "evidence": ["docs/PRODUCTIZATION_PLAN.md"]
+    },
+    {
+      "id": "patch-retest-loop",
+      "name": "General patch and retest loop",
+      "label": "planned",
+      "scope": "Prepare reviewable project-specific patches and confirm them through a reusable baseline retest path.",
+      "evidence": ["docs/PRODUCTIZATION_PLAN.md"]
+    }
+  ]
+}

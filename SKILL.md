@@ -9,6 +9,20 @@ metadata:
 
 A phased program for auditing and hardening a production web app. Phases are ordered so that cheap read-only work happens before anything that touches production, and so findings arrive in the order a small team can actually fix them.
 
+## Capability boundary
+
+Read [`docs/capabilities.md`](docs/capabilities.md) before describing product coverage. Keep these
+categories separate in every plan and deliverable:
+
+- **Automated and regression-tested** paths may be described as tool behavior.
+- **Agent-guided methodology** requires project context and agent judgment; do not describe it as
+  an automatic scan.
+- **Planned** behavior is unavailable until its phase is implemented and the capability source is
+  updated with regression evidence.
+
+Classify results as `confirmed`, `suspected`, `unknown`, or `not_applicable`. Never convert a source
+match or scanner lead directly to `confirmed`, and never convert unavailable evidence to a pass.
+
 **Three things this skill insists on, because they cause most of the confusion:**
 
 1. **Openness and defense are not opposites.** Public content must be fetchable by every IP on earth, including AI crawlers, with zero friction. Malicious scanning is stopped by *what is requested*, not by *who requests it*. See `references/crawl-boundary.md` and `references/enforcement-layers.md`.

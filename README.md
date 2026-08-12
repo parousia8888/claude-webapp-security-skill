@@ -21,9 +21,24 @@
 </p>
 
 <p align="center">
-  An agent skill and zero-dependency CLI covering application, API, LLM/OAuth, supply-chain,
-  crawler/WAF and AWS boundaries without turning an unconfirmed scanner hit into a vulnerability.
+  Give an AI coding agent a web project. The Skill scopes the work, finds explainable risks,
+  prepares reviewable hardening changes, retests them, and records what is fixed and what remains.
 </p>
+
+## Capability boundary
+
+The project has three explicit capability levels:
+
+- **Automated and regression-tested:** the local demo, crawl-boundary audit, crawler identity,
+  edge verification, installer and GitHub Action run through deterministic product paths.
+- **Agent-guided methodology:** frontend, API, LLM/OAuth, server, database, supply-chain, detection
+  and AWS reviews require project context and agent judgment. They are not one automatic scan.
+- **Planned:** automatic project discovery, stable multi-format findings and a general patch/retest
+  baseline loop are not shipped yet.
+
+The [generated capability matrix](docs/capabilities.md) links every statement to evidence. Results
+are `confirmed`, `suspected`, `unknown`, or `not_applicable`; a check that could not run is never a
+pass. Installing the Skill does not prove a project secure.
 
 ## See the full loop in under a second
 

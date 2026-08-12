@@ -21,9 +21,21 @@
 </p>
 
 <p align="center">
-  一套零运行时依赖的 agent skill 与 CLI，覆盖应用、API、LLM/OAuth、供应链、爬虫/WAF 与 AWS
-  边界；未经复现的 scanner 命中不会被写成已确认漏洞。
+  把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。
 </p>
+
+## 能力边界
+
+项目公开能力严格分成三层：
+
+- **已自动化并有回归测试：** 本地 demo、crawl boundary、crawler 身份、edge 复测、安装器和
+  GitHub Action 通过确定性产品路径运行。
+- **Agent 按方法论执行：** 前端、API、LLM/OAuth、服务端、数据库、供应链、检测和 AWS 审查
+  依赖项目上下文与 Agent 判断，不是一条自动扫描命令。
+- **计划中：** 自动项目识别、稳定的多格式 finding、通用补丁/基线复测闭环尚未交付。
+
+[生成的能力矩阵](docs/capabilities.md)为每项声明链接证据。结果只使用 `confirmed`、
+`suspected`、`unknown`、`not_applicable`；无法执行的检查不是通过。安装 Skill 不代表项目已经安全。
 
 ## 一秒内看完完整闭环
 
