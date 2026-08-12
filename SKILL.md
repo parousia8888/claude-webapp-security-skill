@@ -9,10 +9,11 @@ metadata:
 
 A phased program for auditing and hardening a production web app. Phases are ordered so that cheap read-only work happens before anything that touches production, and so findings arrive in the order a small team can actually fix them.
 
-**Two things this skill insists on, because they cause most of the confusion:**
+**Three things this skill insists on, because they cause most of the confusion:**
 
 1. **Openness and defense are not opposites.** Public content must be fetchable by every IP on earth, including AI crawlers, with zero friction. Malicious scanning is stopped by *what is requested*, not by *who requests it*. See `references/crawl-boundary.md` and `references/enforcement-layers.md`.
 2. **Nothing is enforced until the server enforces it.** robots.txt, minified bundles, hidden URLs, and obscure paths are not controls. Every phase below asks: which layer actually says no, and was that verified?
+3. **A fix that is not a regression test rots.** An audit is a snapshot; the next refactor silently reverts it with nothing erroring. Every fix that can be quietly undone gets one machine-checked assertion, proven by planting the failure. See `references/regression-gate.md`.
 
 ## Phase map
 
@@ -33,6 +34,8 @@ A phased program for auditing and hardening a production web app. Phases are ord
 | **X-4** | Exposure sweep: maps, dotfiles, admin, share links | light probing | `references/exposure-checks.md` |
 | **X-5** | AWS hardening | no (read-only API) | `references/aws-hardening.md` |
 | **X-6** | Attack surface people forget | varies | `references/overlooked-surface.md` |
+| **X-7** | Regression gates: freeze each fix as a CI assertion | no | `references/regression-gate.md` |
+| **X-8** | Deploy safety: ship edge/config changes without an outage | no | `references/deploy-safety.md` |
 
 🔴 = sends real requests to a live target. **Do not start any 🔴 phase before Phase 0 is complete.**
 
@@ -72,7 +75,12 @@ node $S/scripts/verify-crawler-ip.mjs --ip 66.249.66.1 --ua Googlebot --ranges
 
 # read-only AWS posture inventory
 bash $S/scripts/aws-exposure-audit.sh --profile default --region ap-northeast-1 --out ./reports/security
+
+# prove the edge hardening actually engages: header matrix + tiered rate-limit + TLS (read-only, small burst)
+bash $S/scripts/verify-hardening.sh --site https://example.com
 ```
+
+The `verify-crawler-ip` and `robots` logic is unit-tested — `npm test` in the skill repo runs both suites (including the two crawler-spoof regression cases). A `verified` verdict requires the IP's proven owner to **match the UA's claimed vendor**; a mismatch is `spoofed`, never `verified`. Add missing vendor range sources with `--source name=url` before relying on a `spoofed`/`verified` call for a vendor the script has no data for.
 
 All three are read-only. `crawl-surface-audit.mjs` sends live HTTP requests, so it is subject to the Phase 0 gate for anything that is not the user's own property.
 
