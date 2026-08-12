@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-08-13
+
+Third-audit fixes — result trustworthiness. Crawler identity moved to product granularity,
+the TLS check made real, failure semantics and argument handling tightened, and CI turned into
+an actual gate.
+
+### Fixed
+- **crawler verifier: identity is now resolved at PRODUCT granularity** (GPTBot⇄`gptbot.json`,
+  OAI-SearchBot⇄`searchbot.json`, …), not vendor granularity. A single list's outage while a
+  sibling OpenAI list loads no longer brands a real crawler `spoofed`; a sibling product
+  containing the IP is not proof the request is GPTBot. Verified end-to-end (not just via
+  `decideVerdict`) by a real-CLI integration test with a local fixture.
+- **verify-hardening TLS check was inert** — it printed `%{http_version}` and, in v0.2.1, the
+  non-existent `%{ssl_version}` write-out variable (which errors on curl 8.x). Replaced with an
+  active policy test: `--tls-max 1.1` must be **refused**, `--tlsv1.2` must **work**.
+- **verify-hardening failure semantics** — `curl 000` / DNS failure / timeout is now `ERROR/UNKNOWN`,
+  never counted as "content class safe". An unreachable target no longer reads as a pass.
+- **verify-hardening argument handling** — `--n` bounded to 1–100; missing values, bad scheme, and
+  non-numeric `--n` all exit `2`.
+- **IP parsing** — `net.isIP` gate plus explicit rejection of zone ids (`%`); junk like
+  `2001:db8::1g`, `1::2::3`, `:::` no longer silently parses.
+- **version metadata** — `package.json` realigned to `VERSION`/tag (was stuck at 0.2.0).
+
+### Added
+- `test/integration.test.mjs` — real-CLI, multi-source aggregation over a local HTTP fixture
+  (all-ok / fetch-fail / sibling-hit / IP-present), the coverage pure-function tests couldn't give.
+- `test/shell-smoke.sh` — exit-code contracts + Bash-3.2 + passive-default, run as a CI gate.
+- `test/version-consistency.test.mjs` — CI fails if VERSION / package.json / CHANGELOG disagree.
+- `ROADMAP.md` — public roadmap (v0.3 deterministic fixtures + ShellCheck/CodeQL/coverage; v0.4
+  SARIF/CLI/Action + hardening-patch generation).
+
+### Changed
+- **Rate-limit probe is now opt-in** (`--active-rate-limit`, with a request-volume + authorization
+  notice). It sends many concurrent requests and is an ACTIVE test — it no longer runs by default,
+  restoring the read-only default the docs claim.
+- **CI is a real gate**: dropped every `|| true`; added the shell-smoke gate and a
+  ubuntu/macOS × Node 20/22 matrix.
+
 ## [0.2.1] — 2026-08-13
 
 Second-audit fixes: three real defects found by re-auditing v0.2.0, each frozen as a regression.
