@@ -238,8 +238,8 @@ requires deployment authorization acknowledgement:
     fail-on: high
 ```
 
-For repeatable CI, use the immutable v0.4.0 commit above. The stable major-version alias remains on
-the prior verified release until its separate promotion gate completes:
+For repeatable CI, use the immutable v0.4.0 commit above. The stable major-version alias currently
+resolves to that same verified release:
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1

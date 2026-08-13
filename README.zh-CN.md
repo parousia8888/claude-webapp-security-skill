@@ -226,8 +226,8 @@ Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被�
     fail-on: high
 ```
 
-需要可重复 CI 时使用上面的 v0.4.0 不可变 commit。稳定大版本别名会在独立 promotion gate
-完成前继续指向上一份已验证 release：
+需要可重复 CI 时使用上面的 v0.4.0 不可变 commit。稳定大版本别名当前也指向这份已验证
+release：
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1

@@ -21,6 +21,8 @@ function run(program, commandArgs, options = {}) {
 try {
   const state = JSON.parse(readFileSync(join(ROOT, 'docs', 'release-state.json'), 'utf8'));
   assert.equal(state.publishedRelease.version, '0.4.0');
+  assert.equal(state.stableAction.tag, 'v1');
+  assert.equal(state.stableAction.sourceCommit, state.publishedRelease.sourceCommit);
   assert.equal(state.verifiedInstaller.defaultVersion, '0.4.0');
   assert.deepEqual(state.verifiedInstaller.trustedVersions, ['0.3.0', '0.4.0']);
   run(process.execPath, [join(ROOT, 'scripts', 'check-release-state.mjs')]);

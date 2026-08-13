@@ -31,8 +31,8 @@ agent-guided hardening skill with narrow deterministic automation, not a general
 
 The complete milestone sequence, tests, stop conditions and Definition of Done live in the
 [v0.4.0 engineering plan](docs/V0.4.0_ENGINEERING_PLAN.md). The signed release, immutable asset
-verification, verified installer and exact-version external consumer are complete. Public `v1`
-promotion remains gated in M8 and requires a separate owner approval.
+verification, verified installer, exact-version external consumer and owner-approved public `v1`
+promotion are complete. Final M8 evidence is recorded in the engineering plan.
 
 ## Correctness backlog
 
