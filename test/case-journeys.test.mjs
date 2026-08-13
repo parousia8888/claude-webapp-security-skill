@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { GITLEAKS_RULES, OSV_RULES } from '../scripts/lib/adapter-definitions.mjs';
+import { GITLEAKS_RULES, OPENGREP_RULES, OSV_RULES } from '../scripts/lib/adapter-definitions.mjs';
 import { SOURCE_RULES, sourceRuleset } from '../scripts/lib/source-rules.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -31,7 +31,7 @@ function git(directory, args) {
 }
 
 const emptyFindingDigest = createHash('sha256').update('[]').digest('hex');
-const currentRuleset = sourceRuleset(['builtin', 'gitleaks', 'osv']);
+const currentRuleset = sourceRuleset(['builtin', 'gitleaks', 'opengrep', 'osv']);
 const adapter = (id, status, findingDigests = false) => {
   const identity = currentRuleset.adapters.find((item) => item.id === id);
   return {
@@ -43,8 +43,9 @@ const adapter = (id, status, findingDigests = false) => {
   };
 };
 const currentCoverage = Object.fromEntries([
-  ...SOURCE_RULES, ...GITLEAKS_RULES, ...OSV_RULES,
+  ...SOURCE_RULES, ...GITLEAKS_RULES, ...OPENGREP_RULES, ...OSV_RULES,
 ].map((rule) => [rule.id, 'completed']));
+currentCoverage['opengrep-python-request-command-flow'] = 'not_applicable';
 
 try {
   let result = spawnSync(process.execPath, [CHECK], { encoding: 'utf8' });
@@ -85,6 +86,7 @@ try {
   mkdirSync(checkout);
   writeFileSync(join(checkout, 'package.json'), '{"private":true}\n');
   writeFileSync(join(checkout, 'package-lock.json'), '{"lockfileVersion":3}\n');
+  writeFileSync(join(checkout, 'source.js'), 'export const value = "safe";\n');
   git(checkout, ['init', '-q']);
   git(checkout, ['config', 'user.name', 'Case Test']);
   git(checkout, ['config', 'user.email', 'case-test@example.invalid']);
@@ -92,6 +94,7 @@ try {
   git(checkout, ['commit', '-q', '-m', 'fixture']);
   const commit = git(checkout, ['rev-parse', 'HEAD']);
   const fakeGitleaks = join(temp, 'fake-gitleaks.mjs');
+  const fakeOpengrep = join(temp, 'fake-opengrep.mjs');
   const fakeOsv = join(temp, 'fake-osv.mjs');
   writeFileSync(fakeGitleaks, `#!/usr/bin/env node
 if (process.argv[2] === 'version') console.log('8.30.1'); else console.log('[]');
@@ -100,7 +103,12 @@ if (process.argv[2] === 'version') console.log('8.30.1'); else console.log('[]')
 if (process.argv[2] === '--version') console.log('osv-scanner version: 2.5.0');
 else console.log('{"results":[]}');
 `);
+  writeFileSync(fakeOpengrep, `#!/usr/bin/env node
+if (process.argv[2] === '--version') console.log('1.27.0');
+else console.log('{"version":"1.27.0","results":[],"errors":[],"paths":{"scanned":["source.js"]}}');
+`);
   chmodSync(fakeGitleaks, 0o755);
+  chmodSync(fakeOpengrep, 0o755);
   chmodSync(fakeOsv, 0o755);
   const catalogPath = join(temp, 'catalog.json');
   const catalog = {
@@ -120,6 +128,7 @@ else console.log('{"results":[]}');
         adapters: [
           adapter('builtin-source', 'built_in', true),
           adapter('gitleaks', 'available', true),
+          adapter('opengrep', 'available', true),
           adapter('osv', 'available'),
         ],
         coverage: currentCoverage,
@@ -133,6 +142,7 @@ else console.log('{"results":[]}');
   const runnerEnv = {
     ...process.env,
     WEBAPP_SECURITY_GITLEAKS_BIN: fakeGitleaks,
+    WEBAPP_SECURITY_OPENGREP_BIN: fakeOpengrep,
     WEBAPP_SECURITY_OSV_SCANNER_BIN: fakeOsv,
   };
   result = spawnSync(process.execPath, [RUN_JOURNEY, 'local-case', checkout, '--out', journeyOut, '--catalog', catalogPath], { encoding: 'utf8', env: runnerEnv });

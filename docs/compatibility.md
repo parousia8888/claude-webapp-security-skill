@@ -12,6 +12,7 @@
 | Ordinary CLI | `~/.local/share/web-app-security` plus `~/.local/bin/webapp-security` | Extracted-release lifecycle under a network-denied isolated home |
 | GitHub Actions | Linux runner; composite Action crawl and source modes | Local entrypoint regression plus manually dispatched real `@v1` consumer workflow |
 | Gitleaks | Exactly 8.30.1 when selected | Pinned Linux real-tool fixture plus parser/failure/redaction regressions |
+| Opengrep | Exactly 1.27.0 when selected | Pinned Linux real-tool positive/safe fixtures plus parser/failure/redaction regressions |
 | OSV-Scanner | Exactly 2.5.0 when selected | Pinned Linux real-tool fixture plus parser/failure/severity regressions |
 | AWS CLI | v2 recommended | Optional; missing CLI, permission failures and malformed JSON are v2 `unknown` evidence |
 | Windows / WSL2 | Not supported | No maintained native-Windows or clean WSL2 verification environment |
@@ -22,10 +23,11 @@ lockfiles and supported framework dependencies; Python projects from `pyproject.
 It records deployment/config file paths without reading them. Unsupported or ambiguous stacks
 remain explicit in `security-scope.yml`.
 
-The deterministic source audit currently recognizes adjacent lockfile absence, environment-named
-files without reading their contents, public Node inspector bindings in package scripts and common
-production source-map settings. Opt-in Gitleaks checks Git history and the working tree; opt-in
-OSV-Scanner checks recorded lockfiles and may query the public OSV database. Neither tool is
+The deterministic source audit currently runs 20 bounded built-in risk rules across shared project
+configuration, JavaScript/TypeScript and Python, plus two evidence-integrity rules. Opt-in Gitleaks
+checks Git history and the working tree; opt-in
+Opengrep checks JavaScript/TypeScript and Python with the bundled local ruleset and performs no
+network request. OSV-Scanner checks recorded lockfiles and may query the public OSV database. None is
 downloaded automatically or executes project dependencies. JSON, Markdown, HTML, SARIF 2.1.0 and
 JUnit render from one report object. Other security domains remain agent-guided until a specific
 deterministic adapter ships.

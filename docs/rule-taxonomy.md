@@ -9,7 +9,7 @@ confirmed product vulnerability.
 
 Stable source inventory: 20 built-in risk rules,
 2 built-in evidence-integrity rules and
-3 external adapter risk rules.
+5 external adapter risk rules.
 
 ## Stable source rules
 
@@ -39,6 +39,8 @@ Stable source inventory: 20 built-in risk rules,
 | [`source-evidence-incomplete`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `evidence_integrity` | `deployment_configuration` | `javascript`, `typescript`, `python` | `evidence_integrity` | `high` / `unknown` | None |
 | [`gitleaks-committed-secret`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `gitleaks@8.30.1` | `risk_detection` | `secret_management` | `any` | `supply_chain` | `high` / `suspected` | `CWE-798` |
 | [`gitleaks-working-tree-secret`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `gitleaks@8.30.1` | `risk_detection` | `secret_management` | `any` | `supply_chain` | `high` / `suspected` | `CWE-798` |
+| [`opengrep-js-request-command-flow`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `opengrep@1.27.0` | `risk_detection` | `injection_execution` | `javascript`, `typescript` | `security_exposure` | `high` / `suspected` | `CWE-78`, `OWASP-TOP10-2025-A05` |
+| [`opengrep-python-request-command-flow`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `opengrep@1.27.0` | `risk_detection` | `injection_execution` | `python` | `security_exposure` | `high` / `suspected` | `CWE-78`, `OWASP-TOP10-2025-A05` |
 | [`osv-known-vulnerability`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `osv@2.5.0` | `risk_detection` | `dependency_configuration` | `any` | `supply_chain` | `info` / `suspected` | `CWE-1104` |
 
 The machine-readable source contract is [`stable-source-rules.json`](stable-source-rules.json).

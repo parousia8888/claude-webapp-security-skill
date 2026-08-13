@@ -17,5 +17,11 @@ curl -fsSL "https://github.com/google/osv-scanner/releases/download/v2.5.0/osv-s
 echo "edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c  $osv_binary" | sha256sum -c -
 chmod 0755 "$adapter_dir/gitleaks" "$osv_binary"
 
+opengrep_binary="$adapter_dir/opengrep"
+curl -fsSL "https://github.com/opengrep/opengrep/releases/download/v1.27.0/opengrep_manylinux_x86" -o "$opengrep_binary"
+echo "9d47d7de3f22ec5a93b25af9126648191e3d3b5d759dd4f699006138724719b3  $opengrep_binary" | sha256sum -c -
+chmod 0755 "$opengrep_binary"
+
 printf 'WEBAPP_SECURITY_GITLEAKS_BIN=%s\n' "$adapter_dir/gitleaks" >> "$GITHUB_ENV"
+printf 'WEBAPP_SECURITY_OPENGREP_BIN=%s\n' "$opengrep_binary" >> "$GITHUB_ENV"
 printf 'WEBAPP_SECURITY_OSV_SCANNER_BIN=%s\n' "$osv_binary" >> "$GITHUB_ENV"

@@ -3,9 +3,10 @@ import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { discoverProject } from './lib/project-discovery.mjs';
 import {
-  parseAdapterSelection, parseAdapterTimeout, GITLEAKS_ADAPTER, OSV_ADAPTER,
+  parseAdapterSelection, parseAdapterTimeout, GITLEAKS_ADAPTER, OPENGREP_ADAPTER,
+  OPENGREP_RULESET, OSV_ADAPTER,
 } from './lib/adapter-definitions.mjs';
-import { probeGitleaks, probeOsv } from './lib/external-adapters.mjs';
+import { probeGitleaks, probeOpengrep, probeOsv, verifyOpengrepRuleset } from './lib/external-adapters.mjs';
 
 const args = process.argv.slice(2);
 function usage(code, message) {
@@ -13,7 +14,7 @@ function usage(code, message) {
   console.log(`webapp-security doctor [project] [options]
 
 Options:
-  --adapter <id>      builtin, gitleaks, osv, or all; repeatable (default: all)
+  --adapter <id>      builtin, gitleaks, opengrep, osv, or all; repeatable (default: all)
   --adapter-timeout <seconds> Version-probe timeout, 1..600 (default: 120)
   --json              Print structured status
 
@@ -60,6 +61,21 @@ try {
       observedVersion: probe.observedVersion || null,
       applicability: discovery ? 'working-tree; history when .git is present' : 'project not supplied',
       guidance: probe.status === 'available' ? null : 'Install Gitleaks 8.30.1 from its verified release; this command will not download it.',
+    });
+  }
+  if (selected.includes('opengrep')) {
+    const probe = probeOpengrep(process.env.WEBAPP_SECURITY_OPENGREP_BIN || 'opengrep', timeoutSeconds);
+    const ruleset = verifyOpengrepRuleset();
+    const status = probe.status === 'available' && ruleset.status !== 'available'
+      ? `ruleset_${ruleset.status}` : probe.status;
+    statuses.push({
+      id: OPENGREP_ADAPTER.id,
+      status,
+      expectedVersion: probe.expectedVersion,
+      observedVersion: probe.observedVersion || null,
+      rulesetSha256: OPENGREP_RULESET.sha256,
+      applicability: discovery ? 'JavaScript, TypeScript and Python source-to-command rules' : 'project not supplied',
+      guidance: status === 'available' ? null : 'Install Opengrep 1.27.0 from its verified release and restore the bundled pinned ruleset; this command will not download either.',
     });
   }
   if (selected.includes('osv')) {

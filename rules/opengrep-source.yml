@@ -1,0 +1,34 @@
+rules:
+  - id: webapp-security.javascript.request-to-command
+    mode: taint
+    languages: [javascript, typescript]
+    message: Request data may reach a shell command.
+    severity: WARNING
+    metadata:
+      family: injection_execution
+      cwe: CWE-78
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.query.$KEY
+          - pattern: $REQ.query[$KEY]
+    pattern-sinks:
+      - pattern-either:
+          - pattern: $CP.exec($CMD, ...)
+          - pattern: $EXEC($CMD, ...)
+
+  - id: webapp-security.python.request-to-command
+    mode: taint
+    languages: [python]
+    message: Request data may reach a shell command.
+    severity: WARNING
+    metadata:
+      family: injection_execution
+      cwe: CWE-78
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.args.get(...)
+          - pattern: request.args[$KEY]
+    pattern-sinks:
+      - pattern-either:
+          - pattern: subprocess.run($CMD, ..., shell=True, ...)
+          - pattern: subprocess.call($CMD, ..., shell=True, ...)

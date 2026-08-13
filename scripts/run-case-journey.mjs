@@ -14,10 +14,10 @@ function usage(code, message) {
   console.log(`node scripts/run-case-journey.mjs <journey-id> <checkout> --out <directory> [--catalog <json>]
 
 The checkout must be a clean Git worktree at the journey's exact immutable commit. The output
-directory must be outside the checkout. Set WEBAPP_SECURITY_GITLEAKS_BIN and
-WEBAPP_SECURITY_OSV_SCANNER_BIN to the caller-installed, pinned binaries. The runner does not
-download tools, execute project dependencies, or contact a hosted project; OSV-Scanner may query
-the public OSV advisory service.`);
+directory must be outside the checkout. Set WEBAPP_SECURITY_GITLEAKS_BIN,
+WEBAPP_SECURITY_OPENGREP_BIN and WEBAPP_SECURITY_OSV_SCANNER_BIN to the caller-installed, pinned
+binaries. The runner does not download tools, execute project dependencies, or contact a hosted
+project; OSV-Scanner may query the public OSV advisory service.`);
   process.exit(code);
 }
 
@@ -149,11 +149,14 @@ try {
   }
   if (existsSync(output)) throw new Error(`output already exists: ${output}`);
   const gitleaksBinary = process.env.WEBAPP_SECURITY_GITLEAKS_BIN;
+  const opengrepBinary = process.env.WEBAPP_SECURITY_OPENGREP_BIN;
   const osvBinary = process.env.WEBAPP_SECURITY_OSV_SCANNER_BIN;
-  if (!gitleaksBinary || !osvBinary) {
-    throw new Error('set WEBAPP_SECURITY_GITLEAKS_BIN and WEBAPP_SECURITY_OSV_SCANNER_BIN to pinned binaries');
+  if (!gitleaksBinary || !opengrepBinary || !osvBinary) {
+    throw new Error('set WEBAPP_SECURITY_GITLEAKS_BIN, WEBAPP_SECURITY_OPENGREP_BIN and WEBAPP_SECURITY_OSV_SCANNER_BIN to pinned binaries');
   }
-  for (const [name, binary] of [['Gitleaks', gitleaksBinary], ['OSV-Scanner', osvBinary]]) {
+  for (const [name, binary] of [
+    ['Gitleaks', gitleaksBinary], ['Opengrep', opengrepBinary], ['OSV-Scanner', osvBinary],
+  ]) {
     if (!existsSync(binary)) throw new Error(`${name} binary does not exist: ${binary}`);
   }
   mkdirSync(output, { recursive: true, mode: 0o700 });
@@ -161,6 +164,7 @@ try {
     ...process.env,
     SOURCE_DATE_EPOCH: String(Date.parse(journey.corpus.runDate) / 1000),
     WEBAPP_SECURITY_GITLEAKS_BIN: realpathSync(gitleaksBinary),
+    WEBAPP_SECURITY_OPENGREP_BIN: realpathSync(opengrepBinary),
     WEBAPP_SECURITY_OSV_SCANNER_BIN: realpathSync(osvBinary),
   };
   const auditOutput = run(['audit', checkout, '--out', `${output}/audit`, '--name', 'report',

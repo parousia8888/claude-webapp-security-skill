@@ -37,6 +37,11 @@ function project(name, vulnerable) {
     name, version: '1.0.0', lockfileVersion: 3, packages,
   }, null, 2)}\n`);
   writeFileSync(join(root, 'config.txt'), vulnerable ? `github_token = ${plantedToken}\n` : 'fixture = clean\n');
+  for (const extension of ['js', 'py']) {
+    writeFileSync(join(root, `source.${extension}`), readFileSync(join(
+      ROOT, 'test', 'fixtures', 'opengrep-rules', `${vulnerable ? 'vulnerable' : 'safe'}.${extension}`,
+    ), 'utf8'));
+  }
   command('git', ['init', '-q'], { cwd: root });
   command('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'add', '.'], { cwd: root });
   command('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'], { cwd: root });
@@ -44,14 +49,18 @@ function project(name, vulnerable) {
 }
 
 try {
-  for (const binary of [process.env.WEBAPP_SECURITY_GITLEAKS_BIN, process.env.WEBAPP_SECURITY_OSV_SCANNER_BIN]) {
+  for (const binary of [
+    process.env.WEBAPP_SECURITY_GITLEAKS_BIN,
+    process.env.WEBAPP_SECURITY_OPENGREP_BIN,
+    process.env.WEBAPP_SECURITY_OSV_SCANNER_BIN,
+  ]) {
     assert.ok(binary, 'pinned adapter binary path is required');
     chmodSync(binary, 0o755);
   }
   const vulnerable = project('vulnerable', true);
   const vulnerableOut = join(temp, 'vulnerable-report');
   let result = spawnSync(process.execPath, [
-    CLI, 'audit', vulnerable, '--out', vulnerableOut, '--adapter', 'gitleaks', '--adapter', 'osv',
+    CLI, 'audit', vulnerable, '--out', vulnerableOut, '--adapter', 'gitleaks', '--adapter', 'opengrep', '--adapter', 'osv',
     '--fail-on', 'never', '--adapter-timeout', '120',
   ], { cwd: ROOT, encoding: 'utf8', timeout: 180000, env: { ...process.env, SOURCE_DATE_EPOCH: '0' } });
   assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -59,6 +68,8 @@ try {
   assert.ok(report.findings.some((finding) => finding.rule.id === 'gitleaks-committed-secret'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'gitleaks-working-tree-secret'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'osv-known-vulnerability'));
+  assert.ok(report.findings.some((finding) => finding.rule.id === 'opengrep-js-request-command-flow'));
+  assert.ok(report.findings.some((finding) => finding.rule.id === 'opengrep-python-request-command-flow'));
   assert.ok(report.findings.every((finding) => finding.state === 'suspected'));
   assert.ok(report.findings.some((finding) => finding.evidence.advisoryIds?.includes('GHSA-29mw-wpgm-hmr9')));
   for (const name of readdirSync(vulnerableOut)) {
@@ -68,15 +79,16 @@ try {
   const clean = project('clean', false);
   const cleanOut = join(temp, 'clean-report');
   result = spawnSync(process.execPath, [
-    CLI, 'audit', clean, '--out', cleanOut, '--adapter', 'gitleaks', '--adapter', 'osv',
+    CLI, 'audit', clean, '--out', cleanOut, '--adapter', 'gitleaks', '--adapter', 'opengrep', '--adapter', 'osv',
     '--fail-on', 'never', '--adapter-timeout', '120',
   ], { cwd: ROOT, encoding: 'utf8', timeout: 180000, env: { ...process.env, SOURCE_DATE_EPOCH: '0' } });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const cleanReport = JSON.parse(readFileSync(join(cleanOut, 'report.json'), 'utf8'));
   assert.equal(cleanReport.findings.filter((finding) => finding.state === 'confirmed').length, 0);
+  assert.equal(cleanReport.findings.filter((finding) => finding.adapter.id === 'opengrep').length, 0);
   assert.ok(cleanReport.coverage.every((entry) => entry.status === 'completed'));
 
-  console.log('real adapters ok: pinned Gitleaks and OSV-Scanner positive and clean controls');
+  console.log('real adapters ok: pinned Gitleaks, Opengrep and OSV-Scanner positive and clean controls');
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

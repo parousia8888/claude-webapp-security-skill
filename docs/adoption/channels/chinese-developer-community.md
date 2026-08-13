@@ -16,7 +16,7 @@ Web App Security Skill 是一个开源 agent skill 与 CLI，目标是让 Web �
 
 可复现 demo 使用仓库自有本地 fixture，初始结果是 2 个 security HIGH、11 个 discoverability HIGH + 5 个 MEDIUM、1 个 reliability MEDIUM，展示补丁后复测为 0 个 active HIGH / 0 个 active MEDIUM，并记录 21 项 fixed。它不请求第三方目标，生成脚本、JSON/Markdown 报告和 patch 都在仓库中。
 
-当前能力合同按 category 与 maturity 分开记录：7 个 stable 窄检测家族、2 项 planned 检测能力、5 项证据/报告能力、1 项生命周期/分发能力和 6 项 agent-guided 方法。这个分层避免把 demo、报告、安装器或强上下文审查描述成检测覆盖。
+当前能力合同按 category 与 maturity 分开记录：8 个 stable 窄检测家族、1 项 planned 检测能力、5 项证据/报告能力、1 项生命周期/分发能力和 6 项 agent-guided 方法。这个分层避免把 demo、报告、安装器或强上下文审查描述成检测覆盖。
 
 案例证据包括 5 个固定 commit 的普通项目旅程和 5 个源码方法论案例，其中两个项目按设计重叠。普通项目旅程不探测托管实例、不执行项目依赖；仅 OSV-Scanner 可查询公共 advisory 服务，并公开 confirmed 事实、误报关闭、suspected 与 unknown。
 

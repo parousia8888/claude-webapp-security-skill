@@ -1,12 +1,16 @@
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync } from 'node:fs';
-import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { chmodSync, existsSync, lstatSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
-  GITLEAKS_ADAPTER, GITLEAKS_RULES, OSV_ADAPTER, OSV_RULES,
+  GITLEAKS_ADAPTER, GITLEAKS_RULES, OPENGREP_ADAPTER, OPENGREP_RULES, OPENGREP_RULESET,
+  OSV_ADAPTER, OSV_RULES,
 } from './adapter-definitions.mjs';
 
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const digest = (value) => createHash('sha256').update(String(value)).digest('hex');
 const posix = (value) => value.split(sep).join('/');
 
@@ -49,23 +53,24 @@ function unknownFinding(adapter, rule, reasonCode, detail = {}) {
   };
 }
 
-function run(binary, args, { cwd, timeoutSeconds }) {
+function run(binary, args, { cwd, timeoutSeconds, env }) {
   const result = spawnSync(binary, args, {
     cwd,
     encoding: 'utf8',
+    env: env ? { ...process.env, ...env } : process.env,
     timeout: timeoutSeconds * 1000,
     maxBuffer: MAX_OUTPUT_BYTES,
     windowsHide: true,
   });
   if (result.error?.code === 'ENOENT') return { kind: 'missing' };
-  if (result.error?.code === 'ETIMEDOUT' || result.signal === 'SIGTERM') return { kind: 'timeout' };
   if (result.error?.code === 'ENOBUFS') return { kind: 'output_limit' };
+  if (result.error?.code === 'ETIMEDOUT' || result.signal === 'SIGTERM') return { kind: 'timeout' };
   if (result.error) return { kind: 'internal_error' };
   return { kind: 'completed', status: result.status, stdout: result.stdout || '' };
 }
 
-function version(binary, args, adapter, timeoutSeconds, parser) {
-  const result = run(binary, args, { timeoutSeconds });
+function version(binary, args, adapter, timeoutSeconds, parser, env) {
+  const result = run(binary, args, { timeoutSeconds, env });
   if (result.kind !== 'completed') return { status: result.kind, expectedVersion: adapter.version };
   if (result.status !== 0) return { status: 'internal_error', expectedVersion: adapter.version };
   const observedVersion = parser(result.stdout);
@@ -85,6 +90,44 @@ export function probeGitleaks(binary, timeoutSeconds) {
 export function probeOsv(binary, timeoutSeconds) {
   return version(binary, ['--version'], OSV_ADAPTER, timeoutSeconds,
     (stdout) => /osv-scanner version:\s*(\d+\.\d+\.\d+)/.exec(stdout)?.[1]);
+}
+
+function withOpengrepState(callback) {
+  const stateDir = mkdtempSync(resolve(tmpdir(), 'webapp-security-opengrep-'));
+  chmodSync(stateDir, 0o700);
+  const env = {
+    SEMGREP_LOG_FILE: resolve(stateDir, 'semgrep.log'),
+    SEMGREP_SETTINGS_FILE: resolve(stateDir, 'settings.yml'),
+    OPENGREP_VERSION_CACHE_PATH: resolve(stateDir, 'version-check.json'),
+  };
+  try {
+    return callback(env);
+  } finally {
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+}
+
+export function probeOpengrep(binary, timeoutSeconds, stateEnv = null) {
+  const probe = (env) => version(binary, ['--version'], OPENGREP_ADAPTER, timeoutSeconds,
+    (stdout) => /^(\d+\.\d+\.\d+)\s*$/m.exec(stdout)?.[1], env);
+  return stateEnv ? probe(stateEnv) : withOpengrepState(probe);
+}
+
+export function verifyOpengrepRuleset(
+  rulesPath = resolve(ROOT, OPENGREP_RULESET.relativePath),
+  expectedDigest = OPENGREP_RULESET.sha256,
+) {
+  try {
+    if (!existsSync(rulesPath) || lstatSync(rulesPath).isSymbolicLink()) return { status: 'unavailable' };
+    const observedDigest = createHash('sha256').update(readFileSync(rulesPath)).digest('hex');
+    return {
+      status: observedDigest === expectedDigest ? 'available' : 'digest_mismatch',
+      expectedDigest,
+      observedDigest,
+    };
+  } catch {
+    return { status: 'unavailable', expectedDigest };
+  }
 }
 
 export function parseGitleaksJson(stdout, projectRoot, scanMode) {
@@ -245,6 +288,121 @@ export function parseOsvJson(stdout, projectRoot) {
   return findings;
 }
 
+const OPENGREP_RULE_MAP = new Map([
+  ['webapp-security.javascript.request-to-command', 'opengrep-js-request-command-flow'],
+  ['webapp-security.python.request-to-command', 'opengrep-python-request-command-flow'],
+]);
+
+export function parseOpengrepJson(stdout, projectRoot) {
+  let parsed;
+  try { parsed = JSON.parse(stdout || '{}'); } catch { throw new Error('malformed_json'); }
+  if (!parsed || !Array.isArray(parsed.results) || !Array.isArray(parsed.errors)
+      || !parsed.paths || !Array.isArray(parsed.paths.scanned)) throw new Error('malformed_output');
+  if (parsed.version !== OPENGREP_ADAPTER.version) throw new Error('output_version_mismatch');
+  if (parsed.errors.length) throw new Error('scan_errors');
+  if (parsed.paths.scanned.some((path) => !safeProjectPath(projectRoot, path))) throw new Error('unsafe_path');
+  const findings = parsed.results.map((item) => {
+    const localRuleId = OPENGREP_RULE_MAP.get(item?.check_id);
+    if (!localRuleId || !Number.isInteger(item?.start?.line) || item.start.line < 1
+        || !Number.isInteger(item?.start?.col) || item.start.col < 1
+        || item?.extra?.engine_kind !== 'OSS') throw new Error('malformed_output');
+    const path = safeProjectPath(projectRoot, item.path);
+    if (!path) throw new Error('unsafe_path');
+    return {
+      adapterId: OPENGREP_ADAPTER.id,
+      ruleId: localRuleId,
+      title: `Request-to-command data-flow lead from ${item.check_id}`,
+      severity: 'high',
+      state: 'suspected',
+      summary: `Opengrep matched local rule ${item.check_id} at ${path}:${item.start.line}; reachability and exploitability were not inferred.`,
+      location: { path, line: item.start.line },
+      evidence: {
+        subject: `${item.check_id}:${path}:${item.start.line}:${item.start.col}`,
+        externalRuleId: item.check_id,
+        engineKind: item.extra.engine_kind,
+        column: item.start.col,
+        rulesetSha256: OPENGREP_RULESET.sha256,
+      },
+      remediation: 'Trace the reported request path, remove shell interpretation or map allowed requests to fixed server-side operations, then review the proposed behavior change.',
+      retest: 'Rerun the pinned Opengrep adapter and exercise the owned request path with harmless shell metacharacters plus the normal product journey.',
+    };
+  });
+  const unique = new Map();
+  for (const finding of findings) unique.set(finding.evidence.subject, finding);
+  return [...unique.values()].sort((left, right) => left.evidence.subject.localeCompare(right.evidence.subject));
+}
+
+export function runOpengrep(projectRoot, {
+  binary = 'opengrep', timeoutSeconds = 120,
+  rulesPath = resolve(ROOT, OPENGREP_RULESET.relativePath),
+  rulesetSha256 = OPENGREP_RULESET.sha256,
+} = {}) {
+  projectRoot = resolve(projectRoot);
+  return withOpengrepState((stateEnv) => {
+    const identity = probeOpengrep(binary, timeoutSeconds, stateEnv);
+    if (identity.status !== 'available') {
+      return { adapter: OPENGREP_ADAPTER, identity, ...unavailable(
+        OPENGREP_ADAPTER, OPENGREP_RULES, `adapter_${identity.status}`,
+        identity.observedVersion ? { observedVersion: identity.observedVersion } : {},
+      ), networkAccessPerformed: false };
+    }
+    const ruleset = verifyOpengrepRuleset(rulesPath, rulesetSha256);
+    if (ruleset.status !== 'available') {
+      return {
+        adapter: OPENGREP_ADAPTER, identity,
+        ...unavailable(OPENGREP_ADAPTER, OPENGREP_RULES, `adapter_ruleset_${ruleset.status}`),
+        networkAccessPerformed: false,
+      };
+    }
+    const result = run(binary, [
+      'scan', '--config', rulesPath, '--json', '--disable-version-check', '--no-git-ignore',
+      '--no-rewrite-rule-ids', '--jobs', '1', '--timeout', String(Math.min(timeoutSeconds, 30)),
+      '--max-target-bytes', '1048576',
+      '--exclude', '.git', '--exclude', '.hg', '--exclude', '.svn',
+      '--exclude', '.next', '--exclude', '.nuxt', '--exclude', '.output',
+      '--exclude', '.webapp-security', '--exclude', 'build', '--exclude', 'coverage',
+      '--exclude', 'dist', '--exclude', 'node_modules', '--exclude', 'target',
+      '--exclude', 'vendor', '--exclude', '__pycache__', '--exclude', '.venv', '--exclude', 'venv',
+      '--error', projectRoot,
+    ], { cwd: projectRoot, timeoutSeconds, env: stateEnv });
+    if (result.kind !== 'completed' || ![0, 1].includes(result.status)) {
+      const reason = result.kind === 'completed' ? 'adapter_internal_error' : `adapter_${result.kind}`;
+      return {
+        adapter: OPENGREP_ADAPTER, identity,
+        ...unavailable(OPENGREP_ADAPTER, OPENGREP_RULES, reason),
+        networkAccessPerformed: false,
+      };
+    }
+    try {
+      const findings = parseOpengrepJson(result.stdout, projectRoot);
+      if ((result.status === 1) !== (findings.length > 0)) throw new Error('inconsistent_exit');
+      let parsed;
+      try { parsed = JSON.parse(result.stdout); } catch { throw new Error('malformed_json'); }
+      const scannedPaths = [...new Set(parsed.paths.scanned.map((path) => safeProjectPath(projectRoot, path)))];
+      const pathsForRule = (rule) => scannedPaths.filter((path) => {
+        if (rule.id === 'opengrep-python-request-command-flow') return /\.py$/i.test(path);
+        return /\.(?:cjs|cts|js|jsx|mjs|mts|ts|tsx)$/i.test(path);
+      });
+      return {
+        adapter: OPENGREP_ADAPTER, identity, findings,
+        coverage: OPENGREP_RULES.map((rule) => {
+          const eligible = pathsForRule(rule).length;
+          return coverage(OPENGREP_ADAPTER, rule, eligible ? 'completed' : 'not_applicable', {
+            discovered: eligible || 1, eligible, scanned: eligible, excluded: eligible ? 0 : 1,
+          }, eligible ? [] : [{ code: 'no_supported_source_input', count: 1, samplePaths: [] }]);
+        }),
+        networkAccessPerformed: false,
+      };
+    } catch (error) {
+      return {
+        adapter: OPENGREP_ADAPTER, identity,
+        ...unavailable(OPENGREP_ADAPTER, OPENGREP_RULES, `adapter_${error.message}`),
+        networkAccessPerformed: false,
+      };
+    }
+  });
+}
+
 export function runOsv(projectRoot, lockfiles, { binary = 'osv-scanner', timeoutSeconds = 120 } = {}) {
   if (!lockfiles.length) {
     return {
@@ -302,6 +460,10 @@ export function runExternalAdapters(projectRoot, lockfiles, selected, options = 
   const results = [];
   if (selected.includes('gitleaks')) results.push(runGitleaks(projectRoot, {
     binary: process.env.WEBAPP_SECURITY_GITLEAKS_BIN || 'gitleaks',
+    timeoutSeconds: options.timeoutSeconds,
+  }));
+  if (selected.includes('opengrep')) results.push(runOpengrep(projectRoot, {
+    binary: process.env.WEBAPP_SECURITY_OPENGREP_BIN || 'opengrep',
     timeoutSeconds: options.timeoutSeconds,
   }));
   if (selected.includes('osv')) results.push(runOsv(projectRoot, lockfiles, {

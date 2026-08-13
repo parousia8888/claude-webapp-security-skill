@@ -152,7 +152,7 @@ export function validatePersistedScope(scope) {
   sourceTraversalLimits(scope.auditBoundary.traversalLimits);
   if ('adapters' in scope.auditBoundary) {
     if (!Array.isArray(scope.auditBoundary.adapters) || !scope.auditBoundary.adapters.length
-        || scope.auditBoundary.adapters.some((adapter) => !['builtin', 'gitleaks', 'osv'].includes(adapter))) {
+        || scope.auditBoundary.adapters.some((adapter) => !['builtin', 'gitleaks', 'opengrep', 'osv'].includes(adapter))) {
       throw new Error('scope contains an invalid adapter selection');
     }
     if (!Number.isInteger(scope.auditBoundary.adapterTimeoutSeconds)

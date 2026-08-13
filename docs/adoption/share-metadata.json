@@ -16,8 +16,8 @@
   },
   "capabilityContract": {
     "total": 21,
-    "stableDetection": 7,
-    "plannedDetection": 2,
+    "stableDetection": 8,
+    "plannedDetection": 1,
     "evidenceReporting": 5,
     "lifecycleDistribution": 1,
     "agentGuided": 6,

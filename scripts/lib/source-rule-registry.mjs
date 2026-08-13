@@ -27,6 +27,7 @@ function entry(adapter, rule) {
 
 const builtin = { id: 'builtin-source', version: '1.1.0', maturity: 'stable', type: 'built_in' };
 const gitleaks = { id: 'gitleaks', version: '8.30.1', maturity: 'stable', type: 'external' };
+const opengrep = { id: 'opengrep', version: '1.27.0', maturity: 'stable', type: 'external' };
 const osv = { id: 'osv', version: '2.5.0', maturity: 'stable', type: 'external' };
 
 export const SOURCE_RULE_REGISTRY = [
@@ -556,6 +557,54 @@ export const SOURCE_RULE_REGISTRY = [
     rollback: 'Do not restore a leaked value; use a separately issued credential if the replacement fails.', userDecisions: ['Confirm whether the match is live and which secret store should replace it.'],
     helpUri: 'https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md',
     fixtures: { positive: [fixture('gitleaks-working-tree-lead', 'test/external-adapters.test.mjs')], negative: [fixture('gitleaks-clean-directory', 'test/real-adapters.test.mjs')] },
+  }),
+  entry(opengrep, {
+    id: 'opengrep-js-request-command-flow', revision: '1-3a3a28549f516b50e716449d9e80ee6f855d912f9bb41371d514f2e324667979',
+    kind: 'risk_detection', family: 'injection_execution', languages: ['javascript', 'typescript'],
+    frameworks: ['Node.js', 'Express'], domain: 'security_exposure', severity: 'high',
+    defaultState: 'suspected', rationale: 'request_data_reaches_command_sink',
+    technicalTerm: 'Request-to-command data-flow lead (CWE-78)',
+    plainLanguage: 'Opengrep followed a value from a request query field through local variables into a function that starts a system command.',
+    consequence: 'If the request value reaches a shell without a strict allowlist, an attacker may run commands with the application permissions.',
+    confidenceBoundary: 'The pinned local taint rule observed a same-file source-to-sink path. It does not prove the route is reachable, the value is attacker-controlled in deployment or the command executes.',
+    applicability: 'JavaScript and TypeScript scanned by caller-installed Opengrep 1.27.0 with the bundled local ruleset.',
+    detection: { type: 'external_taint_adapter', engine: 'opengrep', rulesetSha256: '3a3a28549f516b50e716449d9e80ee6f855d912f9bb41371d514f2e324667979', externalRuleId: 'webapp-security.javascript.request-to-command', interfile: false },
+    standards: [standard('CWE-78', 'https://cwe.mitre.org/data/definitions/78.html'), standard('OWASP-TOP10-2025-A05', 'https://owasp.org/Top10/2025/A05_2025-Injection/')],
+    falsePositiveCauses: ['The route is unreachable or request input is replaced by a strict fixed allowlist before execution.', 'The matched function is a compatible wrapper that never invokes a shell.'],
+    proposal: { status: 'review_required', summary: 'Trace the owned route, replace shell execution with an API or execFile/spawn argument array, and validate each allowed operation.' },
+    alternatives: ['Map a small set of user-visible choices to fixed server-side commands without accepting command text.'],
+    proposalRisks: ['Shell features such as pipes, redirects, globbing and inline environment assignments will stop working.'],
+    sideEffects: ['Report, conversion or job workflows may need explicit argument and platform handling.'],
+    securityRetest: 'Send harmless shell metacharacters through the owned request field and verify they cannot change the invoked program or arguments, then rerun Opengrep.',
+    functionalRetest: 'Run the normal report or job workflow with every supported option and platform.',
+    rollback: 'Revert the command adapter if valid jobs fail, but disable or restrict the untrusted route until a shell-free form works.',
+    userDecisions: ['Confirm which operations users may request and whether any shell feature is an actual product requirement.'],
+    helpUri: 'https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md',
+    fixtures: { positive: [fixture('opengrep-js-flow-positive', 'test/fixtures/opengrep-rules/vulnerable.js')], negative: [fixture('opengrep-js-flow-safe', 'test/fixtures/opengrep-rules/safe.js')] },
+  }),
+  entry(opengrep, {
+    id: 'opengrep-python-request-command-flow', revision: '1-3a3a28549f516b50e716449d9e80ee6f855d912f9bb41371d514f2e324667979',
+    kind: 'risk_detection', family: 'injection_execution', languages: ['python'],
+    frameworks: ['Flask'], domain: 'security_exposure', severity: 'high',
+    defaultState: 'suspected', rationale: 'request_data_reaches_command_sink',
+    technicalTerm: 'Request-to-command data-flow lead (CWE-78)',
+    plainLanguage: 'Opengrep followed a Flask request value through local variables into subprocess execution with a shell enabled.',
+    consequence: 'If the request value is accepted without a strict allowlist, an attacker may run commands with the application permissions.',
+    confidenceBoundary: 'The pinned local taint rule observed a same-file Flask source-to-shell sink path. It does not prove the route is exposed, the code runs in production or exploitation succeeds.',
+    applicability: 'Python scanned by caller-installed Opengrep 1.27.0 with the bundled local ruleset.',
+    detection: { type: 'external_taint_adapter', engine: 'opengrep', rulesetSha256: '3a3a28549f516b50e716449d9e80ee6f855d912f9bb41371d514f2e324667979', externalRuleId: 'webapp-security.python.request-to-command', interfile: false },
+    standards: [standard('CWE-78', 'https://cwe.mitre.org/data/definitions/78.html'), standard('OWASP-TOP10-2025-A05', 'https://owasp.org/Top10/2025/A05_2025-Injection/')],
+    falsePositiveCauses: ['The route is unreachable or the request value is replaced by a fixed allowlist before the sink.', 'A wrapper or monkey patch prevents the observed subprocess call from executing.'],
+    proposal: { status: 'review_required', summary: 'Replace shell=True with an argument list or a library API and map request choices to fixed server-side operations.' },
+    alternatives: ['Move the operation to an isolated worker that accepts a typed, allowlisted job rather than command text.'],
+    proposalRisks: ['Shell expansion, pipes, redirects and quoting behavior will change.'],
+    sideEffects: ['Existing report or automation commands may require separate executable and argument handling.'],
+    securityRetest: 'Send harmless shell metacharacters through the owned request field and verify they remain inert, then rerun Opengrep.',
+    functionalRetest: 'Run the normal Flask route or worker journey for every supported operation.',
+    rollback: 'Revert the subprocess adapter if valid jobs fail, but remove public access or restrict inputs until shell-free execution works.',
+    userDecisions: ['Confirm the allowed operations and whether shell parsing is required anywhere in the workflow.'],
+    helpUri: 'https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md',
+    fixtures: { positive: [fixture('opengrep-python-flow-positive', 'test/fixtures/opengrep-rules/vulnerable.py')], negative: [fixture('opengrep-python-flow-safe', 'test/fixtures/opengrep-rules/safe.py')] },
   }),
   entry(osv, {
     id: 'osv-known-vulnerability', kind: 'risk_detection', family: 'dependency_configuration', languages: ['any'],

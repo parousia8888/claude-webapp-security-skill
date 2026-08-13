@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
-  parseGitleaksJson, parseOsvJson, runGitleaks, runOsv,
+  parseGitleaksJson, parseOpengrepJson, parseOsvJson, runGitleaks, runOpengrep, runOsv,
 } from '../scripts/lib/external-adapters.mjs';
 import { createFindingV2 } from '../scripts/lib/evidence-v2.mjs';
 import { sanitizeEvidence } from '../scripts/lib/evidence-writer.mjs';
@@ -76,6 +76,42 @@ else if (mode === 'finding' || mode === 'no-severity') {
 } else { console.log('{"results":[]}'); process.exit(0); }
 `);
 chmodSync(fakeOsv, 0o755);
+
+const fakeOpengrep = join(temp, 'fake-opengrep.mjs');
+writeFileSync(fakeOpengrep, `#!/usr/bin/env node
+import { dirname, join } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+const args = process.argv.slice(2);
+const mode = process.env.FAKE_OPENGREP_MODE || 'clean';
+const logFile = process.env.SEMGREP_LOG_FILE || join(process.env.HOME, '.opengrep', 'semgrep.log');
+mkdirSync(dirname(logFile), { recursive: true });
+writeFileSync(logFile, '${secret} ' + process.cwd());
+if (args[0] === '--version') {
+  console.log(mode === 'version-drift' ? '1.26.0' : '1.27.0');
+  process.exit(0);
+}
+const root = process.cwd();
+const clean = { version: '1.27.0', results: [], errors: [], paths: { scanned: ['config.txt'] } };
+if (mode === 'timeout') { setTimeout(() => {}, 5000); }
+else if (mode === 'output-limit') { process.stdout.write('x'.repeat(17 * 1024 * 1024)); }
+else if (mode === 'internal') { console.error('${secret} raw stderr'); process.exit(2); }
+else if (mode === 'malformed') { console.log('{bad'); process.exit(1); }
+else if (mode === 'inconsistent') { console.log(JSON.stringify(clean)); process.exit(1); }
+else if (mode === 'scan-errors') { clean.errors.push({ message: '${secret}' }); console.log(JSON.stringify(clean)); }
+else if (mode === 'finding' || mode === 'escape') {
+  const path = mode === 'escape' ? '../escape.js' : 'config.txt';
+  const item = {
+    check_id: 'webapp-security.javascript.request-to-command', path,
+    start: { line: 2, col: 3 }, end: { line: 2, col: 20 },
+    extra: { engine_kind: 'OSS', lines: '${secret}', metavars: { value: '${secret}' } },
+  };
+  clean.results = [item, item];
+  console.error('${secret} raw stderr');
+  console.log(JSON.stringify(clean));
+  process.exit(1);
+} else { console.log(JSON.stringify(clean)); }
+`);
+chmodSync(fakeOpengrep, 0o755);
 
 function withEnv(values, callback) {
   const prior = Object.fromEntries(Object.keys(values).map((key) => [key, process.env[key]]));
@@ -146,7 +182,8 @@ try {
     }));
     assert.ok(result.coverage.every((entry) => entry.status === 'unavailable'));
     assert.ok(result.findings.every((finding) => finding.state === 'unknown'));
-    assert.ok(result.findings.every((finding) => finding.evidence.reasonCode === reason));
+    assert.ok(result.findings.every((finding) => finding.evidence.reasonCode === reason),
+      `${mode}: expected ${reason}: ${JSON.stringify(result)}`);
   }
   result = withEnv({ FAKE_GITLEAKS_MODE: 'version-drift' }, () => runGitleaks(project, {
     binary: fakeGitleaks, timeoutSeconds: 1,
@@ -193,9 +230,71 @@ try {
   assert.equal(result.coverage[0].status, 'unavailable');
   assert.equal(result.findings[0].state, 'unknown');
 
+  const opengrepClean = JSON.stringify({
+    version: '1.27.0', results: [], errors: [], paths: { scanned: [join(project, 'config.txt')] },
+  });
+  assert.deepEqual(parseOpengrepJson(opengrepClean, project), []);
+  assert.throws(() => parseOpengrepJson('{bad', project), /malformed_json/);
+  assert.throws(() => parseOpengrepJson(JSON.stringify({
+    version: '1.27.0', results: [], errors: [], paths: { scanned: ['../escape.js'] },
+  }), project), /unsafe_path/);
+  assert.throws(() => parseOpengrepJson(JSON.stringify({
+    version: '1.27.0', errors: [], paths: { scanned: [] }, results: [{
+      check_id: 'webapp-security.javascript.request-to-command', path: '../escape.js',
+      start: { line: 1, col: 1 }, extra: { engine_kind: 'OSS' },
+    }],
+  }), project), /unsafe_path/);
+  result = withEnv({ FAKE_OPENGREP_MODE: 'finding' }, () => runOpengrep(project, {
+    binary: fakeOpengrep, timeoutSeconds: 1,
+  }));
+  assert.equal(result.findings.length, 1, `duplicate external results must be normalized: ${JSON.stringify(result)}`);
+  assert.equal(result.findings[0].state, 'suspected');
+  assert.equal(result.findings[0].evidence.externalRuleId, 'webapp-security.javascript.request-to-command');
+  assert.equal(result.findings[0].evidence.rulesetSha256.length, 64);
+  assert.equal(JSON.stringify(result).includes(secret), false);
+  const opengrepHome = join(temp, 'opengrep-home');
+  const userLog = join(opengrepHome, '.opengrep', 'semgrep.log');
+  mkdirSync(join(opengrepHome, '.opengrep'), { recursive: true });
+  writeFileSync(userLog, 'owner log\n');
+  result = withEnv({ FAKE_OPENGREP_MODE: 'finding', HOME: opengrepHome }, () => runOpengrep(project, {
+    binary: fakeOpengrep, timeoutSeconds: 1,
+  }));
+  assert.equal(result.findings.length, 1);
+  assert.equal(readFileSync(userLog, 'utf8'), 'owner log\n', 'Opengrep must not write scan evidence to the user log');
+  for (const [mode, reason] of [
+    ['malformed', 'adapter_malformed_json'], ['inconsistent', 'adapter_inconsistent_exit'],
+    ['scan-errors', 'adapter_scan_errors'], ['escape', 'adapter_unsafe_path'],
+    ['internal', 'adapter_internal_error'], ['timeout', 'adapter_timeout'],
+    ['output-limit', 'adapter_output_limit'],
+  ]) {
+    result = withEnv({ FAKE_OPENGREP_MODE: mode }, () => runOpengrep(project, {
+      binary: fakeOpengrep, timeoutSeconds: mode === 'output-limit' ? 10 : 1,
+    }));
+    assert.ok(result.coverage.every((entry) => entry.status === 'unavailable'), `${mode}: ${JSON.stringify(result)}`);
+    assert.ok(result.findings.every((finding) => finding.state === 'unknown'));
+    assert.ok(result.findings.every((finding) => finding.evidence.reasonCode === reason),
+      `${mode}: expected ${reason}: ${JSON.stringify(result)}`);
+  }
+  result = withEnv({ FAKE_OPENGREP_MODE: 'version-drift' }, () => runOpengrep(project, {
+    binary: fakeOpengrep, timeoutSeconds: 1,
+  }));
+  assert.equal(result.identity.status, 'unsupported_version');
+  result = runOpengrep(project, { binary: join(temp, 'missing-opengrep'), timeoutSeconds: 1 });
+  assert.ok(result.findings.every((finding) => finding.state === 'unknown'));
+  result = runOpengrep(project, {
+    binary: fakeOpengrep, timeoutSeconds: 1, rulesPath: join(temp, 'missing-rules.yml'),
+  });
+  assert.ok(result.findings.every((finding) => finding.evidence.reasonCode === 'adapter_ruleset_unavailable'));
+  result = runOpengrep(project, {
+    binary: fakeOpengrep, timeoutSeconds: 1,
+    rulesPath: join(ROOT, 'rules', 'opengrep-source.yml'), rulesetSha256: '0'.repeat(64),
+  });
+  assert.ok(result.findings.every((finding) => finding.evidence.reasonCode === 'adapter_ruleset_digest_mismatch'));
+
   const gateDir = join(temp, 'gate');
   result = cli(['audit', project, '--out', gateDir, '--adapter', 'all'], {
     WEBAPP_SECURITY_GITLEAKS_BIN: fakeGitleaks,
+    WEBAPP_SECURITY_OPENGREP_BIN: fakeOpengrep,
     WEBAPP_SECURITY_OSV_SCANNER_BIN: fakeOsv,
   });
   assert.equal(result.status, 2);
@@ -205,15 +304,18 @@ try {
   const reportDir = join(temp, 'report');
   result = cli(['audit', project, '--out', reportDir, '--adapter', 'all', '--fail-on', 'never'], {
     WEBAPP_SECURITY_GITLEAKS_BIN: fakeGitleaks,
+    WEBAPP_SECURITY_OPENGREP_BIN: fakeOpengrep,
     WEBAPP_SECURITY_OSV_SCANNER_BIN: fakeOsv,
     FAKE_GITLEAKS_MODE: 'finding',
+    FAKE_OPENGREP_MODE: 'finding',
     FAKE_OSV_MODE: 'finding',
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const report = JSON.parse(readFileSync(join(reportDir, 'report.json'), 'utf8'));
-  assert.deepEqual(report.ruleset.adapters.map((adapter) => adapter.id), ['builtin-source', 'gitleaks', 'osv']);
+  assert.deepEqual(report.ruleset.adapters.map((adapter) => adapter.id), ['builtin-source', 'gitleaks', 'opengrep', 'osv']);
   assert.ok(report.findings.some((finding) => finding.rule.id === 'gitleaks-committed-secret'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'osv-known-vulnerability'));
+  assert.ok(report.findings.some((finding) => finding.rule.id === 'opengrep-js-request-command-flow'));
   assert.ok(report.findings.filter((finding) => ['gitleaks-committed-secret', 'gitleaks-working-tree-secret', 'osv-known-vulnerability'].includes(finding.rule.id))
     .every((finding) => finding.state === 'suspected'));
   assert.ok(report.findings.every((finding) => /-f[a-f0-9]{12}$/.test(finding.id)));
@@ -228,11 +330,14 @@ try {
     assert.match(output, /8\.30\.1/);
     assert.match(output, /osv/);
     assert.match(output, /2\.5\.0/);
+    assert.match(output, /opengrep/);
+    assert.match(output, /1\.27\.0/);
     assert.match(output, /coverage|Coverage/);
   }
 
   result = cli(['doctor', project, '--adapter', 'all', '--json'], {
     WEBAPP_SECURITY_GITLEAKS_BIN: join(temp, 'missing-gitleaks'),
+    WEBAPP_SECURITY_OPENGREP_BIN: join(temp, 'missing-opengrep'),
     WEBAPP_SECURITY_OSV_SCANNER_BIN: join(temp, 'missing-osv'),
   });
   assert.equal(result.status, 3);

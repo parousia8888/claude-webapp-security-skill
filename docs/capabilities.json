@@ -77,12 +77,11 @@
     },
     {
       "id": "mature-sast-adapter",
-      "name": "Mature source-analysis adapter",
+      "name": "Opengrep source data-flow adapter",
       "category": "detection",
-      "maturity": "planned",
-      "plannedFor": "0.5.0",
-      "scope": "Planned evidence-gated selection between Semgrep CE and Opengrep. At most one becomes stable; all matches remain suspected until separately reproduced.",
-      "evidence": []
+      "maturity": "stable",
+      "scope": "Opt-in Opengrep 1.27.0 adapter with two project-owned, digest-pinned same-file request-to-command taint rules for JavaScript/TypeScript and Python. It is not a general rules catalogue or whole-program SAST; every match remains suspected.",
+      "evidence": ["rules/opengrep-source.yml", "scripts/lib/external-adapters.mjs", "docs/sast-adapter-benchmark.md", "test/external-adapters.test.mjs", "test/real-adapters.test.mjs"]
     },
     {
       "id": "deployment-iac-adapter",
