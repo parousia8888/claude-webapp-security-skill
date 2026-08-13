@@ -104,8 +104,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G0 | Adoption contract, baseline, phase acceptance and anti-metric rules | completed | `0599f46` + checks below |
 | G1 | Fixture-generated animated terminal demo and README placement | completed | `f1f9728`, `3fe3cc1` + checks below |
 | G2 | Verified low-friction install channel and clean-room lifecycle | completed | `11eee87`, `55c3de2`, `02277e8`, `37d822a` + checks below |
-| G3 | Privacy-minimal five-session usability kit and deterministic aggregation | in progress | pending |
-| G4 | Reusable English/Chinese publication and upstream case-study kit | pending | pending |
+| G3 | Privacy-minimal five-session usability kit and deterministic aggregation | completed | `a51640a` + checks below |
+| G4 | Reusable English/Chinese publication and upstream case-study kit | in progress | pending |
 | G5 | Priority fail-closed correctness fixes and release-candidate evidence | pending | pending |
 
 ## G0 - Adoption contract and measurable baseline
@@ -289,12 +289,29 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Commit / CI: pending
-- Remaining risks: participant recruitment and observation require the maintainer or designated
-  facilitator.
+- Status: completed 2026-08-13
+- Implementation: `docs/usability/session.schema.json` and `scripts/usability-study.mjs` define a
+  versioned first-use record and `init`, `record`, `validate`, and `aggregate` commands. Records are
+  private by default, reject unknown fields, require explicit consent and accept only anonymous IDs,
+  a fixed network-free fixture, supported-environment enums, bounded step timing/outcomes,
+  comprehension/confidence enums and a boolean indicating separate manual notes. There is no field
+  for names, email, IP, repository URLs, source, secrets, free text or terminal logs. The facilitator
+  runbook defines data boundaries, observation sequence and stop conditions; the participant task
+  is limited to the owned clean-room fixture. Real session output paths are ignored by Git.
+- Tests: `test/usability-study.test.mjs` covers private initialization, missing consent, successful
+  updates, sensitive extra-field rejection, invalid update rollback, successful/abandoned/incomplete
+  fixtures, atomic aggregation output, malformed-record rejection and duplicate IDs. Three valid
+  fixtures produce `incomplete` with two missing sessions; five produce `sufficient_for_review`,
+  never `passed`. `npm run check`, the focused test, schema JSON parsing, Skill validation and
+  `git diff --check` passed.
+- Commit / CI: implementation `a51640a`;
+  [CI run 31654951251](https://github.com/parousia8888/web-app-security-skill/actions/runs/31654951251)
+  passed Ubuntu/macOS on Node 20/22 and
+  [CodeQL run 31654951234](https://github.com/parousia8888/web-app-security-skill/actions/runs/31654951234)
+  passed.
+- Remaining risks: no real participant session was performed in this phase. Recruitment, actual
+  consent, observation, separately redacted manual notes and five genuine schema-valid records remain
+  `external_validation_pending`; fixture records prove only the kit's behavior.
 
 ## G4 - Reusable distribution and case-study assets
 
