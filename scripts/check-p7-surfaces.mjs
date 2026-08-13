@@ -22,6 +22,8 @@ const metadata = JSON.parse(read('docs/github-metadata.json'));
 const capabilities = JSON.parse(read('docs/capabilities.json'));
 const contract = JSON.parse(read('docs/public-contract.json'));
 const journeys = JSON.parse(read('docs/case-studies/journeys/evidence.json'));
+const releaseState = JSON.parse(read('docs/release-state.json'));
+const published = releaseState.publishedRelease;
 const surfaces = {
   readme: read('README.md'),
   zh: read('README.zh-CN.md'),
@@ -31,7 +33,7 @@ const surfaces = {
   launch: read('docs/launch-evidence.md'),
   issues: read('docs/GOOD_FIRST_ISSUES.md'),
   roadmap: read('ROADMAP.md'),
-  release: read(`docs/releases/v${read('VERSION').trim()}.md`),
+  release: read(published.evidence),
 };
 
 function fail(message) {
@@ -58,7 +60,7 @@ for (const [path, text, markers] of [
   ['docs/tutorial.md', surfaces.tutorial, [metadata.promise.en, 'install', 'version', 'start .', 'audit ', 'explain ', 'proposed.patch', 'retest ', 'upgrade', 'uninstall', '--acknowledge-authorization', 'false-positive.yml']],
   ['docs/tutorial.zh-CN.md', surfaces.tutorialZh, [metadata.promise['zh-CN'], 'install', 'version', 'start .', 'audit ', 'explain ', 'proposed.patch', 'retest ', 'upgrade', 'uninstall', '--acknowledge-authorization', 'false-positive.yml']],
   ['README_AI.md', surfaces.agent, ['Repository-mode first run', 'Result interpretation', 'Patch and change handling', 'Lifecycle', 'Stop conditions', 'patch-only', 'fixed', 'unchanged', 'regressed']],
-  [`docs/releases/v${read('VERSION').trim()}.md`, surfaces.release, [metadata.promise.en]],
+  [published.evidence, surfaces.release, [metadata.promise.en]],
 ]) {
   for (const marker of markers) {
     if (!normalize(text).includes(normalize(marker))) fail(`${path} is missing ${marker}`);
@@ -74,7 +76,7 @@ for (const marker of [
   `${journeys.journeys.length} fixed-commit source journeys`,
   `${contract.methodStudies.length} fixed-commit studies`,
   '13 high / 6 medium -> 0 high / 0 medium',
-  `releases/tag/v${read('VERSION').trim()}`,
+  `releases/tag/${published.tag}`,
 ]) if (!surfaces.launch.includes(marker)) fail(`launch evidence is missing ${marker}`);
 
 if (!surfaces.roadmap.includes('## Shipped in v0.3.0') || surfaces.roadmap.includes('## v0.4')) {
@@ -141,16 +143,15 @@ if (live) {
       }
     }
   }
-  const version = read('VERSION').trim();
-  const releaseResult = spawnSync('gh', ['release', 'view', `v${version}`, '--repo', metadata.repository, '--json', 'body,url,tagName'], { encoding: 'utf8' });
+  const releaseResult = spawnSync('gh', ['release', 'view', published.tag, '--repo', metadata.repository, '--json', 'body,url,tagName'], { encoding: 'utf8' });
   if (releaseResult.status !== 0) fail(releaseResult.stderr || 'unable to read live GitHub release');
   else {
     const release = JSON.parse(releaseResult.stdout);
-    if (release.tagName !== `v${version}` || !normalize(release.body || '').includes(normalize(metadata.promise.en))) {
-      fail(`live v${version} release differs from the canonical promise`);
+    if (release.tagName !== published.tag || !normalize(release.body || '').includes(normalize(metadata.promise.en))) {
+      fail(`live ${published.tag} release differs from the canonical promise`);
     }
-    if (release.url !== `https://github.com/${metadata.repository}/releases/tag/v${version}`) {
-      fail(`live v${version} release URL differs from source`);
+    if (release.url !== published.url) {
+      fail(`live ${published.tag} release URL differs from source`);
     }
   }
 }

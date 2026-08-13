@@ -19,16 +19,19 @@ const capabilities = json('docs/capabilities.json');
 const demo = json('docs/assets/demo.json');
 const journeys = json('docs/case-studies/journeys/evidence.json');
 const version = read('VERSION').trim();
-const releaseEvidencePath = `docs/releases/v${version}.md`;
+const releaseState = json('docs/release-state.json');
+const published = releaseState.publishedRelease;
+const releaseEvidencePath = published.evidence;
 
 function requireFact(condition, message) {
   if (!condition) throw new Error(message);
 }
 
 requireFact(publication.schemaVersion === 1, 'publication schemaVersion must be 1');
+requireFact(releaseState.schemaVersion === 1, 'release-state schemaVersion must be 1');
 requireFact(metadata.repository === publication.repositoryUrl.replace('https://github.com/', ''), 'repository sources disagree');
 requireFact(metadata.promise?.en && metadata.promise?.['zh-CN'], 'canonical promises are missing');
-requireFact(existsSync(join(ROOT, releaseEvidencePath)), `release evidence is missing for v${version}`);
+requireFact(existsSync(join(ROOT, releaseEvidencePath)), `published release evidence is missing for v${published.version}`);
 requireFact(demo.boundary === 'owned-local-fixture-no-third-party-target', 'demo must remain an owned local fixture');
 requireFact(Number.isInteger(demo.result?.before?.high) && Number.isInteger(demo.result?.before?.medium)
   && Number.isInteger(demo.result?.after?.high) && Number.isInteger(demo.result?.after?.medium)
@@ -52,7 +55,8 @@ const facts = {
   promiseEn: metadata.promise.en,
   promiseZh: metadata.promise['zh-CN'],
   version,
-  release: `${publication.repositoryUrl}/releases/tag/v${version}`,
+  publishedVersion: published.version,
+  release: published.url,
   capabilities: capabilities.capabilities.length,
   automated: capabilityCounts.automated_regression_tested,
   guided: capabilityCounts.agent_guided,
@@ -110,7 +114,7 @@ add('docs/adoption/launch-brief.md', [
   '',
   '## Install and distribution',
   '',
-  `Release [v${facts.version}](${facts.release}) provides a signed tag, reproducible source archive, SPDX SBOM, checksums, release manifest and provenance. The supported one-command installer pins and verifies its bootstrap before execution, then verifies the selected release assets and metadata.`,
+  `Release [v${facts.publishedVersion}](${facts.release}) provides a signed tag, reproducible source archive, SPDX SBOM, checksums, release manifest and provenance. The supported one-command installer pins and verifies its bootstrap before execution, then verifies the selected release assets and metadata.`,
   '',
   `- [Verified installation](${installLink})`,
   `- [GitHub Marketplace Action](${facts.marketplace})`,
@@ -152,7 +156,7 @@ add('docs/adoption/launch-brief.zh-CN.md', [
   '',
   '## 安装与分发',
   '',
-  `Release [v${facts.version}](${facts.release}) 提供签名 tag、可复现源码归档、SPDX SBOM、校验和、release manifest 与 provenance。受支持的一条命令安装路径在执行前固定并校验 bootstrap，随后校验所选 release 的资产与元数据。`,
+  `Release [v${facts.publishedVersion}](${facts.release}) 提供签名 tag、可复现源码归档、SPDX SBOM、校验和、release manifest 与 provenance。受支持的一条命令安装路径在执行前固定并校验 bootstrap，随后校验所选 release 的资产与元数据。`,
   '',
   `- [可信安装说明](${installZhLink})`,
   `- [GitHub Marketplace Action](${facts.marketplace})`,
@@ -184,7 +188,7 @@ add('docs/adoption/channels/technical-long-form.md', [
   '',
   `I also ran ${facts.journeys} ordinary projects at immutable commits with network denied. Those journeys retain zero findings, false-positive closures, suspected and unknown results rather than presenting only successful detections. A separate ${facts.studies}-project corpus exercises the broader source-review method. [Method and reproduction commands](${journeysLink}).`,
   '',
-  `Distribution is part of the threat model. [v${facts.version}](${facts.release}) includes a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. The recommended installer verifies an immutable bootstrap before execution, then verifies the release it installs.`,
+  `Distribution is part of the threat model. [v${facts.publishedVersion}](${facts.release}) includes a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. The recommended installer verifies an immutable bootstrap before execution, then verifies the release it installs.`,
   '',
   'The useful review question is not whether this replaces an AppSec team or a general scanner; it does not. The question is whether the evidence states, patch boundary, retest contract and installation chain are strict enough to make an agent-assisted first pass safer and easier to review.',
   '',
@@ -212,7 +216,7 @@ add('docs/adoption/channels/show-hn.md', [
   '',
   `The local demo is generated from a repository-owned fixture: ${facts.beforeHigh} high / ${facts.beforeMedium} medium, then a patch, then ${facts.afterHigh} high / ${facts.afterMedium} medium on the same path. The repository also separates ${facts.automated} regression-tested capabilities from ${facts.guided} agent-guided methods and publishes ${facts.journeys} fixed-commit ordinary-project journeys, including zero-finding and unknown outcomes.`,
   '',
-  `The installer verifies pinned bootstrap bytes and release assets; v${facts.version} includes a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.`,
+  `The installer verifies pinned bootstrap bytes and release assets; v${facts.publishedVersion} includes a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.`,
   '',
   `Demo evidence: ${demoLink}`,
   '',
@@ -238,7 +242,7 @@ add('docs/adoption/channels/reddit.md', [
   '',
   `The reproducible owned-fixture demo currently shows ${facts.beforeHigh} high / ${facts.beforeMedium} medium -> ${facts.afterHigh} high / ${facts.afterMedium} medium and keeps the reports and patch in the repository. The public capability contract labels ${facts.automated} items automated/regression-tested and ${facts.guided} agent-guided.`,
   '',
-  `I kept the ${facts.journeys} ordinary-project source journeys at immutable commits and included zero-finding, false-positive and unknown results. No hosted instance was probed. Release v${facts.version} adds a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.`,
+  `I kept the ${facts.journeys} ordinary-project source journeys at immutable commits and included zero-finding, false-positive and unknown results. No hosted instance was probed. Release v${facts.publishedVersion} adds a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.`,
   '',
   `Evidence inventory: ${launchEvidenceLink}`,
   '',
@@ -284,7 +288,7 @@ add('docs/adoption/channels/v2ex.md', [
   '',
   `目前能力合同共 ${facts.capabilities} 项，其中 ${facts.automated} 项 automated/regression-tested，${facts.guided} 项 agent-guided。后者需要项目上下文和人工复核，不包装成全自动扫描器。另有 ${facts.journeys} 个固定 commit 的普通开源项目旅程，保留零 finding、误报关闭和 unknown 结果，未探测线上实例。`,
   '',
-  `v${facts.version} release 提供签名 tag、可复现归档、SPDX SBOM、校验和、manifest 与 provenance。安装路径会先固定并校验 bootstrap，再校验 release 资产。`,
+  `v${facts.publishedVersion} release 提供签名 tag、可复现归档、SPDX SBOM、校验和、manifest 与 provenance。安装路径会先固定并校验 bootstrap，再校验 release 资产。`,
   '',
   `Demo 证据：${demoLink}`,
   '',
@@ -320,7 +324,7 @@ add('docs/adoption/channels/chinese-developer-community.md', [
   '',
   `案例证据包括 ${facts.journeys} 个固定 commit 的普通项目旅程和独立的 ${facts.studies} 个源码方法论案例。普通项目旅程在 deny-network 边界内工作，不探测托管实例，并公开零 finding、误报关闭、suspected 与 unknown。`,
   '',
-  `供应链方面，v${facts.version} 提供签名 tag、可复现源码包、SPDX SBOM、SHA-256 校验和、release manifest 与构建 provenance；推荐安装路径在执行前校验固定 bootstrap，再验证 release。`,
+  `供应链方面，v${facts.publishedVersion} 提供签名 tag、可复现源码包、SPDX SBOM、SHA-256 校验和、release manifest 与构建 provenance；推荐安装路径在执行前校验固定 bootstrap，再验证 release。`,
   '',
   `- 项目：${facts.repo}`,
   `- Demo：${demoLink}`,
@@ -349,7 +353,7 @@ add('docs/adoption/citations.md', [
   `| \`capabilities.contract\` | The v${facts.version} contract lists ${facts.capabilities} capabilities: ${facts.automated} automated/regression-tested, ${facts.guided} agent-guided and ${facts.planned} planned. | [Generated capability matrix](${capabilityLink}) | A capability count is not vulnerability coverage or precision. |`,
   `| \`cases.ordinary\` | ${facts.journeys} ordinary project journeys use immutable source commits with no hosted instance probed. | [Journey evidence](${journeysLink}) | Source-only scope; zero, false-positive and unknown outcomes remain visible; no upstream validation claimed. |`,
   `| \`cases.method\` | ${facts.studies} separate fixed-commit studies exercise the source-review methodology. | [Case-study method](${facts.repo}/blob/main/docs/case-studies/README.md) | Not a CLI precision benchmark. |`,
-  `| \`release.integrity\` | v${facts.version} records a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. | [Release evidence](${facts.repo}/blob/main/${releaseEvidencePath}) | Artifact identity/origin does not prove every security conclusion. |`,
+  `| \`release.integrity\` | v${facts.publishedVersion} records a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. | [Release evidence](${facts.repo}/blob/main/${releaseEvidencePath}) | Artifact identity/origin does not prove every security conclusion. |`,
   `| \`distribution.marketplace\` | The composite Action is listed in GitHub Marketplace. | [Marketplace](${facts.marketplace}) | Listing presence is not adoption or security evidence. |`,
   '',
   '## Machine-readable source',
@@ -364,7 +368,8 @@ const share = {
   product: facts.product,
   repository: facts.repo,
   marketplace: facts.marketplace,
-  release: { version: facts.version, url: facts.release },
+  productVersion: facts.version,
+  release: { version: facts.publishedVersion, url: facts.release, state: 'published' },
   promise: { en: facts.promiseEn, 'zh-CN': facts.promiseZh },
   capabilityContract: {
     total: facts.capabilities,

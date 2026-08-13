@@ -11,7 +11,8 @@ const check = process.argv.includes('--check');
 const capabilities = JSON.parse(readFileSync(join(ROOT, 'docs', 'capabilities.json'), 'utf8'));
 const publicContract = JSON.parse(readFileSync(join(ROOT, 'docs', 'public-contract.json'), 'utf8'));
 const journeys = JSON.parse(readFileSync(join(ROOT, 'docs', 'case-studies', 'journeys', 'evidence.json'), 'utf8'));
-const version = readFileSync(join(ROOT, 'VERSION'), 'utf8').trim();
+const releaseState = JSON.parse(readFileSync(join(ROOT, 'docs', 'release-state.json'), 'utf8'));
+const published = releaseState.publishedRelease;
 const temp = mkdtempSync(join(tmpdir(), 'web-app-security-launch-'));
 
 function heading(path) {
@@ -52,7 +53,7 @@ try {
     `| Local before/after demo | ${severity(before, 'high')} high / ${severity(before, 'medium')} medium -> ${severity(after, 'high')} high / ${severity(after, 'medium')} medium | [Generated demo evidence](demo-evidence.md) |`,
     `| Ordinary project journeys | ${journeys.journeys.length} fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |`,
     `| Source methodology studies | ${publicContract.methodStudies.length} fixed-commit studies, kept separate from CLI precision claims | [Study method](case-studies/README.md) |`,
-    `| Release | v${version} signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance | [v${version} release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v${version}) |`,
+    `| Release | v${published.version} signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance | [v${published.version} release](${published.url}) |`,
     '',
     '## Ordinary project journeys',
     '',

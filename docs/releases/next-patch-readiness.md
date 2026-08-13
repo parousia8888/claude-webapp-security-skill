@@ -80,8 +80,17 @@ After the version decision, the release gate is:
 3. Verify archive structure, SHA-256 list, release manifest, SPDX SBOM and isolated lifecycle.
 4. Obtain explicit owner confirmation before creating or pushing the signed version tag.
 5. Wait for release CI and provenance attestation, then verify the public assets and checksums.
-6. Obtain explicit owner confirmation before moving the mutable `v1` tag; run the public `@v1`
+6. From the immutable public assets, add the new version, source commit and four asset digests to a
+   later verifier commit; then pin that verifier from a later bootstrap commit and update the README
+   command to the bootstrap's immutable digest. The release archive cannot contain its own final
+   archive digest, so this trust-anchor publication is intentionally post-release.
+7. Obtain explicit owner confirmation before moving the mutable `v1` tag; run the public `@v1`
    consumer again after the move.
 
 Until those steps exist as evidence, the next release, provenance and updated `v1` consumer result
 remain `external_validation_pending`.
+
+`docs/release-state.json` is the structured boundary between the working product version, the latest
+actually published release, the stable Action target and the versions accepted by the verified
+installer. Generated launch/publication assets and the live GitHub checker use the published-release
+record, so a candidate `VERSION` cannot become an "already published" claim before the release exists.
