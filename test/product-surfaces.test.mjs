@@ -181,6 +181,9 @@ try {
     assert.ok(existsSync(join(installed, 'docs', 'finding-v2.schema.json')));
     assert.ok(existsSync(join(installed, 'docs', 'report-v2.schema.json')));
     assert.ok(existsSync(join(installed, 'docs', 'report-v2-migration.md')));
+    assert.ok(existsSync(join(installed, 'docs', 'finding-v3.schema.json')));
+    assert.ok(existsSync(join(installed, 'docs', 'report-v3.schema.json')));
+    assert.ok(existsSync(join(installed, 'docs', 'report-v3-migration.md')));
     assert.ok(existsSync(join(installed, 'docs', 'adapter-protocol.md')));
     assert.ok(existsSync(join(installed, 'docs', 'alert-policy.md')));
     assert.ok(existsSync(join(installed, 'docs', 'rule-taxonomy.md')));
@@ -232,7 +235,7 @@ try {
   ], { env: { ...process.env, HOME: allHome, SOURCE_DATE_EPOCH: '0' } });
   assert.equal(result.status, 0, result.stderr);
   const installedReport = JSON.parse(readFileSync(join(installedAuditOut, 'installed.json'), 'utf8'));
-  assert.equal(installedReport.schemaVersion, 2);
+  assert.equal(installedReport.schemaVersion, 3);
   assert.equal(installedReport.subject.binding, 'ephemeral');
   assert.equal(JSON.stringify(installedReport).includes(installedAuditOut), false);
   assert.equal(installedReport.summary.byState.confirmed, 1);

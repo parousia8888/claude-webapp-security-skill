@@ -139,7 +139,8 @@ const include = [
   'SKILL.md', 'VERSION', 'LICENSE', 'agents', 'assets', 'examples', 'references', 'scripts',
   'docs/capabilities.json', 'docs/capabilities.md', 'docs/security-scope.schema.json',
   'docs/finding.schema.json', 'docs/report.schema.json', 'docs/finding-v2.schema.json',
-  'docs/report-v2.schema.json', 'docs/report-v2-migration.md',
+  'docs/report-v2.schema.json', 'docs/report-v2-migration.md', 'docs/finding-v3.schema.json',
+  'docs/report-v3.schema.json', 'docs/report-v3-migration.md',
   'docs/adapter-protocol.md', 'docs/alert-policy.md', 'docs/rule-taxonomy.md',
 ];
 

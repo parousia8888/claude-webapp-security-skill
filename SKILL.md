@@ -157,9 +157,12 @@ Every audit deliverable states:
 - **priority plan**: this-week / high / medium / continuous, with blast-radius notes for anything that could break live traffic or crawling
 - **retest plan**: how each fix will be verified, and by whom
 
-For deterministic conclusions, use `docs/finding-v2.schema.json` and `docs/report-v2.schema.json`.
-Source, crawl, demo, crawler identity, edge and AWS share v2 finding, coverage, policy and exit
-semantics; keep tool-specific raw observations separate. Preserve `confirmed`, `suspected`,
-`unknown`, and `not_applicable` in every renderer. A patch is review evidence only. Set baseline
-state to `fixed` only when persisted subject/scope and rule identity are compatible, current
-coverage completed, and the condition is affirmatively absent.
+For deterministic source conclusions, use `docs/finding-v3.schema.json` and
+`docs/report-v3.schema.json`; read `docs/report-v3-migration.md` for the v2 baseline boundary.
+Source v3 adds professional and plain-language meaning, consequence, evidence limits, a reviewable
+proposal, side effects, separate security and functional retests, rollback criteria and decisions
+that remain with the user. Crawl, demo, crawler identity, edge and AWS remain on the v2 contract.
+Both versions preserve the same evidence states, coverage, policy and exit semantics; keep
+tool-specific raw observations separate. A patch is review evidence only. Set baseline state to
+`fixed` only when persisted subject/scope and rule identity are compatible, current coverage
+completed, and the condition is affirmatively absent.

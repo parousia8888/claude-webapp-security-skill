@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/finding-v3.schema.json",
+  "title": "Web App Security Skill finding v3 explanation contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "fingerprint", "fingerprintVersion", "rule", "adapter", "domain", "title", "severity", "state", "summary", "location", "evidence", "remediation", "retest", "explanation", "baseline"],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "id": { "$ref": "#/$defs/id" },
+    "fingerprint": { "$ref": "#/$defs/sha256" },
+    "fingerprintVersion": { "const": 2 },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "revision"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "revision": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$" }
+      }
+    },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "rulesetDigest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "rulesetDigest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "domain": { "$ref": "#/$defs/domain" },
+    "title": { "$ref": "#/$defs/shortText" },
+    "severity": { "$ref": "#/$defs/severity" },
+    "state": { "$ref": "#/$defs/resultState" },
+    "summary": { "$ref": "#/$defs/longText" },
+    "location": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "line"],
+          "properties": {
+            "path": { "type": "string", "minLength": 1, "maxLength": 160 },
+            "line": { "type": ["integer", "null"], "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "evidence": { "type": "object" },
+    "remediation": { "$ref": "#/$defs/longText" },
+    "retest": { "$ref": "#/$defs/longText" },
+    "explanation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["technicalTerm", "plainLanguage", "consequence", "evidenceBoundary", "standards", "proposal", "alternatives", "sideEffects", "securityRetest", "functionalRetest", "rollback", "userDecisions"],
+      "properties": {
+        "technicalTerm": { "$ref": "#/$defs/shortText" },
+        "plainLanguage": { "$ref": "#/$defs/longText" },
+        "consequence": { "$ref": "#/$defs/longText" },
+        "evidenceBoundary": { "$ref": "#/$defs/longText" },
+        "standards": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "url"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^(?:CWE-[1-9][0-9]*|OWASP-TOP10-2025-A(?:0[1-9]|10)|OWASP-API-2023-API(?:[1-9]|10)|OWASP-ASVS-5\\.0\\.0-[1-9][0-9]*(?:\\.[0-9]+){1,2}|NIST-SSDF-1\\.1-[A-Z]{2}\\.[0-9]+\\.[0-9]+)$" },
+              "url": { "type": "string", "pattern": "^https://[^\\s]+$", "maxLength": 512 }
+            }
+          }
+        },
+        "proposal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "summary"],
+          "properties": {
+            "status": { "enum": ["ready_for_review", "review_required", "no_safe_automatic_change", "not_applicable"] },
+            "summary": { "$ref": "#/$defs/longText" }
+          }
+        },
+        "alternatives": { "$ref": "#/$defs/textList" },
+        "sideEffects": { "$ref": "#/$defs/nonEmptyTextList" },
+        "securityRetest": { "$ref": "#/$defs/longText" },
+        "functionalRetest": { "$ref": "#/$defs/longText" },
+        "rollback": { "$ref": "#/$defs/longText" },
+        "userDecisions": { "$ref": "#/$defs/textList" }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "priorFingerprint", "compatibility", "currentCheck", "coverageRef", "reasonCode"],
+      "properties": {
+        "state": { "enum": ["new", "unchanged", "regressed", "fixed", "unretested", "not_comparable", null] },
+        "priorFingerprint": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "compatibility": { "enum": ["compatible", "not_comparable", "not_attempted"] },
+        "currentCheck": { "enum": ["completed", "incomplete", "not_run"] },
+        "coverageRef": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+        "reasonCode": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "fixed" } }, "required": ["state"] },
+          "then": { "properties": { "priorFingerprint": { "$ref": "#/$defs/sha256" }, "compatibility": { "const": "compatible" }, "currentCheck": { "const": "completed" }, "coverageRef": { "$ref": "#/$defs/id" }, "reasonCode": { "const": "condition_absent_after_completed_check" } } }
+        },
+        {
+          "if": { "properties": { "state": { "const": "unretested" } }, "required": ["state"] },
+          "then": { "properties": { "priorFingerprint": { "$ref": "#/$defs/sha256" }, "compatibility": { "const": "compatible" }, "currentCheck": { "enum": ["incomplete", "not_run"] }, "reasonCode": { "$ref": "#/$defs/id" } } }
+        },
+        {
+          "if": { "properties": { "state": { "const": "not_comparable" } }, "required": ["state"] },
+          "then": { "properties": { "compatibility": { "const": "not_comparable" }, "reasonCode": { "$ref": "#/$defs/id" } } }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "domain": { "enum": ["security_exposure", "supply_chain", "search_discoverability", "reliability", "evidence_integrity"] },
+    "severity": { "enum": ["critical", "high", "medium", "low", "info"] },
+    "resultState": { "enum": ["confirmed", "suspected", "unknown", "not_applicable"] },
+    "shortText": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]+$" },
+    "longText": { "type": "string", "minLength": 1, "maxLength": 4096, "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]+$" },
+    "textList": { "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/longText" } },
+    "nonEmptyTextList": { "type": "array", "minItems": 1, "maxItems": 12, "items": { "$ref": "#/$defs/longText" } }
+  }
+}

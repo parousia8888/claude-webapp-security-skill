@@ -2,10 +2,11 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { policyForFailOn } from './lib/evidence-v2.mjs';
 import {
-  assertComparableBaseline, compareFindingsV2, createFindingV2, createReportV2, exitCodeV2,
-  initializeFindingsV2, policyForFailOn, readBaselineV2, sourceFindingV2, writeReportBundleV2,
-} from './lib/evidence-v2.mjs';
+  assertComparableBaselineV3, compareFindingsV3, createFindingV3, createReportV3, exitCodeV3,
+  initializeFindingsV3, readBaselineV3, sourceFindingV3, writeReportBundleV3,
+} from './lib/evidence-v3.mjs';
 import { auditSource, renderPatch } from './lib/source-audit.mjs';
 import { parseAdapterSelection, parseAdapterTimeout } from './lib/adapter-definitions.mjs';
 import { runExternalAdapters } from './lib/external-adapters.mjs';
@@ -182,10 +183,10 @@ try {
     ...external.flatMap((result) => result.coverage),
   ];
   const current = [
-    ...rawFindings.map((finding) => sourceFindingV2(finding, ruleset)),
+    ...rawFindings.map((finding) => sourceFindingV3(finding, ruleset)),
     ...external.flatMap((result) => result.findings).map((finding) => {
       const rule = sourceRuleForAdapter(finding.adapterId, finding.ruleId, selectedAdapters);
-      return createFindingV2({
+      return createFindingV3({
         ruleset,
         adapterId: finding.adapterId,
         rule,
@@ -203,15 +204,15 @@ try {
   let baseline = null;
   let findings;
   if (baselinePath) {
-    const loaded = readBaselineV2(resolve(baselinePath));
-    baseline = assertComparableBaseline(subject, loaded.report, loaded.rawBytes);
+    const loaded = readBaselineV3(resolve(baselinePath));
+    baseline = assertComparableBaselineV3(subject, loaded.report, loaded.rawBytes);
     if (baseline.sourceDigest !== loaded.sourceDigest) throw new Error('baseline digest metadata is inconsistent');
-    findings = compareFindingsV2(current, coverage, loaded.report, ruleset);
+    findings = compareFindingsV3(current, coverage, loaded.report, ruleset);
   } else {
-    findings = initializeFindingsV2(current, coverage);
+    findings = initializeFindingsV3(current, coverage);
   }
 
-  const report = createReportV2({
+  const report = createReportV3({
     version: readFileSync(join(ROOT, 'VERSION'), 'utf8').trim(),
     generatedAt: now.toISOString(),
     mode,
@@ -244,7 +245,7 @@ try {
     ],
   });
 
-  const files = writeReportBundleV2(report, output, name, { additionalFiles: [
+  const files = writeReportBundleV3(report, output, name, { additionalFiles: [
     ...(persistScope ? [{ name: 'security-scope.yml', json: localScope, sanitize: false }] : []),
     { name: 'proposed.patch', content: renderPatch(rawFindings) },
   ] });
@@ -254,7 +255,7 @@ try {
   console.log(`states:    confirmed=${report.summary.byState.confirmed}, suspected=${report.summary.byState.suspected}, unknown=${report.summary.byState.unknown}`);
   console.log(`baseline:  new=${report.summary.byBaseline.new}, fixed=${report.summary.byBaseline.fixed}, unchanged=${report.summary.byBaseline.unchanged}, regressed=${report.summary.byBaseline.regressed}, unretested=${report.summary.byBaseline.unretested}, not_comparable=${report.summary.byBaseline.not_comparable}`);
   console.log(`network:   ${external.some((result) => result.networkAccessPerformed) ? 'OSV public database query' : 'none'}`);
-  process.exit(exitCodeV2(report));
+  process.exit(exitCodeV3(report));
 } catch (error) {
   usage(2, error.message);
 }

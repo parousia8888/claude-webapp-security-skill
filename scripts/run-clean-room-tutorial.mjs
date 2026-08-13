@@ -69,7 +69,8 @@ try {
     cwd: ROOT, env,
   }).stdout;
   writeFileSync(join(output, 'finding-explanation.md'), explanation, { mode: 0o600 });
-  assert.match(explanation, /Evidence state: suspected/);
+  assert.match(explanation, /security_exposure \/ medium \/ suspected/);
+  assert.match(explanation, /Professional term:/);
 
   run(launcher, [
     'rebind', after, '--scope', join(audit, 'security-scope.yml'),
@@ -91,7 +92,7 @@ try {
   assert.equal(existsSync(launcher), false);
 
   const result = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     durationBudgetSeconds: 600,
     elapsedMilliseconds: Date.now() - started,
     networkAccessPerformed: false,

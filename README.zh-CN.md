@@ -128,10 +128,11 @@ OSV-Scanner 可能查询公共 OSV 数据库，但不会执行项目依赖。外
 `--acknowledge-alert-policy`。版本、失败与脱敏语义见
 [`adapter protocol`](docs/adapter-protocol.md)。
 
-每次源码 audit 会写出 v2 JSON、Markdown、HTML、SARIF、JUnit、SHA-256 sidecar 和
-`proposed.patch`。直接对项目执行的一次性 audit 使用 ephemeral identity，不能作为复测 baseline。
-`fixed` 必须同时满足 persisted subject/scope 相同、rule 兼容、本次 coverage 已完成且条件明确不存在。
-命令不会应用补丁，也不授予部署探测权限。
+每次源码 audit 会写出 v3 JSON、Markdown、HTML、SARIF、JUnit、SHA-256 sidecar 和
+`proposed.patch`。每条源码 finding 同时保留专业术语和通俗解释，并说明可能后果、证据边界、待审查
+提案、副作用、安全复测、功能复测、回滚条件与需要用户决定的事项。直接对项目执行的一次性 audit
+使用 ephemeral identity，不能作为复测 baseline。`fixed` 必须同时满足 persisted subject/scope
+相同、rule 兼容、本次 coverage 已完成且条件明确不存在。命令不会应用补丁，也不授予部署探测权限。
 
 报告先按风险 domain，再按 evidence state，最后按 severity 汇总。默认 CI policy 只 gate 已确认的
 HIGH `security_exposure` 与 `supply_chain` finding。现有 `--fail-on` 继续同时设置这两个 domain；
@@ -206,11 +207,12 @@ webapp-security aws --profile default --region us-east-1 --out ./security-report
 主动限流复测同样要求 `--acknowledge-authorization`。网络或证据源失败会得到 `unknown` 和非零退出，
 不会被描述成安全。
 
-Source、crawl、demo、crawler identity、edge 与 AWS 结论现在共用同一套 v2 finding、coverage、
-policy 和退出码 runtime。Report bundle 和各工具的 observation 会先在内存中脱敏，再以私有
-staging 文件写入目标目录并整套提交，不覆盖已有证据；renderer 或可处理的写入失败会回滚，不留
-下半套新 bundle。历史 v1 报告只用于展示、release 校验与显式的不可比较迁移，不能作为可比较
-baseline。
+Source 结论使用 finding/report v3；crawl、demo、crawler identity、edge 与 AWS 仍使用 v2。
+两个版本保留相同的 coverage、证据状态、policy 与退出码语义。Report bundle 和各工具的
+observation 会先在内存中脱敏，再以私有 staging 文件写入目标目录并整套提交，不覆盖已有证据；
+renderer 或可处理的写入失败会回滚，不留下半套新 bundle。历史 v1 报告只用于展示、release 校验
+与显式的不可比较迁移，不能作为可比较 baseline。符合 subject、scope、rule 和 coverage 兼容条件的
+persisted v2 源码 baseline 可继续读取，并只在内存中升级后参与 v3 对比，原文件不会被改写。
 
 ## GitHub Action
 

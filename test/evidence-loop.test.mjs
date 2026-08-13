@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { validateRuntimeReportV2 } from '../scripts/lib/evidence-v2.mjs';
+import { validateRuntimeReportV3 } from '../scripts/lib/evidence-v3.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const CLI = join(ROOT, 'scripts', 'webapp-security.mjs');
@@ -50,8 +50,8 @@ try {
   }
   const baselinePath = join(baselineDir, 'baseline.json');
   const baseline = report(baselinePath);
-  assert.deepEqual(validateRuntimeReportV2(baseline), []);
-  assert.equal(baseline.schemaVersion, 2);
+  assert.deepEqual(validateRuntimeReportV3(baseline), []);
+  assert.equal(baseline.schemaVersion, 3);
   assert.equal(baseline.generatedAt, '1970-01-01T00:00:00.000Z');
   assert.equal(baseline.subject.binding, 'persisted');
   assert.equal(JSON.stringify(baseline).includes(temp), false, 'v2 report must not contain local absolute paths');
@@ -82,8 +82,9 @@ try {
 
   result = run(['explain', sourceMapFinding.id, '--report', baselinePath]);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Risk domain: security_exposure/);
-  assert.match(result.stdout, /Evidence state: suspected/);
+  assert.match(result.stdout, /security_exposure \/ medium \/ suspected/);
+  assert.match(result.stdout, /Professional term:/);
+  assert.match(result.stdout, /What the evidence proves:/);
   result = run(['explain', 'missing-finding', '--report', baselinePath]);
   assert.equal(result.status, 2);
   assert.match(result.stderr, /finding not found/);

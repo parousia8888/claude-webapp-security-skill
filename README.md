@@ -132,11 +132,14 @@ blocking external-adapter run additionally requires `--acknowledge-alert-policy`
 repository accepts the responsibilities in [`docs/alert-policy.md`](docs/alert-policy.md). See the
 [`adapter protocol`](docs/adapter-protocol.md) for failure, redaction and version semantics.
 
-Each source audit writes v2 JSON, Markdown, HTML, SARIF, JUnit, a SHA-256 sidecar and
-`proposed.patch`. A direct project audit is allowed for one-off review but has ephemeral identity and
-cannot be a retest baseline. `fixed` requires the same persisted subject and scope, a compatible
-rule, completed current coverage and affirmative absence of the condition. The patch is never
-applied by this command. None of these commands grants permission to probe a deployment.
+Each source audit writes v3 JSON, Markdown, HTML, SARIF, JUnit, a SHA-256 sidecar and
+`proposed.patch`. Every source finding keeps the professional term and adds plain-language meaning,
+consequence, evidence limits, a reviewable proposal, side effects, separate security and functional
+retests, rollback criteria and user decisions. A direct project audit is allowed for one-off review
+but has ephemeral identity and cannot be a retest baseline. `fixed` requires the same persisted
+subject and scope, a compatible rule, completed current coverage and affirmative absence of the
+condition. The patch is never applied by this command. None of these commands grants permission to
+probe a deployment.
 
 Reports summarize by risk domain, then evidence state, then severity. The default CI policy gates
 confirmed HIGH `security_exposure` and `supply_chain` findings only. Existing `--fail-on` behavior
@@ -216,12 +219,14 @@ webapp-security aws --profile default --region us-east-1 --out ./security-report
 Active rate-limit verification also requires `--acknowledge-authorization`. Network or evidence
 failure is `unknown` and exits non-zero; it is never rendered as safe.
 
-Source, crawl, demo, crawler identity, edge and AWS conclusions use the same v2 finding, coverage,
-policy and exit-code runtime. Report bundles and their tool-specific observations are sanitized in
-memory, staged as private files in the target directory, and committed together without overwriting
-prior evidence. A renderer or handled write failure is rolled back without leaving a partial new
-bundle. Historical v1 reports remain readable only for display, release verification and explicit
-non-comparable migration; they are never accepted as a comparable baseline.
+Source conclusions use finding/report v3; crawl, demo, crawler identity, edge and AWS remain on v2.
+Both versions preserve the same coverage, evidence-state, policy and exit-code semantics. Report
+bundles and their tool-specific observations are sanitized in memory, staged as private files in the
+target directory, and committed together without overwriting prior evidence. A renderer or handled
+write failure is rolled back without leaving a partial new bundle. Historical v1 reports remain
+readable only for display, release verification and explicit non-comparable migration; they are
+never accepted as a comparable baseline. Compatible persisted v2 source baselines remain readable
+and are upgraded in memory for v3 comparison without rewriting their bytes.
 
 ## GitHub Action
 

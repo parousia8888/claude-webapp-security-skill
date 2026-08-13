@@ -24,7 +24,8 @@ try {
   assert.equal(evidence.baseline.byState.suspected, 3);
   assert.equal(evidence.retest.byBaseline.fixed, 4);
   assert.match(readFileSync(join(output, 'runs', 'first-project', 'proposed.patch'), 'utf8'), /does not prove a fix/);
-  assert.match(readFileSync(join(output, 'finding-explanation.md'), 'utf8'), /Evidence state: suspected/);
+  assert.equal(evidence.schemaVersion, 3);
+  assert.match(readFileSync(join(output, 'finding-explanation.md'), 'utf8'), /Professional term:/);
   console.log('tutorial ok: isolated install, scope, report, explain, patch, retest, upgrade, uninstall');
 } finally {
   rmSync(temp, { recursive: true, force: true });

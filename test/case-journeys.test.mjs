@@ -168,7 +168,7 @@ else console.log('{"results":[]}');
   assert.equal(result.status, 2);
   assert.match(result.stderr, /outside the source checkout/);
 
-  console.log('✓ case journeys: v2 catalog, pinned adapter runner, and representative patch/retest');
+  console.log('✓ case journeys: v3 source reports, pinned adapter runner, and representative patch/retest');
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

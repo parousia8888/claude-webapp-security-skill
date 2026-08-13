@@ -86,7 +86,7 @@ function digestFindingContent(report, adapterId) {
 function compareReport(journey, report) {
   const expected = journey.corpus;
   const errors = [];
-  if (report.schemaVersion !== 2) errors.push('report schemaVersion is not 2');
+  if (report.schemaVersion !== 3) errors.push('source report schemaVersion is not 3');
   if (report.ruleset.digest !== expected.rulesetDigest) errors.push('ruleset digest changed');
   if (report.summary.byState.confirmed !== expected.snapshot.summary.confirmed) errors.push('confirmed count changed');
   if (report.findings.some((finding) => finding.adapter.id !== 'builtin-source'

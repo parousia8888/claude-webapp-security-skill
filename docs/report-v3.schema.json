@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/report-v3.schema.json",
+  "title": "Web App Security Skill report v3 explanation contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tool", "generatedAt", "mode", "subject", "ruleset", "scope", "policy", "coverage", "summary", "findings", "limitations", "baseline", "migration"],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": { "name": { "const": "Web App Security Skill" }, "version": { "type": "string", "minLength": 1 } }
+    },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "mode": { "enum": ["audit", "retest", "demo-before", "demo-after"] },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "binding", "scopeDigest", "localPathIncluded"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{15,127}$" },
+        "binding": { "enum": ["persisted", "ephemeral", "migrated"] },
+        "scopeDigest": { "$ref": "#/$defs/sha256" },
+        "localPathIncluded": { "const": false }
+      }
+    },
+    "ruleset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digest", "fingerprintVersion", "adapters"],
+      "properties": {
+        "digest": { "$ref": "#/$defs/sha256" },
+        "fingerprintVersion": { "const": 2 },
+        "adapters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "version", "rulesetDigest", "maturity"],
+            "properties": {
+              "id": { "$ref": "#/$defs/id" },
+              "version": { "type": "string", "minLength": 1 },
+              "rulesetDigest": { "$ref": "#/$defs/sha256" },
+              "maturity": { "enum": ["stable", "experimental"] }
+            }
+          }
+        }
+      }
+    },
+    "scope": { "type": "object" },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["thresholds", "precedence"],
+      "properties": {
+        "thresholds": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["domain", "failOn"],
+            "properties": { "domain": { "$ref": "#/$defs/domain" }, "failOn": { "enum": ["critical", "high", "medium", "low", "never"] } }
+          }
+        },
+        "precedence": { "const": "confirmed_threshold_before_incomplete" }
+      }
+    },
+    "coverage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "adapterId", "ruleId", "ruleRevision", "status", "counts", "reasons"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "adapterId": { "$ref": "#/$defs/id" },
+          "ruleId": { "$ref": "#/$defs/id" },
+          "ruleRevision": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$" },
+          "status": { "enum": ["completed", "partial", "unavailable", "not_applicable"] },
+          "counts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["discovered", "eligible", "scanned", "excluded", "skipped", "truncated", "errors"],
+            "properties": {
+              "discovered": { "type": "integer", "minimum": 0 }, "eligible": { "type": "integer", "minimum": 0 },
+              "scanned": { "type": "integer", "minimum": 0 }, "excluded": { "type": "integer", "minimum": 0 },
+              "skipped": { "type": "integer", "minimum": 0 }, "truncated": { "type": "integer", "minimum": 0 },
+              "errors": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code", "count", "samplePaths"],
+              "properties": {
+                "code": { "$ref": "#/$defs/id" },
+                "count": { "type": "integer", "minimum": 1 },
+                "samplePaths": { "type": "array", "maxItems": 10, "items": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!/)(?![A-Za-z]:[\\/])(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000-\\u001f\\u007f]+$" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "byDomain", "bySeverity", "byState", "byBaseline"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "byDomain": {
+          "type": "object", "additionalProperties": false,
+          "required": ["security_exposure", "supply_chain", "search_discoverability", "reliability", "evidence_integrity"],
+          "properties": {
+            "security_exposure": { "$ref": "#/$defs/domainSummary" }, "supply_chain": { "$ref": "#/$defs/domainSummary" },
+            "search_discoverability": { "$ref": "#/$defs/domainSummary" }, "reliability": { "$ref": "#/$defs/domainSummary" },
+            "evidence_integrity": { "$ref": "#/$defs/domainSummary" }
+          }
+        },
+        "bySeverity": { "$ref": "#/$defs/severityCounts" },
+        "byState": { "$ref": "#/$defs/stateCounts" },
+        "byBaseline": { "$ref": "#/$defs/baselineCounts" }
+      }
+    },
+    "findings": { "type": "array", "items": { "$ref": "./finding-v3.schema.json" } },
+    "limitations": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 4096 } },
+    "baseline": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sourceDigest", "sourceSchemaVersion", "subjectId", "scopeDigest", "rulesetDigest", "compatibility", "reasonCode"],
+          "properties": {
+            "sourceDigest": { "$ref": "#/$defs/sha256" },
+            "sourceSchemaVersion": { "enum": [1, 2, 3] },
+            "subjectId": { "type": "string" },
+            "scopeDigest": { "$ref": "#/$defs/sha256" },
+            "rulesetDigest": { "$ref": "#/$defs/sha256" },
+            "compatibility": { "enum": ["compatible", "not_comparable"] },
+            "reasonCode": { "type": ["string", "null"] }
+          }
+        }
+      ]
+    },
+    "migration": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sourceSchemaVersion", "sourceDigest", "sourceTool", "boundBy", "boundAt"],
+          "properties": {
+            "sourceSchemaVersion": { "const": 1 },
+            "sourceDigest": { "$ref": "#/$defs/sha256" },
+            "sourceTool": { "type": "object", "additionalProperties": false, "required": ["name", "version"], "properties": { "name": { "const": "Web App Security Skill" }, "version": { "type": "string", "minLength": 1 } } },
+            "boundBy": { "const": "explicit_user_binding" },
+            "boundAt": { "type": "string", "format": "date-time" }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "mode": { "const": "retest" } }, "required": ["mode"] }, "then": { "properties": { "baseline": { "type": "object" } } } },
+    {
+      "if": { "properties": { "baseline": { "type": "object", "properties": { "sourceSchemaVersion": { "const": 1 } }, "required": ["sourceSchemaVersion"] } }, "required": ["baseline"] },
+      "then": { "properties": { "subject": { "properties": { "binding": { "const": "migrated" } }, "required": ["binding"] }, "migration": { "type": "object" }, "baseline": { "properties": { "compatibility": { "const": "not_comparable" } } } } }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "domain": { "enum": ["security_exposure", "supply_chain", "search_discoverability", "reliability", "evidence_integrity"] },
+    "severityCounts": { "type": "object", "additionalProperties": false, "required": ["critical", "high", "medium", "low", "info"], "properties": { "critical": { "type": "integer", "minimum": 0 }, "high": { "type": "integer", "minimum": 0 }, "medium": { "type": "integer", "minimum": 0 }, "low": { "type": "integer", "minimum": 0 }, "info": { "type": "integer", "minimum": 0 } } },
+    "stateCounts": { "type": "object", "additionalProperties": false, "required": ["confirmed", "suspected", "unknown", "not_applicable"], "properties": { "confirmed": { "type": "integer", "minimum": 0 }, "suspected": { "type": "integer", "minimum": 0 }, "unknown": { "type": "integer", "minimum": 0 }, "not_applicable": { "type": "integer", "minimum": 0 } } },
+    "baselineCounts": { "type": "object", "additionalProperties": false, "required": ["new", "unchanged", "regressed", "fixed", "unretested", "not_comparable"], "properties": { "new": { "type": "integer", "minimum": 0 }, "unchanged": { "type": "integer", "minimum": 0 }, "regressed": { "type": "integer", "minimum": 0 }, "fixed": { "type": "integer", "minimum": 0 }, "unretested": { "type": "integer", "minimum": 0 }, "not_comparable": { "type": "integer", "minimum": 0 } } },
+    "domainSummary": { "type": "object", "additionalProperties": false, "required": ["total", "byState"], "properties": { "total": { "type": "integer", "minimum": 0 }, "byState": { "type": "object", "additionalProperties": false, "required": ["confirmed", "suspected", "unknown", "not_applicable"], "properties": { "confirmed": { "$ref": "#/$defs/stateSeveritySummary" }, "suspected": { "$ref": "#/$defs/stateSeveritySummary" }, "unknown": { "$ref": "#/$defs/stateSeveritySummary" }, "not_applicable": { "$ref": "#/$defs/stateSeveritySummary" } } } } },
+    "stateSeveritySummary": { "type": "object", "additionalProperties": false, "required": ["total", "bySeverity"], "properties": { "total": { "type": "integer", "minimum": 0 }, "bySeverity": { "$ref": "#/$defs/severityCounts" } } }
+  }
+}
