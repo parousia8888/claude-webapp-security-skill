@@ -47,6 +47,9 @@ for (const [path, markers] of [
     'diff -u dist/SHA256SUMS dist-rebuild/SHA256SUMS',
     'actions/attest-build-provenance@',
   ]],
+  ['.github/workflows/ci.yml', [
+    'fetch-depth: 0',
+  ]],
   ['.github/workflows/action-v1-consumer.yml', [
     'workflow_dispatch:',
     'parousia8888/web-app-security-skill@v1',
