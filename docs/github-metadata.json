@@ -58,36 +58,43 @@
     {
       "number": 1,
       "title": "Add malformed, empty, and stale crawler-range fixtures",
+      "state": "closed",
       "labels": ["area:rules", "good first issue"]
     },
     {
       "number": 2,
       "title": "Preserve UNCHECKED for AWS permission-denied inventory paths",
+      "state": "closed",
       "labels": ["area:aws", "good first issue"]
     },
     {
       "number": 3,
       "title": "Verify the install and tutorial lifecycle on a clean WSL2 image",
+      "state": "open",
       "labels": ["area:docs", "documentation", "good first issue"]
     },
     {
       "number": 4,
       "title": "Add an informational security.txt source check",
+      "state": "open",
       "labels": ["area:rules", "good first issue"]
     },
     {
       "number": 5,
       "title": "Cover sitemap XML entities and CDATA edge cases",
+      "state": "closed",
       "labels": ["area:rules", "good first issue"]
     },
     {
       "number": 6,
       "title": "Add ShellCheck and define an evidence-based coverage threshold",
+      "state": "open",
       "labels": ["area:supply-chain", "help wanted"]
     },
     {
       "number": 7,
       "title": "Define alert ownership before enabling dependency review and secret scanning",
+      "state": "open",
       "labels": ["area:supply-chain", "help wanted"]
     }
   ]

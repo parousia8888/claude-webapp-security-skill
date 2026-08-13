@@ -19,7 +19,12 @@ for (const [script, expected] of [
 }
 
 const evidence = readFileSync(join(ROOT, 'docs', 'launch-evidence.md'), 'utf8');
+const metadata = JSON.parse(readFileSync(join(ROOT, 'docs', 'github-metadata.json'), 'utf8'));
 assert.match(evidence, /13 high \/ 6 medium -> 0 high \/ 0 medium/);
 assert.match(evidence, /releases\/tag\/v0\.3\.0/);
 assert.doesNotMatch(evidence, /img\.shields\.io\/github\/(?:stars|forks)|star target/i);
+assert.deepEqual(
+  Object.fromEntries(metadata.roadmapIssues.map((issue) => [issue.number, issue.state])),
+  { 1: 'closed', 2: 'closed', 3: 'open', 4: 'open', 5: 'closed', 6: 'open', 7: 'open' },
+);
 console.log('P7 evidence ok: structured counts, local demo, tutorial and metadata contract');

@@ -95,7 +95,8 @@ for (const label of metadata.requiredLabels) {
 }
 for (const issue of metadata.roadmapIssues || []) {
   const url = `https://github.com/${metadata.repository}/issues/${issue.number}`;
-  if (!Number.isInteger(issue.number) || !issue.title || !issue.labels?.length) {
+  if (!Number.isInteger(issue.number) || !issue.title || !issue.labels?.length
+      || !['open', 'closed'].includes(issue.state)) {
     fail(`invalid roadmap issue source: ${issue.number}`);
     continue;
   }
@@ -126,14 +127,16 @@ if (live) {
       }
     }
   }
-  const issueResult = spawnSync('gh', ['issue', 'list', '--repo', metadata.repository, '--state', 'open', '--limit', '100', '--json', 'number,title,labels'], { encoding: 'utf8' });
+  const issueResult = spawnSync('gh', ['issue', 'list', '--repo', metadata.repository, '--state', 'all', '--limit', '100', '--json', 'number,title,state,labels'], { encoding: 'utf8' });
   if (issueResult.status !== 0) fail(issueResult.stderr || 'unable to read live GitHub issues');
   else {
     const issues = new Map(JSON.parse(issueResult.stdout).map((item) => [item.number, item]));
     for (const expected of metadata.roadmapIssues || []) {
       const actual = issues.get(expected.number);
       const labels = (actual?.labels || []).map((item) => item.name).sort();
-      if (!actual || actual.title !== expected.title || labels.join('\n') !== [...expected.labels].sort().join('\n')) {
+      if (!actual || actual.title !== expected.title
+          || actual.state.toLowerCase() !== expected.state
+          || labels.join('\n') !== [...expected.labels].sort().join('\n')) {
         fail(`live GitHub issue differs from source: #${expected.number}`);
       }
     }
