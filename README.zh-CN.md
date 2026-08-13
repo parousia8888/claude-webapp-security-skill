@@ -191,8 +191,10 @@ webapp-security aws --profile default --region us-east-1 --out ./security-report
 不会被描述成安全。
 
 Source、crawl、demo、crawler identity、edge 与 AWS 结论现在共用同一套 v2 finding、coverage、
-policy 和退出码 runtime；各工具的原始 observation 与结论分开写出。历史 v1 报告只用于展示、
-release 校验与显式的不可比较迁移，不能作为可比较 baseline。
+policy 和退出码 runtime。Report bundle 和各工具的 observation 会先在内存中脱敏，再以私有
+staging 文件写入目标目录并整套提交，不覆盖已有证据；renderer 或可处理的写入失败会回滚，不留
+下半套新 bundle。历史 v1 报告只用于展示、release 校验与显式的不可比较迁移，不能作为可比较
+baseline。
 
 ## GitHub Action
 

@@ -19,7 +19,7 @@
 
 import { promises as dns } from 'node:dns';
 import { isIP } from 'node:net';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -524,17 +524,17 @@ const report = createReportV2({
 const md = renderMarkdownV2(report);
 
 if (OUT_DIR) {
-  mkdirSync(OUT_DIR, { recursive: true, mode: 0o700 });
   const stamp = generatedAt.replace(/[:.]/g, '-');
   const base = REPORT_NAME || `crawler-verification-${stamp}`;
-  writeReportBundleV2(report, OUT_DIR, base);
-  writeFileSync(join(OUT_DIR, `${base}.observations.json`), `${JSON.stringify({
+  writeReportBundleV2(report, OUT_DIR, base, { additionalFiles: [{
+    name: `${base}.observations.json`, json: {
     schemaVersion: 1,
     adapter: CRAWLER_IDENTITY_ADAPTER.id,
     generatedAt,
     tally,
     results,
-  }, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+    },
+  }] });
   log(`wrote report to ${OUT_DIR}`);
 }
 

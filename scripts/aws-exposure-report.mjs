@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -116,16 +116,10 @@ try {
     ],
   });
   if (output) {
-    mkdirSync(output, { recursive: true, mode: 0o700 });
-    writeReportBundleV2(report, output, name);
-    writeFileSync(join(output, `${name}.observations.json`), `${JSON.stringify({
-      schemaVersion: 1,
-      adapter: AWS_ADAPTER.id,
-      generatedAt,
-      accountDigest,
-      region,
-      observations,
-    }, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+    writeReportBundleV2(report, output, name, { additionalFiles: [{
+      name: `${name}.observations.json`,
+      json: { schemaVersion: 1, adapter: AWS_ADAPTER.id, generatedAt, accountDigest, region, observations },
+    }] });
   }
   console.log(renderMarkdownV2(report));
   process.exit(exitCodeV2(report));

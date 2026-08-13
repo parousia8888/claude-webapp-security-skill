@@ -202,9 +202,11 @@ Active rate-limit verification also requires `--acknowledge-authorization`. Netw
 failure is `unknown` and exits non-zero; it is never rendered as safe.
 
 Source, crawl, demo, crawler identity, edge and AWS conclusions use the same v2 finding, coverage,
-policy and exit-code runtime. Tool-specific raw observations are written separately from those
-conclusions. Historical v1 reports remain readable only for display, release verification and
-explicit non-comparable migration; they are never accepted as a comparable baseline.
+policy and exit-code runtime. Report bundles and their tool-specific observations are sanitized in
+memory, staged as private files in the target directory, and committed together without overwriting
+prior evidence. A renderer or handled write failure is rolled back without leaving a partial new
+bundle. Historical v1 reports remain readable only for display, release verification and explicit
+non-comparable migration; they are never accepted as a comparable baseline.
 
 ## GitHub Action
 

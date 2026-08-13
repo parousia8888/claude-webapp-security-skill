@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { digestValue, stableValue } from './project-identity.mjs';
 import {
@@ -10,6 +10,7 @@ import {
   BUILTIN_SOURCE_ADAPTER, sourceRule, sourceRuleset,
 } from './source-rules.mjs';
 import { adapterRulesetDigest } from './ruleset-v2.mjs';
+import { sanitizeEvidence, sanitizedJson, writeAtomicEvidenceBundle } from './evidence-writer.mjs';
 
 export const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'];
 const severityRank = new Map(SEVERITIES.map((severity, index) => [severity, index]));
@@ -81,20 +82,22 @@ export function createFindingV2({
   if (rule.severity && severity !== rule.severity) {
     throw new Error(`finding severity differs from rule taxonomy: ${rule.id} expected ${rule.severity}, received ${severity}`);
   }
+  const cleanLocation = location ? sanitizeEvidence(location) : null;
+  const cleanEvidence = sanitizeEvidence(evidence);
   const core = {
     schemaVersion: 2,
     fingerprintVersion: 2,
     rule: { id: rule.id, revision: rule.revision },
     adapter: { id: adapter.id, version: adapter.version, rulesetDigest: adapter.rulesetDigest },
     domain: rule.domain,
-    title,
+    title: sanitizeEvidence(title),
     severity,
     state,
-    summary,
-    location,
-    evidence: stableValue(evidence),
-    remediation,
-    retest,
+    summary: sanitizeEvidence(summary),
+    location: cleanLocation,
+    evidence: stableValue(cleanEvidence),
+    remediation: sanitizeEvidence(remediation),
+    retest: sanitizeEvidence(retest),
     baseline: emptyBaseline(),
   };
   const fingerprint = findingFingerprint(core);
@@ -278,22 +281,27 @@ export function createReportV2({
   version, generatedAt, mode, subject, ruleset, scope, coverage, findings, limitations,
   baseline = null, migration = null, policy = DEFAULT_POLICY,
 }) {
+  for (const finding of findings) {
+    if (JSON.stringify(sanitizeEvidence(finding)) !== JSON.stringify(finding)) {
+      throw new Error(`finding contains unsanitized or oversized evidence: ${finding.id || 'unknown'}`);
+    }
+  }
   const report = {
     schemaVersion: 2,
     tool: { name: 'Web App Security Skill', version },
     generatedAt,
     mode,
-    subject,
-    ruleset,
-    scope,
-    policy,
-    coverage,
+    subject: sanitizeEvidence(subject),
+    ruleset: sanitizeEvidence(ruleset),
+    scope: sanitizeEvidence(scope),
+    policy: sanitizeEvidence(policy),
+    coverage: sanitizeEvidence(coverage),
     summary: summarizeV2(findings),
     findings: [...findings].sort((left, right) =>
       (severityRank.get(left.severity) - severityRank.get(right.severity)) || left.id.localeCompare(right.id)),
-    limitations,
-    baseline,
-    migration,
+    limitations: sanitizeEvidence(limitations),
+    baseline: sanitizeEvidence(baseline),
+    migration: sanitizeEvidence(migration),
   };
   const errors = validateRuntimeReportV2(report);
   if (errors.length) throw new Error(`invalid v2 report:\n${errors.map((error) => `- ${error}`).join('\n')}`);
@@ -483,24 +491,33 @@ export function renderJunitV2(report) {
   return `<?xml version="1.0" encoding="UTF-8"?><testsuite name="Web App Security Skill" tests="${report.findings.length}" failures="${failures}" skipped="${skipped}">${cases}</testsuite>\n`;
 }
 
-export function writeReportBundleV2(report, directory, name = 'report') {
-  mkdirSync(directory, { recursive: true, mode: 0o700 });
-  const files = {
-    json: join(directory, `${name}.json`),
-    markdown: join(directory, `${name}.md`),
-    html: join(directory, `${name}.html`),
-    sarif: join(directory, `${name}.sarif`),
-    junit: join(directory, `${name}.junit.xml`),
-    digest: join(directory, `${name}.sha256`),
-  };
+export function writeReportBundleV2(report, directory, name = 'report', { additionalFiles = [], hooks = {} } = {}) {
+  if (!/^[a-zA-Z0-9._-]+$/.test(name)) throw new Error('report name contains unsupported characters');
+  const errors = validateRuntimeReportV2(report);
+  if (errors.length) throw new Error(`refusing invalid report bundle: ${errors.join('; ')}`);
   const jsonBytes = `${JSON.stringify(report, null, 2)}\n`;
-  writeFileSync(files.json, jsonBytes, { mode: 0o600, flag: 'wx' });
-  writeFileSync(files.markdown, renderMarkdownV2(report), { mode: 0o600, flag: 'wx' });
-  writeFileSync(files.html, renderHtmlV2(report), { mode: 0o600, flag: 'wx' });
-  writeFileSync(files.sarif, renderSarifV2(report), { mode: 0o600, flag: 'wx' });
-  writeFileSync(files.junit, renderJunitV2(report), { mode: 0o600, flag: 'wx' });
-  writeFileSync(files.digest, `${sha256(jsonBytes)}  ${name}.json\n`, { mode: 0o600, flag: 'wx' });
-  return files;
+  const entries = [
+    { key: 'json', name: `${name}.json`, content: jsonBytes, validate: (bytes) => JSON.parse(bytes.toString('utf8')) },
+    { key: 'markdown', name: `${name}.md`, content: renderMarkdownV2(report) },
+    { key: 'html', name: `${name}.html`, content: renderHtmlV2(report) },
+    { key: 'sarif', name: `${name}.sarif`, content: renderSarifV2(report), validate: (bytes) => JSON.parse(bytes.toString('utf8')) },
+    { key: 'junit', name: `${name}.junit.xml`, content: renderJunitV2(report) },
+    { key: 'digest', name: `${name}.sha256`, content: `${sha256(jsonBytes)}  ${name}.json\n` },
+    ...additionalFiles.map((file) => {
+      const content = file.json === undefined
+        ? (file.sanitize === false ? file.content : sanitizeEvidence(file.content))
+        : (file.sanitize === false
+          ? `${JSON.stringify(file.json, null, 2)}\n`
+          : sanitizedJson(file.json));
+      return {
+        key: file.key || file.name,
+        name: file.name,
+        content,
+        ...(file.json === undefined ? {} : { validate: (bytes) => JSON.parse(bytes.toString('utf8')) }),
+      };
+    }),
+  ];
+  return writeAtomicEvidenceBundle(directory, entries, hooks);
 }
 
 export function readReportV2(path) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -81,7 +81,7 @@ function evidenceConflicts(output, reportName) {
   return [
     `${reportName}.json`, `${reportName}.md`, `${reportName}.html`, `${reportName}.sarif`,
     `${reportName}.junit.xml`, `${reportName}.sha256`, 'proposed.patch',
-  ].map((file) => join(output, file)).filter((file) => existsSync(file));
+  ].filter((file) => existsSync(join(output, file)));
 }
 
 try {
@@ -181,10 +181,10 @@ try {
     ],
   });
 
-  mkdirSync(output, { recursive: true, mode: 0o700 });
-  if (persistScope) writeFileSync(join(output, 'security-scope.yml'), `${JSON.stringify(localScope, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-  const files = writeReportBundleV2(report, output, name);
-  writeFileSync(join(output, 'proposed.patch'), renderPatch(rawFindings), { mode: 0o600, flag: 'wx' });
+  const files = writeReportBundleV2(report, output, name, { additionalFiles: [
+    ...(persistScope ? [{ name: 'security-scope.yml', json: localScope, sanitize: false }] : []),
+    { name: 'proposed.patch', content: renderPatch(rawFindings) },
+  ] });
   console.log(`report:    ${files.json}`);
   console.log(`findings:  ${report.summary.total}`);
   console.log(`subject:   ${report.subject.id} (${report.subject.binding})`);

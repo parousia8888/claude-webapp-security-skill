@@ -112,9 +112,9 @@ unknown() { echo "  [unknown] $2"; record "$1" unknown "$2"; unknown=$((unknown+
 n_a()     { echo "  [note] $2"; record "$1" not_applicable "$2"; }
 note()    { echo "  [note] $1"; }
 
-echo "== verify-hardening: $SITE =="
+echo "== verify-hardening =="
 
-echo "[headers] $SITE$CONTENT"
+echo "[headers]"
 H=""
 if ! H="$(hcurl -skS --connect-timeout 5 --max-time 15 -I "$SITE$CONTENT")"; then
   H_AVAILABLE=0
@@ -141,7 +141,7 @@ if [ "$ACTIVE_RATE_LIMIT" -ne 1 ]; then
   n_a edge-rate-probe-throttling "active rate-limit check disabled"
   n_a edge-rate-content-availability "active rate-limit check disabled"
 else
-  echo "  probe=$PROBE content=$CONTENT concurrency=$N"
+  echo "  concurrency=$N"
   burst() {
     local url="$1" ua="${2:-}" i=0
     while [ "$i" -lt "$N" ]; do
@@ -180,10 +180,11 @@ case "$SITE" in
   https://*)
     [ -n "$HTTP_SITE" ] || HTTP_SITE="$(printf '%s' "$SITE" | sed 's,^https:,http:,')"
     RC="$(hcurl -skS --connect-timeout 5 --max-time 15 -o /dev/null -w '%{http_code} %{redirect_url}' "$HTTP_SITE$CONTENT" 2>/dev/null || true)"
+    REDIRECT_STATUS="${RC%% *}"
     case "$RC" in
-      30[12378]\ https://*) ok edge-http-redirect "HTTP redirects to HTTPS ($RC)";;
+      30[12378]\ https://*) ok edge-http-redirect "HTTP redirects to HTTPS (status $REDIRECT_STATUS)";;
       000*|'') unknown edge-http-redirect "HTTP redirect endpoint was unreachable";;
-      *) bad edge-http-redirect "HTTP did not redirect to HTTPS ($RC)";;
+      *) bad edge-http-redirect "HTTP did not redirect to HTTPS (status $REDIRECT_STATUS)";;
     esac
 
     if "$CURL_BIN" --help all 2>/dev/null | grep -q -- '--tls-max'; then

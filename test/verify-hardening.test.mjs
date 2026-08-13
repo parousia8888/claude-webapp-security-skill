@@ -67,8 +67,10 @@ await once(redirect, 'listening');
 const httpSite = `http://localhost:${redirect.address().port}`;
 
 const reportDir = join(temp, 'edge-report');
+const consoleSecret = 'M5_CONSOLE_SECRET_SENTINEL';
 const passive = await command('/bin/bash', [
   SCRIPT, '--site', secureSite, '--http-site', httpSite, '--n', '1',
+  '--content-path', `/?token=${consoleSecret}`,
   '--out', reportDir, '--report-name', 'edge-fixture',
 ], {
   env: { ...process.env, CURL_CA_BUNDLE: cert },
@@ -83,8 +85,10 @@ const observations = JSON.parse(readFileSync(join(reportDir, 'edge-fixture.obser
 check('edge output uses report v2', report.schemaVersion === 2 && report.ruleset.adapters[0]?.id === 'builtin-edge');
 check('edge conclusions keep raw observations separate', observations.schemaVersion === 1 && Array.isArray(observations.observations));
 check('edge report directory is private', (statSync(reportDir).mode & 0o777) === 0o700);
+check('edge console redacts URL query secrets', !`${passive.stdout}${passive.stderr}`.includes(consoleSecret));
 for (const name of ['edge-fixture.json', 'edge-fixture.md', 'edge-fixture.html', 'edge-fixture.sarif', 'edge-fixture.junit.xml', 'edge-fixture.sha256', 'edge-fixture.observations.json']) {
   check(`${name} is private`, (statSync(join(reportDir, name)).mode & 0o777) === 0o600);
+  check(`${name} redacts URL query secrets`, !readFileSync(join(reportDir, name), 'utf8').includes(consoleSecret));
 }
 
 const active = await command('/bin/bash', [

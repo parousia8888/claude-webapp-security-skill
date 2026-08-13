@@ -30,7 +30,7 @@
  *   --quiet             suppress progress output on stderr
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -829,16 +829,13 @@ const v2Report = createReportV2({
 const md = renderMarkdownV2(v2Report);
 
 if (OUT_DIR) {
-  mkdirSync(OUT_DIR, { recursive: true, mode: 0o700 });
   const stamp = observations.generatedAt.replace(/[:.]/g, '-');
   const host = new URL(ORIGIN).hostname;
   const base = REPORT_NAME || `crawl-surface-${host}-${stamp}`;
   try {
-    writeReportBundleV2(v2Report, OUT_DIR, base);
-    writeFileSync(join(OUT_DIR, `${base}.observations.json`), `${JSON.stringify(observations, null, 2)}\n`, {
-      mode: 0o600,
-      flag: 'wx',
-    });
+    writeReportBundleV2(v2Report, OUT_DIR, base, { additionalFiles: [
+      { name: `${base}.observations.json`, json: observations },
+    ] });
   } catch (error) {
     console.error(`error: ${error.message}`);
     process.exit(2);
