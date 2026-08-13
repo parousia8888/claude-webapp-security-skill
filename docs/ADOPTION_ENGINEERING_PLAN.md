@@ -103,8 +103,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 |---|---|---|---|
 | G0 | Adoption contract, baseline, phase acceptance and anti-metric rules | completed | `0599f46` + checks below |
 | G1 | Fixture-generated animated terminal demo and README placement | completed | `f1f9728`, `3fe3cc1` + checks below |
-| G2 | Verified low-friction install channel and clean-room lifecycle | in progress | pending |
-| G3 | Privacy-minimal five-session usability kit and deterministic aggregation | pending | pending |
+| G2 | Verified low-friction install channel and clean-room lifecycle | completed | `11eee87`, `55c3de2`, `02277e8`, `37d822a` + checks below |
+| G3 | Privacy-minimal five-session usability kit and deterministic aggregation | in progress | pending |
 | G4 | Reusable English/Chinese publication and upstream case-study kit | pending | pending |
 | G5 | Priority fail-closed correctness fixes and release-candidate evidence | pending | pending |
 
@@ -228,11 +228,41 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Commit / CI: pending
-- Remaining risks: npm authentication and native WSL2 session remain owner/external actions.
+- Status: completed 2026-08-13
+- Implementation: `scripts/install-verified.mjs` selects only explicit versions from built-in trust
+  anchors, downloads or reads offline the archive, manifest, SPDX SBOM and checksum list, verifies
+  their independent SHA-256 values and cross-checks repository, product, version, tag, source commit,
+  asset sets and archive paths before invoking the existing atomic lifecycle installer.
+  `scripts/bootstrap-install.sh` fixes that verifier to commit
+  `11eee876cf94640f5604514c74053729b335b6c2` and verifies its digest before Node executes it. Both
+  READMEs provide one copyable command that first fixes and verifies the bootstrap at commit
+  `55c3de22cb373581b9723467c0d2663917c6df84`. English and Chinese trust documentation covers
+  explicit targets/version, offline installation, required/automatic attestation, upgrade, force,
+  uninstall and proof limits. The release contract forbids a moving-clone install path and verifies
+  the historical verifier bytes against the recorded digest during normal lint.
+- Tests: `test/bootstrap-install.test.mjs` proves mismatched downloaded code cannot execute and HTTP
+  is rejected before a request. `test/verified-install.test.mjs` uses only local fixture servers for
+  success, offline installation, trusted-digest tampering, manifest/tag mismatch, duplicate
+  checksums, traversal, cross-origin redirect and preflight/partial-install rejection. Its isolated
+  lifecycle reaches `version -> start -> audit -> retest -> uninstall`. `npm run check`, release
+  double-build/lifecycle tests, the release contract, Skill validation and `git diff --check` passed.
+  The exact README command also downloaded both immutable public GitHub files, verified the four
+  real `v0.3.0` assets and installed the CLI in an isolated home. GitHub API and the published
+  `SHA256SUMS` independently matched the recorded release digests.
+- Commit / CI: verifier `11eee87`; bootstrap and transport corrections `3dc9834`, `c77da41`,
+  `3fef0e1`, `55c3de2`; public docs/contract `02277e8`; full-history CI fix `37d822a`. The first docs
+  tree's [CI run 31654345657](https://github.com/parousia8888/web-app-security-skill/actions/runs/31654345657)
+  failed because the new trust contract could not resolve its historical verifier commit from the
+  default shallow checkout; this exposed a real evidence gap. `37d822a` requires `fetch-depth: 0`,
+  after which [CI run 31654461836](https://github.com/parousia8888/web-app-security-skill/actions/runs/31654461836)
+  passed Ubuntu/macOS on Node 20/22 and
+  [CodeQL run 31654461849](https://github.com/parousia8888/web-app-security-skill/actions/runs/31654461849)
+  passed.
+- Remaining risks: the local GitHub CLI is not authenticated, so the public-install evidence records
+  `attestation: not run (gh is not authenticated)`; `--attestation required` correctly fails closed.
+  Native WSL2 remains unverified. npm packaging was intentionally not added because an unauthenticated,
+  unpublished wrapper would not reduce the verified path's current prerequisites; registry
+  authentication/publication remain `external_validation_pending`.
 
 ## G3 - First-use validation kit
 
