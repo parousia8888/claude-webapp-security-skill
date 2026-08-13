@@ -24,9 +24,34 @@ export function digestValue(value) {
   return createHash('sha256').update(canonicalJson(value)).digest('hex');
 }
 
-export function sourceAuditBoundary() {
+export const DEFAULT_SOURCE_TRAVERSAL_LIMITS = Object.freeze({
+  maxDepth: 12,
+  maxFiles: 20000,
+  maxEntries: 50000,
+  maxFileBytes: 1024 * 1024,
+});
+
+const SOURCE_TRAVERSAL_RANGES = Object.freeze({
+  maxDepth: [1, 64],
+  maxFiles: [1, 200000],
+  maxEntries: [1, 500000],
+  maxFileBytes: [1024, 16 * 1024 * 1024],
+});
+
+export function sourceTraversalLimits(overrides = {}) {
+  const limits = { ...DEFAULT_SOURCE_TRAVERSAL_LIMITS, ...overrides };
+  for (const [name, [minimum, maximum]] of Object.entries(SOURCE_TRAVERSAL_RANGES)) {
+    if (!Number.isInteger(limits[name]) || limits[name] < minimum || limits[name] > maximum) {
+      throw new Error(`${name} must be an integer from ${minimum} to ${maximum}`);
+    }
+  }
+  return limits;
+}
+
+export function sourceAuditBoundary(traversalLimits = DEFAULT_SOURCE_TRAVERSAL_LIMITS) {
+  const limits = sourceTraversalLimits(traversalLimits);
   return {
-    version: 1,
+    version: 2,
     sourceRoots: ['.'],
     excludedDirectories: [
       '.git', '.hg', '.svn', '.next', '.nuxt', '.output', '.webapp-security', 'build',
@@ -34,6 +59,7 @@ export function sourceAuditBoundary() {
     ],
     checkModes: ['source', 'local'],
     networkAccess: false,
+    traversalLimits: limits,
   };
 }
 
@@ -116,6 +142,10 @@ export function validatePersistedScope(scope) {
       || scope.subject.localPathIncluded !== false) {
     throw new Error('scope does not contain a persisted subject identity');
   }
+  if (scope.auditBoundary?.version !== 2 || !scope.auditBoundary?.traversalLimits) {
+    throw new Error('scope predates the traversal ledger; create a new run with webapp-security start');
+  }
+  sourceTraversalLimits(scope.auditBoundary.traversalLimits);
   const actualDigest = scopeDigest(scope.auditBoundary);
   if (scope.subject.scopeDigest !== actualDigest) throw new Error('scope digest does not match its audit boundary');
   return scope;

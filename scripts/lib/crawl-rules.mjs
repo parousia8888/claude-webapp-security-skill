@@ -2,7 +2,7 @@ import { createRulesetV2 } from './ruleset-v2.mjs';
 
 export const CRAWL_ADAPTER = {
   id: 'builtin-crawl',
-  version: '2.0.0',
+  version: '2.1.0',
   maturity: 'stable',
 };
 
@@ -68,14 +68,13 @@ export function crawlRuleset() {
 export function crawlCoverage(signals, surfaceStatuses) {
   return CRAWL_RULES.map((rule) => {
     const status = surfaceStatuses[rule.surface] || 'unavailable';
-    const discovered = signals.filter((signal) => signal.code === rule.id).length;
     const counts = status === 'completed'
-      ? { discovered, eligible: 1, scanned: 1, excluded: 0, skipped: 0, truncated: 0, errors: 0 }
+      ? { discovered: 1, eligible: 1, scanned: 1, excluded: 0, skipped: 0, truncated: 0, errors: 0 }
       : status === 'not_applicable'
-        ? { discovered, eligible: 0, scanned: 0, excluded: 1, skipped: 0, truncated: 0, errors: 0 }
+        ? { discovered: 1, eligible: 0, scanned: 0, excluded: 1, skipped: 0, truncated: 0, errors: 0 }
         : status === 'partial'
-          ? { discovered, eligible: 2, scanned: 1, excluded: 0, skipped: 0, truncated: 0, errors: 1 }
-          : { discovered, eligible: 1, scanned: 0, excluded: 0, skipped: 0, truncated: 0, errors: 1 };
+          ? { discovered: 2, eligible: 2, scanned: 1, excluded: 0, skipped: 0, truncated: 0, errors: 1 }
+          : { discovered: 1, eligible: 1, scanned: 0, excluded: 0, skipped: 0, truncated: 0, errors: 1 };
     return {
       id: `crawl-${rule.id}`,
       adapterId: CRAWL_ADAPTER.id,

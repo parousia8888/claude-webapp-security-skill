@@ -10,6 +10,7 @@ import { auditSource, renderPatch } from './lib/source-audit.mjs';
 import { buildScope, discoverProject } from './lib/project-discovery.mjs';
 import {
   ephemeralSubject, readProjectIdentity, sourceAuditBoundary, validatePersistedScope,
+  sourceTraversalLimits,
 } from './lib/project-identity.mjs';
 import { sourceCoverage, sourceRuleset } from './lib/source-rules.mjs';
 
@@ -26,6 +27,10 @@ Options:
   --name <basename>       Report basename (default: report)
   --baseline <report>     Required by retest; optional comparison for audit
   --fail-on <severity>    critical, high, medium, low, or never (default: high)
+  --max-depth <n>         Maximum directory depth, 1..64 (default: 12)
+  --max-files <n>         Maximum discovered files, 1..200000 (default: 20000)
+  --max-entries <n>       Maximum directory entries, 1..500000 (default: 50000)
+  --max-file-bytes <n>    Maximum candidate bytes, 1024..16777216 (default: 1048576)
 `);
   process.exit(code);
 }
@@ -45,6 +50,12 @@ const outArg = take('--out');
 const name = take('--name', 'report');
 const baselinePath = take('--baseline');
 const failOn = take('--fail-on', 'high');
+const limitArgs = {
+  maxDepth: take('--max-depth'),
+  maxFiles: take('--max-files'),
+  maxEntries: take('--max-entries'),
+  maxFileBytes: take('--max-file-bytes'),
+};
 const targetArg = args.shift();
 if (!targetArg) usage(2, 'project-or-run is required');
 if (args.length) usage(2, `unknown argument ${args[0]}`);
@@ -75,9 +86,19 @@ try {
   let output;
   let subject;
   let persistScope = false;
+  let limits;
 
   if (existsSync(scopePath)) {
     localScope = validatePersistedScope(JSON.parse(readFileSync(scopePath, 'utf8')));
+    const suppliedLimits = Object.values(limitArgs).some((value) => value !== null);
+    if (suppliedLimits) {
+      const requested = sourceTraversalLimits(Object.fromEntries(Object.entries(limitArgs)
+        .filter(([, value]) => value !== null).map(([key, value]) => [key, Number(value)])));
+      if (JSON.stringify(requested) !== JSON.stringify(localScope.auditBoundary.traversalLimits)) {
+        throw new Error('traversal limits are fixed by the persisted scope; create a new run to change them');
+      }
+    }
+    limits = sourceTraversalLimits(localScope.auditBoundary.traversalLimits);
     projectRoot = resolve(localScope.target.projectRoot);
     const identity = readProjectIdentity(projectRoot);
     if (!identity || identity.subjectId !== localScope.subject.id) {
@@ -89,16 +110,20 @@ try {
     if (mode === 'retest' || baselinePath) {
       throw new Error('baseline comparison requires a persisted run created by webapp-security start');
     }
-    const discovery = discoverProject(target);
+    limits = sourceTraversalLimits(Object.fromEntries(Object.entries(limitArgs)
+      .filter(([, value]) => value !== null).map(([key, value]) => [key, Number(value)])));
+    const auditBoundary = sourceAuditBoundary(limits);
+    const discovery = discoverProject(target, { traversalLimits: limits });
     projectRoot = discovery.projectRoot;
     output = resolve(outArg || join(projectRoot, '.webapp-security', 'runs', `audit-${now.toISOString().replace(/[:.]/g, '-')}`));
-    subject = ephemeralSubject(sourceAuditBoundary());
+    subject = ephemeralSubject(auditBoundary);
     localScope = buildScope(discovery, {
       version: readFileSync(join(ROOT, 'VERSION'), 'utf8').trim(),
       generatedAt: now.toISOString(),
       runId: basename(output),
       runDirectory: output,
       subject,
+      auditBoundary,
     });
     persistScope = true;
   }
@@ -108,8 +133,9 @@ try {
   if (conflicts.length) throw new Error(`refusing to overwrite existing evidence: ${conflicts.join(', ')}`);
 
   const ruleset = sourceRuleset();
-  const rawFindings = auditSource(projectRoot);
-  const coverage = sourceCoverage(rawFindings);
+  const audit = auditSource(projectRoot, limits);
+  const rawFindings = audit.findings;
+  const coverage = sourceCoverage(audit);
   const current = rawFindings.map((finding) => sourceFindingV2(finding, ruleset));
   let baseline = null;
   let findings;
@@ -134,6 +160,7 @@ try {
       checkModes: ['source', 'local'],
       networkAccessPerformed: false,
       runId: localScope.run?.id || null,
+      traversal: audit.traversal,
     },
     coverage,
     findings,

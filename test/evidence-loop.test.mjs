@@ -58,7 +58,7 @@ try {
   assert.equal(baseline.summary.byBaseline.new, 4);
   assert.equal(baseline.summary.byState.confirmed, 1);
   assert.equal(baseline.summary.byState.suspected, 3);
-  assert.equal(baseline.coverage.length, 5);
+  assert.equal(baseline.coverage.length, 6);
   assert.ok(baseline.coverage.every((entry) => entry.status === 'completed'));
   assert.ok(baseline.findings.every((finding) => finding.baseline.coverageRef));
   assert.equal(baseline.policy.thresholds.find((entry) => entry.domain === 'security_exposure').failOn, 'high');

@@ -2,7 +2,7 @@ import { createRulesetV2 } from './ruleset-v2.mjs';
 
 export const EDGE_ADAPTER = {
   id: 'builtin-edge',
-  version: '2.0.0',
+  version: '2.1.0',
   maturity: 'stable',
 };
 
@@ -50,9 +50,9 @@ export function edgeCoverage(observations) {
       ruleRevision: rule.revision,
       status,
       counts: status === 'completed'
-        ? { discovered: observation.state === 'failed' ? 1 : 0, eligible: 1, scanned: 1, excluded: 0, skipped: 0, truncated: 0, errors: 0 }
+        ? { discovered: 1, eligible: 1, scanned: 1, excluded: 0, skipped: 0, truncated: 0, errors: 0 }
         : status === 'not_applicable'
-          ? { discovered: 0, eligible: 0, scanned: 0, excluded: 1, skipped: 0, truncated: 0, errors: 0 }
+          ? { discovered: 1, eligible: 0, scanned: 0, excluded: 1, skipped: 0, truncated: 0, errors: 0 }
           : { discovered: 1, eligible: 1, scanned: 0, excluded: 0, skipped: 0, truncated: 0, errors: 1 },
       reasons: status === 'completed' ? [] : [{
         code: status === 'not_applicable' ? 'edge_check_not_applicable' : 'edge_evidence_unavailable',

@@ -16,6 +16,7 @@ const ruleset = createRulesetV2([{ ...ADAPTER, rules: RULES }]);
 
 function coverage(rule, status = 'completed') {
   const complete = status === 'completed';
+  const partial = status === 'partial';
   return {
     id: `fixture-${rule.id}`,
     adapterId: ADAPTER.id,
@@ -23,9 +24,9 @@ function coverage(rule, status = 'completed') {
     ruleRevision: rule.revision,
     status,
     counts: {
-      discovered: 1,
-      eligible: 1,
-      scanned: complete ? 1 : 0,
+      discovered: partial ? 2 : 1,
+      eligible: partial ? 2 : 1,
+      scanned: complete || partial ? 1 : 0,
       excluded: 0,
       skipped: 0,
       truncated: 0,

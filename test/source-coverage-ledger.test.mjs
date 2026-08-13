@@ -1,0 +1,171 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import {
+  chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { auditSource } from '../scripts/lib/source-audit.mjs';
+import { sourceCoverage } from '../scripts/lib/source-rules.mjs';
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const CLI = join(ROOT, 'scripts', 'webapp-security.mjs');
+const temp = mkdtempSync(join(tmpdir(), 'web-app-security-coverage-'));
+
+function write(path, contents = '') {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, contents);
+}
+
+function supported(path) {
+  write(join(path, 'package.json'), '{"private":true}\n');
+  write(join(path, 'package-lock.json'), '{"lockfileVersion":3}\n');
+}
+
+function run(project, name, extra = []) {
+  const out = join(temp, 'reports', name);
+  const result = spawnSync(process.execPath, [
+    CLI, 'audit', project, '--out', out, '--name', 'report', '--fail-on', 'never', ...extra,
+  ], { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '0' } });
+  return {
+    ...result,
+    out,
+    report: result.status === 0 || result.status === 1 || result.status === 3
+      ? JSON.parse(readFileSync(join(out, 'report.json'), 'utf8'))
+      : null,
+  };
+}
+
+function assertReconciled(coverage) {
+  for (const entry of coverage) {
+    const counts = entry.counts;
+    assert.equal(counts.discovered, counts.eligible + counts.excluded, entry.ruleId);
+    assert.equal(counts.eligible, counts.scanned + counts.skipped + counts.truncated + counts.errors,
+      entry.ruleId);
+    for (const reason of entry.reasons) {
+      assert.ok(reason.samplePaths.length <= 10, reason.code);
+      assert.ok(reason.samplePaths.every((path) => path.length <= 160 && !path.startsWith('/')
+        && !path.split('/').includes('..') && !/[\u0000-\u001f\u007f]/.test(path)), reason.code);
+    }
+  }
+}
+
+try {
+  const clean = join(temp, 'clean');
+  supported(clean);
+  const cleanAudit = auditSource(clean);
+  const cleanCoverage = sourceCoverage(cleanAudit);
+  assert.deepEqual(cleanAudit.findings, []);
+  assert.ok(cleanCoverage.every((entry) => entry.status === 'completed'));
+  assertReconciled(cleanCoverage);
+  let result = run(clean, 'clean');
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.report.findings.length, 0);
+
+  const large = join(temp, 'large-monorepo');
+  supported(large);
+  for (let index = 0; index < 5005; index += 1) {
+    write(join(large, 'ordinary', `file-${String(index).padStart(5, '0')}.txt`), 'fixture\n');
+  }
+  const deepConfig = join(large, 'apps', 'a', 'b', 'c', 'd', 'e', 'f', 'next.config.mjs');
+  write(deepConfig, 'export default { productionBrowserSourceMaps: true };\n');
+  const firstLarge = auditSource(large);
+  const secondLarge = auditSource(large);
+  assert.ok(firstLarge.traversal.filesDiscovered > 5000);
+  assert.equal(firstLarge.traversal.stopped, false);
+  assert.ok(firstLarge.findings.some((finding) => finding.ruleId === 'production-source-map-enabled'
+    && finding.location.path.endsWith('next.config.mjs')));
+  assert.deepEqual(firstLarge, secondLarge, 'bounded traversal must be deterministic');
+  assertReconciled(sourceCoverage(firstLarge));
+
+  const limited = join(temp, 'limited');
+  write(join(limited, '00-first.txt'), 'first\n');
+  supported(limited);
+  result = run(limited, 'limited', ['--max-files', '1']);
+  assert.equal(result.status, 3, result.stderr);
+  assert.equal(result.report.scope.traversal.effectiveLimits.maxFiles, 1);
+  assert.equal(result.report.scope.traversal.stopped, true);
+  assert.ok(result.report.findings.some((finding) => finding.rule.id === 'source-evidence-incomplete'
+    && finding.state === 'unknown'));
+  assert.ok(result.report.coverage.some((entry) => entry.reasons.some((reason) =>
+    reason.code === 'file_limit_reached')));
+  assert.match(readFileSync(join(result.out, 'report.md'), 'utf8'), /file_limit_reached/);
+  assertReconciled(result.report.coverage);
+
+  const depthLimited = join(temp, 'depth-limited');
+  supported(depthLimited);
+  write(join(depthLimited, 'a', 'b', 'next.config.mjs'), 'export default { sourcemap: true };\n');
+  result = run(depthLimited, 'depth-limited', ['--max-depth', '1']);
+  assert.equal(result.status, 3, result.stderr);
+  assert.ok(result.report.coverage.some((entry) => entry.reasons.some((reason) =>
+    reason.code === 'depth_limit_reached')));
+
+  const malformed = join(temp, 'malformed');
+  write(join(malformed, 'package.json'), '{bad json');
+  write(join(malformed, 'package-lock.json'), '{}\n');
+  result = run(malformed, 'malformed');
+  assert.equal(result.status, 3, result.stderr);
+  assert.ok(result.report.coverage.find((entry) => entry.ruleId === 'node-inspector-public-bind')
+    .reasons.some((reason) => reason.code === 'manifest_parse_error'));
+
+  const oversize = join(temp, 'oversize');
+  supported(oversize);
+  write(join(oversize, 'next.config.mjs'), `export default { sourcemap: true };\n${'x'.repeat(2048)}`);
+  result = run(oversize, 'oversize', ['--max-file-bytes', '1024']);
+  assert.equal(result.status, 3, result.stderr);
+  assert.ok(result.report.coverage.find((entry) => entry.ruleId === 'production-source-map-enabled')
+    .reasons.some((reason) => reason.code === 'file_size_limit'));
+
+  const invalidEncoding = join(temp, 'invalid-encoding');
+  supported(invalidEncoding);
+  write(join(invalidEncoding, 'vite.config.js'), Buffer.from([0xff, 0xfe, 0xfd]));
+  result = run(invalidEncoding, 'invalid-encoding');
+  assert.equal(result.status, 3, result.stderr);
+  assert.ok(result.report.coverage.find((entry) => entry.ruleId === 'production-source-map-enabled')
+    .reasons.some((reason) => reason.code === 'unsupported_encoding'));
+
+  const unreadable = join(temp, 'unreadable');
+  supported(unreadable);
+  const unreadableConfig = join(unreadable, 'astro.config.mjs');
+  write(unreadableConfig, 'export default { sourcemap: true };\n');
+  chmodSync(unreadableConfig, 0o000);
+  result = run(unreadable, 'unreadable');
+  chmodSync(unreadableConfig, 0o600);
+  assert.equal(result.status, 3, result.stderr);
+  assert.ok(result.report.coverage.find((entry) => entry.ruleId === 'production-source-map-enabled')
+    .reasons.some((reason) => reason.code === 'file_unreadable'));
+
+  const excluded = join(temp, 'excluded');
+  supported(excluded);
+  write(join(excluded, 'node_modules', 'fixture', 'next.config.mjs'),
+    'export default { productionBrowserSourceMaps: true };\n');
+  const outside = join(temp, 'outside');
+  write(join(outside, 'next.config.mjs'), 'export default { productionBrowserSourceMaps: true };\n');
+  symlinkSync(outside, join(excluded, 'linked-outside'));
+  const excludedAudit = auditSource(excluded);
+  const excludedCoverage = sourceCoverage(excludedAudit);
+  assert.equal(excludedAudit.findings.some((finding) =>
+    ['production-source-map-enabled', 'source-evidence-incomplete'].includes(finding.ruleId)), false);
+  assert.ok(excludedCoverage.every((entry) => entry.status === 'completed'));
+  assert.ok(excludedCoverage.some((entry) => entry.reasons.some((reason) =>
+    reason.code === 'policy_excluded_directory')));
+  assert.ok(excludedCoverage.some((entry) => entry.reasons.some((reason) =>
+    reason.code === 'symlink_not_followed')));
+  assertReconciled(excludedCoverage);
+
+  const unsupported = join(temp, 'unsupported');
+  write(join(unsupported, 'README.md'), 'no supported manifest\n');
+  result = run(unsupported, 'unsupported');
+  assert.equal(result.status, 3, result.stderr);
+  assert.ok(result.report.findings.some((finding) => finding.rule.id === 'source-stack-unsupported'));
+
+  result = run(clean, 'invalid-limit', ['--max-depth', '0']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /maxDepth must be an integer/);
+
+  console.log('source coverage ledger ok: bounded traversal, candidate failures, exclusions and exits');
+} finally {
+  rmSync(temp, { recursive: true, force: true });
+}

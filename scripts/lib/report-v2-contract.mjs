@@ -135,8 +135,49 @@ export function validateReportV2(report) {
       const accounted = coverage.counts.scanned + coverage.counts.skipped
         + coverage.counts.truncated + coverage.counts.errors;
       if (coverage.counts.eligible !== accounted) errors.push(`${label} eligible count is not reconciled`);
+      if (coverage.counts.discovered !== coverage.counts.eligible + coverage.counts.excluded) {
+        errors.push(`${label} discovered count is not reconciled`);
+      }
+      const incomplete = coverage.counts.skipped + coverage.counts.truncated + coverage.counts.errors;
+      if (coverage.status === 'completed' && incomplete !== 0) errors.push(`${label} completed status hides incomplete evidence`);
+      if (coverage.status === 'partial' && (coverage.counts.scanned === 0 || incomplete === 0)) {
+        errors.push(`${label} partial status is inconsistent with counts`);
+      }
+      if (coverage.status === 'unavailable' && (coverage.counts.scanned !== 0 || incomplete === 0)) {
+        errors.push(`${label} unavailable status is inconsistent with counts`);
+      }
     }
-    if (!Array.isArray(coverage.reasons)) errors.push(`${label}.reasons must be an array`);
+    if (!Array.isArray(coverage.reasons)) {
+      errors.push(`${label}.reasons must be an array`);
+    } else {
+      const reasonCodes = new Set();
+      let reasonCount = 0;
+      for (const [reasonIndex, reason] of coverage.reasons.entries()) {
+        const reasonLabel = `${label}.reasons[${reasonIndex}]`;
+        if (!requiredObject(reason, ['code', 'count', 'samplePaths'], reasonLabel, errors)) continue;
+        if (!ID.test(reason.code || '') || reasonCodes.has(reason.code)) {
+          errors.push(`${reasonLabel}.code is invalid or duplicate`);
+        }
+        reasonCodes.add(reason.code);
+        if (!Number.isInteger(reason.count) || reason.count < 1) errors.push(`${reasonLabel}.count is invalid`);
+        else reasonCount += reason.count;
+        if (!Array.isArray(reason.samplePaths) || reason.samplePaths.length > 10) {
+          errors.push(`${reasonLabel}.samplePaths must contain at most 10 paths`);
+        } else {
+          for (const sample of reason.samplePaths) {
+            const segments = typeof sample === 'string' ? sample.replace(/\\/g, '/').split('/') : [];
+            if (typeof sample !== 'string' || !sample || sample.length > 160
+                || /[\u0000-\u001f\u007f]/.test(sample) || /^\/|^[A-Za-z]:[\\/]/.test(sample)
+                || segments.includes('..')) errors.push(`${reasonLabel}.samplePaths contains an unsafe path`);
+          }
+        }
+      }
+      if (object(coverage.counts)) {
+        const expectedReasonCount = coverage.counts.excluded + coverage.counts.skipped
+          + coverage.counts.truncated + coverage.counts.errors;
+        if (reasonCount !== expectedReasonCount) errors.push(`${label}.reason counts are not reconciled`);
+      }
+    }
   }
   if (!Array.isArray(report?.findings)) errors.push('report.findings must be an array');
   for (const [index, finding] of (report?.findings || []).entries()) {

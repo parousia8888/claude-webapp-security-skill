@@ -2,7 +2,7 @@ import { createRulesetV2 } from './ruleset-v2.mjs';
 
 export const AWS_ADAPTER = {
   id: 'builtin-aws-exposure',
-  version: '2.0.0',
+  version: '2.1.0',
   maturity: 'stable',
 };
 
@@ -73,7 +73,7 @@ export function awsCoverage(observations) {
       ruleRevision: rule.revision,
       status,
       counts: {
-        discovered: matches.filter((item) => item.state === 'failed').length,
+        discovered: matches.length,
         eligible: evaluated + unavailable,
         scanned: evaluated,
         excluded,

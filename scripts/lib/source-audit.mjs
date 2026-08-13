@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { createFinding } from './evidence.mjs';
+import { DEFAULT_SOURCE_TRAVERSAL_LIMITS, sourceTraversalLimits } from './project-identity.mjs';
+import { SOURCE_RULES } from './source-rules.mjs';
 
 const IGNORED = new Set([
   '.git', '.hg', '.svn', '.next', '.nuxt', '.output', '.webapp-security', 'build', 'coverage',
@@ -9,35 +11,127 @@ const IGNORED = new Set([
 const CONFIG_FILES = /^(?:next|vite|nuxt|svelte|astro)\.config\.(?:js|mjs|cjs|ts)$/;
 const ENV_FILE = /^\.env(?:\.[a-z0-9_-]+)?$/i;
 const ENV_TEMPLATE = /^\.env\.(?:example|sample|template|dist|defaults)$/i;
+const MAX_REASON_SAMPLES = 10;
+const SOURCE_RULE_IDS = SOURCE_RULES.map((rule) => rule.id);
 
 const posix = (value) => value.split(sep).join('/');
 
-function walk(root, maxDepth = 5, maxFiles = 5000) {
+function samplePath(value) {
+  const clean = posix(value || '.').replace(/^\.\//, '').replace(/[\u0000-\u001f\u007f]/g, '?');
+  return clean.length > 160 ? `${clean.slice(0, 143)}-${Buffer.from(clean).toString('hex').slice(-16)}` : clean;
+}
+
+function addReason(tracker, code, path) {
+  let reason = tracker.reasonMap.get(code);
+  if (!reason) {
+    reason = { code, count: 0, samplePaths: [] };
+    tracker.reasonMap.set(code, reason);
+  }
+  reason.count += 1;
+  const sample = samplePath(path);
+  if (reason.samplePaths.length < MAX_REASON_SAMPLES && !reason.samplePaths.includes(sample)) {
+    reason.samplePaths.push(sample);
+  }
+}
+
+function tracker() {
+  return {
+    counts: { discovered: 0, eligible: 0, scanned: 0, excluded: 0, skipped: 0, truncated: 0, errors: 0 },
+    reasonMap: new Map(),
+  };
+}
+
+function account(trackerState, outcome, code, path) {
+  trackerState.counts.discovered += 1;
+  if (outcome === 'excluded') {
+    trackerState.counts.excluded += 1;
+  } else {
+    trackerState.counts.eligible += 1;
+    trackerState.counts[outcome] += 1;
+  }
+  if (code) addReason(trackerState, code, path);
+}
+
+function resultFor(trackerState) {
+  const incomplete = trackerState.counts.skipped + trackerState.counts.truncated + trackerState.counts.errors;
+  return {
+    status: incomplete ? (trackerState.counts.scanned ? 'partial' : 'unavailable') : 'completed',
+    counts: trackerState.counts,
+    reasons: [...trackerState.reasonMap.values()].sort((left, right) => left.code.localeCompare(right.code)),
+  };
+}
+
+function walk(root, limits) {
   const files = [];
+  const events = [];
+  let entriesSeen = 0;
+  let stopped = false;
+
+  function event(outcome, code, path) {
+    events.push({ outcome, code, path: samplePath(path) });
+  }
+
   function visit(directory, depth) {
-    if (depth > maxDepth || files.length >= maxFiles) return;
+    if (stopped) return;
     let entries;
-    try { entries = readdirSync(directory, { withFileTypes: true }); } catch { return; }
+    try {
+      entries = readdirSync(directory, { withFileTypes: true });
+    } catch {
+      event('errors', 'directory_unreadable', posix(relative(root, directory)) || '.');
+      return;
+    }
     for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-      if (entry.isSymbolicLink()) continue;
       const absolute = join(directory, entry.name);
-      if (entry.isDirectory()) {
-        if (!IGNORED.has(entry.name)) visit(absolute, depth + 1);
-      } else if (entry.isFile()) {
-        files.push({ absolute, path: posix(relative(root, absolute)), name: entry.name });
+      const path = posix(relative(root, absolute));
+      entriesSeen += 1;
+      if (entriesSeen > limits.maxEntries) {
+        event('truncated', 'entry_limit_reached', path);
+        stopped = true;
+        break;
       }
-      if (files.length >= maxFiles) break;
+      if (entry.isSymbolicLink()) {
+        event('excluded', 'symlink_not_followed', path);
+        continue;
+      }
+      if (entry.isDirectory()) {
+        if (IGNORED.has(entry.name)) {
+          event('excluded', 'policy_excluded_directory', path);
+        } else if (depth >= limits.maxDepth) {
+          event('truncated', 'depth_limit_reached', path);
+        } else {
+          visit(absolute, depth + 1);
+        }
+      } else if (entry.isFile()) {
+        if (files.length >= limits.maxFiles) {
+          event('truncated', 'file_limit_reached', path);
+          stopped = true;
+          break;
+        }
+        files.push({ absolute, path, name: entry.name });
+      } else {
+        event('excluded', 'unsupported_file_type', path);
+      }
     }
   }
   visit(root, 0);
-  return files;
+  return { files, events, entriesSeen: Math.min(entriesSeen, limits.maxEntries), stopped };
 }
 
-function readSmall(file) {
+function readText(file, maxFileBytes) {
   try {
-    if (statSync(file.absolute).size > 1024 * 1024) return null;
-    return readFileSync(file.absolute, 'utf8');
-  } catch { return null; }
+    if (statSync(file.absolute).size > maxFileBytes) {
+      return { outcome: 'truncated', code: 'file_size_limit', text: null };
+    }
+    const bytes = readFileSync(file.absolute);
+    if (bytes.includes(0)) return { outcome: 'skipped', code: 'unsupported_encoding', text: null };
+    return { outcome: 'scanned', code: null, text: new TextDecoder('utf-8', { fatal: true }).decode(bytes) };
+  } catch (error) {
+    return error?.code === 'EACCES' || error?.code === 'EPERM'
+      ? { outcome: 'errors', code: 'file_unreadable', text: null }
+      : error instanceof TypeError
+        ? { outcome: 'skipped', code: 'unsupported_encoding', text: null }
+        : { outcome: 'errors', code: 'file_read_error', text: null };
+  }
 }
 
 function lineOf(text, index) {
@@ -64,7 +158,7 @@ function globMatchesPath(pattern, path) {
   return new RegExp(`^${expression}/?$`).test(path);
 }
 
-function coveredByWorkspace(manifest, filesByPath, lockRoots) {
+function coveredByWorkspace(manifest, parsedPackages, lockRoots) {
   const manifestRoot = posix(dirname(manifest.path));
   if (manifestRoot === '.' || lockRoots.has(manifestRoot)) return lockRoots.has(manifestRoot);
   const segments = manifestRoot.split('/');
@@ -72,33 +166,73 @@ function coveredByWorkspace(manifest, filesByPath, lockRoots) {
     const ancestor = depth ? segments.slice(0, depth).join('/') : '.';
     if (!lockRoots.has(ancestor)) continue;
     const ancestorManifestPath = ancestor === '.' ? 'package.json' : `${ancestor}/package.json`;
-    const ancestorManifest = filesByPath.get(ancestorManifestPath);
-    if (!ancestorManifest) continue;
-    const text = readSmall(ancestorManifest);
-    if (!text) continue;
-    let parsed;
-    try { parsed = JSON.parse(text); } catch { continue; }
+    const parsed = parsedPackages.get(ancestorManifestPath);
+    if (!parsed) continue;
     const relativeRoot = ancestor === '.' ? manifestRoot : manifestRoot.slice(ancestor.length + 1);
     if (workspacePatterns(parsed).some((pattern) => globMatchesPath(pattern, relativeRoot))) return true;
   }
   return false;
 }
 
-export function auditSource(projectRoot) {
+export function auditSource(projectRoot, limits = DEFAULT_SOURCE_TRAVERSAL_LIMITS) {
   const root = resolve(projectRoot);
   if (!existsSync(root) || !statSync(root).isDirectory()) throw new Error(`project root is invalid: ${projectRoot}`);
-  const files = walk(root);
+  const effectiveLimits = sourceTraversalLimits(limits);
+  const traversal = walk(root, effectiveLimits);
+  const { files } = traversal;
   const findings = [];
+  const trackers = Object.fromEntries(SOURCE_RULE_IDS.map((ruleId) => [ruleId, tracker()]));
+  const integrityIssues = new Map();
+  const exclusions = traversal.events.filter((event) => event.outcome === 'excluded');
+  const traversalIssues = traversal.events.filter((event) => event.outcome !== 'excluded');
+  const noteIntegrity = (outcome, code, path) => {
+    const key = `${outcome}\0${code}\0${samplePath(path)}`;
+    if (!integrityIssues.has(key)) integrityIssues.set(key, { outcome, code, path: samplePath(path) });
+  };
+  for (const ruleId of SOURCE_RULE_IDS.filter((id) => id !== 'source-evidence-incomplete')) {
+    for (const event of exclusions) account(trackers[ruleId], 'excluded', event.code, event.path);
+    for (const event of traversalIssues) {
+      account(trackers[ruleId], event.outcome, event.code, event.path);
+      noteIntegrity(event.outcome, event.code, event.path);
+    }
+  }
   const manifests = files.filter((file) => file.name === 'package.json' || file.name === 'pyproject.toml' || /^requirements.*\.txt$/i.test(file.name));
   const lockCheckedManifests = manifests.filter((file) => file.name === 'package.json' || file.name === 'pyproject.toml');
   const lockNames = new Set(['package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb', 'uv.lock', 'poetry.lock', 'Pipfile.lock']);
   const lockRoots = new Set(files.filter((file) => lockNames.has(file.name)).map((file) => posix(dirname(file.path))));
-  const filesByPath = new Map(files.map((file) => [file.path, file]));
+  const textCache = new Map();
+  const load = (file) => {
+    if (!textCache.has(file.path)) textCache.set(file.path, readText(file, effectiveLimits.maxFileBytes));
+    return textCache.get(file.path);
+  };
+  const packageResults = new Map();
+  for (const file of files.filter((item) => item.name === 'package.json')) {
+    const loaded = load(file);
+    if (loaded.outcome !== 'scanned') {
+      packageResults.set(file.path, loaded);
+      continue;
+    }
+    try {
+      packageResults.set(file.path, { ...loaded, parsed: JSON.parse(loaded.text) });
+    } catch {
+      packageResults.set(file.path, { outcome: 'errors', code: 'manifest_parse_error', text: null, parsed: null });
+    }
+  }
+  const parsedPackages = new Map([...packageResults.entries()]
+    .filter(([, result]) => result.outcome === 'scanned').map(([path, result]) => [path, result.parsed]));
 
   for (const manifest of lockCheckedManifests) {
+    const result = manifest.name === 'package.json'
+      ? packageResults.get(manifest.path)
+      : { outcome: 'scanned', code: null };
+    account(trackers['dependency-lockfile-missing'], result.outcome, result.code, manifest.path);
+    if (result.outcome !== 'scanned') {
+      noteIntegrity(result.outcome, result.code, manifest.path);
+      continue;
+    }
     const manifestRoot = posix(dirname(manifest.path));
     const hasLockfile = manifest.name === 'package.json'
-      ? coveredByWorkspace(manifest, filesByPath, lockRoots)
+      ? coveredByWorkspace(manifest, parsedPackages, lockRoots)
       : lockRoots.has(manifestRoot);
     if (!hasLockfile) {
       findings.push(createFinding({
@@ -117,6 +251,7 @@ export function auditSource(projectRoot) {
 
   for (const file of files) {
     if (ENV_FILE.test(file.name) && !ENV_TEMPLATE.test(file.name)) {
+      account(trackers['sensitive-env-file-present'], 'scanned', null, file.path);
       findings.push(createFinding({
         ruleId: 'sensitive-env-file-present',
         title: 'Sensitive environment file requires repository and artifact review',
@@ -131,10 +266,13 @@ export function auditSource(projectRoot) {
       continue;
     }
     if (file.name === 'package.json') {
-      const text = readSmall(file);
-      if (!text) continue;
-      let manifest;
-      try { manifest = JSON.parse(text); } catch { continue; }
+      const result = packageResults.get(file.path);
+      account(trackers['node-inspector-public-bind'], result.outcome, result.code, file.path);
+      if (result.outcome !== 'scanned') {
+        noteIntegrity(result.outcome, result.code, file.path);
+        continue;
+      }
+      const { text, parsed: manifest } = result;
       for (const [scriptName, command] of Object.entries(manifest.scripts || {})) {
         if (typeof command !== 'string') continue;
         const match = /--inspect(?:-brk)?(?:=|\s+)(0\.0\.0\.0|\[::\])(?::\d+)?/.exec(command);
@@ -155,8 +293,13 @@ export function auditSource(projectRoot) {
       }
     }
     if (CONFIG_FILES.test(file.name)) {
-      const text = readSmall(file);
-      if (!text) continue;
+      const result = load(file);
+      account(trackers['production-source-map-enabled'], result.outcome, result.code, file.path);
+      if (result.outcome !== 'scanned') {
+        noteIntegrity(result.outcome, result.code, file.path);
+        continue;
+      }
+      const { text } = result;
       for (const pattern of [
         /productionBrowserSourceMaps\s*:\s*(true)/,
         /sourcemap\s*:\s*(true|['"](?:inline|hidden)['"])/,
@@ -181,6 +324,11 @@ export function auditSource(projectRoot) {
     }
   }
 
+  if (manifests.length) {
+    for (const manifest of manifests) account(trackers['source-stack-unsupported'], 'scanned', null, manifest.path);
+  } else {
+    account(trackers['source-stack-unsupported'], 'scanned', null, '.');
+  }
   if (!manifests.length) {
     findings.push(createFinding({
       ruleId: 'source-stack-unsupported',
@@ -193,7 +341,38 @@ export function auditSource(projectRoot) {
       retest: 'Provide a supported manifest or an explicit, reviewable stack adapter and rerun.',
     }));
   }
-  return findings;
+
+  const integrity = trackers['source-evidence-incomplete'];
+  account(integrity, 'scanned', null, '.');
+  for (const event of exclusions) account(integrity, 'excluded', event.code, event.path);
+  for (const issue of integrityIssues.values()) account(integrity, issue.outcome, issue.code, issue.path);
+  if (integrityIssues.size) {
+    const reasons = [...integrityIssues.values()].reduce((counts, item) => {
+      counts[item.code] = (counts[item.code] || 0) + 1;
+      return counts;
+    }, {});
+    findings.push(createFinding({
+      ruleId: 'source-evidence-incomplete',
+      title: 'Source evidence is incomplete',
+      severity: 'high',
+      state: 'unknown',
+      summary: 'One or more eligible source inputs could not be traversed or inspected, so the absence of other findings is not a complete result.',
+      evidence: { subject: 'source-traversal', reasons, effectiveLimits },
+      remediation: 'Review the bounded coverage reasons, restore readable supported inputs or raise a limit within its allowed range, then rerun the audit.',
+      retest: 'Rerun with the same subject and scope until every required source rule has completed coverage.',
+    }));
+  }
+
+  return {
+    findings,
+    coverage: Object.fromEntries(Object.entries(trackers).map(([ruleId, state]) => [ruleId, resultFor(state)])),
+    traversal: {
+      effectiveLimits,
+      entriesSeen: traversal.entriesSeen,
+      filesDiscovered: files.length,
+      stopped: traversal.stopped,
+    },
+  };
 }
 
 export function renderPatch(findings) {

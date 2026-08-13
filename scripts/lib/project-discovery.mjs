@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
-import { sourceAuditBoundary } from './project-identity.mjs';
+import { DEFAULT_SOURCE_TRAVERSAL_LIMITS, sourceAuditBoundary } from './project-identity.mjs';
 
 const IGNORED_DIRECTORIES = new Set([
   '.git', '.hg', '.svn', '.next', '.nuxt', '.output', '.webapp-security',
@@ -38,30 +38,52 @@ function safeText(path, warnings) {
   }
 }
 
-function scanFiles(root, maxDepth = 4, maxFiles = 5000) {
+function scanFiles(root, limits = DEFAULT_SOURCE_TRAVERSAL_LIMITS) {
   const files = [];
-  let truncated = false;
+  const warnings = [];
+  let entriesSeen = 0;
+  let stopped = false;
   function visit(directory, depth) {
-    if (truncated || depth > maxDepth) return;
+    if (stopped) return;
     let entries;
     try {
       entries = readdirSync(directory, { withFileTypes: true });
     } catch {
+      warnings.push(`${posix(relative(root, directory)) || '.'} could not be enumerated during discovery`);
       return;
     }
     for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-      if (files.length >= maxFiles) { truncated = true; return; }
-      if (entry.isSymbolicLink()) continue;
       const absolute = join(directory, entry.name);
+      const path = posix(relative(root, absolute));
+      entriesSeen += 1;
+      if (entriesSeen > limits.maxEntries) {
+        warnings.push(`stack discovery reached maxEntries=${limits.maxEntries} at ${path}`);
+        stopped = true;
+        return;
+      }
+      if (entry.isSymbolicLink()) {
+        warnings.push(`${path} is a symlink and was not followed during discovery`);
+        continue;
+      }
       if (entry.isDirectory()) {
-        if (!IGNORED_DIRECTORIES.has(entry.name)) visit(absolute, depth + 1);
+        if (IGNORED_DIRECTORIES.has(entry.name)) continue;
+        if (depth >= limits.maxDepth) {
+          warnings.push(`stack discovery reached maxDepth=${limits.maxDepth} at ${path}`);
+        } else {
+          visit(absolute, depth + 1);
+        }
       } else if (entry.isFile()) {
+        if (files.length >= limits.maxFiles) {
+          warnings.push(`stack discovery reached maxFiles=${limits.maxFiles} at ${path}`);
+          stopped = true;
+          return;
+        }
         files.push({ absolute, relative: posix(relative(root, absolute)), name: entry.name });
       }
     }
   }
   visit(root, 0);
-  return { files, truncated };
+  return { files, warnings };
 }
 
 function framework(name, ecosystem, root, evidence) {
@@ -110,8 +132,10 @@ export function discoverProject(projectPath, options = {}) {
   if (!existsSync(projectRoot) || !statSync(projectRoot).isDirectory()) {
     throw new Error(`project must be an existing directory: ${projectPath}`);
   }
-  const { files, truncated } = scanFiles(projectRoot, options.maxDepth, options.maxFiles);
-  const warnings = [];
+  const limits = options.traversalLimits || DEFAULT_SOURCE_TRAVERSAL_LIMITS;
+  const scanned = scanFiles(projectRoot, limits);
+  const { files } = scanned;
+  const warnings = [...scanned.warnings];
   const manifests = [];
   const lockfiles = [];
   const packageManagers = [];
@@ -158,8 +182,6 @@ export function discoverProject(projectPath, options = {}) {
 
   const userOrigin = normalizeOrigin(options.origin, 'user', warnings);
   if (userOrigin) origins.unshift(userOrigin);
-  if (truncated) warnings.push('file discovery reached the 5000-file scan limit');
-
   const unique = (items, key) => [...new Map(items.map((item) => [key(item), item])).values()];
   const detectedFrameworks = unique(frameworks, (item) => `${item.name}:${item.root}`);
   const detectedManagers = unique(packageManagers, (item) => `${item.name}:${item.root}`);
@@ -200,7 +222,7 @@ export function buildScope(discovery, metadata) {
     generatedBy: { product: 'Web App Security Skill', version: metadata.version },
     generatedAt: metadata.generatedAt,
     subject: metadata.subject,
-    auditBoundary: sourceAuditBoundary(),
+    auditBoundary: metadata.auditBoundary || sourceAuditBoundary(),
     run: { id: metadata.runId, directory: metadata.runDirectory },
     target: {
       projectRoot: discovery.projectRoot,

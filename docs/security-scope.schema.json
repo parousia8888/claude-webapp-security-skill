@@ -29,13 +29,24 @@
     "auditBoundary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "sourceRoots", "excludedDirectories", "checkModes", "networkAccess"],
+      "required": ["version", "sourceRoots", "excludedDirectories", "checkModes", "networkAccess", "traversalLimits"],
       "properties": {
-        "version": { "const": 1 },
+        "version": { "const": 2 },
         "sourceRoots": { "type": "array", "minItems": 1, "items": { "type": "string" } },
         "excludedDirectories": { "type": "array", "items": { "type": "string" } },
         "checkModes": { "type": "array", "items": { "enum": ["source", "local"] } },
-        "networkAccess": { "const": false }
+        "networkAccess": { "const": false },
+        "traversalLimits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maxDepth", "maxFiles", "maxEntries", "maxFileBytes"],
+          "properties": {
+            "maxDepth": { "type": "integer", "minimum": 1, "maximum": 64 },
+            "maxFiles": { "type": "integer", "minimum": 1, "maximum": 200000 },
+            "maxEntries": { "type": "integer", "minimum": 1, "maximum": 500000 },
+            "maxFileBytes": { "type": "integer", "minimum": 1024, "maximum": 16777216 }
+          }
+        }
       }
     },
     "run": {

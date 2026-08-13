@@ -344,6 +344,16 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => (
 const escapeXml = escapeHtml;
 
 export function renderMarkdownV2(report) {
+  const coverageLines = report.coverage.flatMap((entry) => {
+    const counts = Object.entries(entry.counts).map(([key, value]) => `${key}=${value}`).join(', ');
+    const reasons = entry.reasons.length
+      ? `; reasons: ${entry.reasons.map((reason) => `${reason.code}=${reason.count}${reason.samplePaths.length ? ` [${reason.samplePaths.join(', ')}]` : ''}`).join('; ')}`
+      : '';
+    return [`- \`${entry.adapterId}/${entry.ruleId}@${entry.ruleRevision}\`: ${entry.status}; ${counts}${reasons}`];
+  });
+  const traversal = report.scope?.traversal
+    ? [`- Traversal: entries=${report.scope.traversal.entriesSeen}, files=${report.scope.traversal.filesDiscovered}, stopped=${report.scope.traversal.stopped}; limits=${JSON.stringify(report.scope.traversal.effectiveLimits)}`]
+    : [];
   const lines = [
     '# Web App Security report', '',
     `- Schema: \`v${report.schemaVersion}\``,
@@ -353,7 +363,8 @@ export function renderMarkdownV2(report) {
     `- Findings: ${report.summary.total}`,
     `- Evidence states: ${V2_RESULT_STATES.map((state) => `${state}=${report.summary.byState[state]}`).join(', ')}`,
     '', '## Coverage', '',
-    ...report.coverage.map((entry) => `- \`${entry.adapterId}/${entry.ruleId}@${entry.ruleRevision}\`: ${entry.status}`),
+    ...traversal,
+    ...coverageLines,
     '', '## Findings', '',
   ];
   if (!report.findings.length) lines.push('No findings were produced by the checks that ran.', '');
@@ -379,8 +390,17 @@ export function renderHtmlV2(report) {
 <p>${escapeHtml(finding.summary)}</p>
 <dl><dt>ID</dt><dd><code>${escapeHtml(finding.id)}</code></dd><dt>Location</dt><dd><code>${escapeHtml(finding.location ? `${finding.location.path}${finding.location.line ? `:${finding.location.line}` : ''}` : 'project-wide')}</code></dd><dt>Evidence</dt><dd><code>${escapeHtml(JSON.stringify(finding.evidence))}</code></dd><dt>Remediation</dt><dd>${escapeHtml(finding.remediation)}</dd><dt>Retest</dt><dd>${escapeHtml(finding.retest)}</dd></dl>
 </article>`).join('\n');
-  const coverage = report.coverage.map((entry) => `<li><code>${escapeHtml(`${entry.adapterId}/${entry.ruleId}@${entry.ruleRevision}`)}</code>: ${escapeHtml(entry.status)}</li>`).join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:8px}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><p>Subject: <code>${escapeHtml(report.subject.id)}</code></p><h2>Coverage</h2><ul>${coverage}</ul><h2>Findings</h2>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
+  const coverage = report.coverage.map((entry) => {
+    const counts = Object.entries(entry.counts).map(([key, value]) => `${key}=${value}`).join(', ');
+    const reasons = entry.reasons.length
+      ? `; reasons: ${entry.reasons.map((reason) => `${reason.code}=${reason.count}${reason.samplePaths.length ? ` [${reason.samplePaths.join(', ')}]` : ''}`).join('; ')}`
+      : '';
+    return `<li><code>${escapeHtml(`${entry.adapterId}/${entry.ruleId}@${entry.ruleRevision}`)}</code>: ${escapeHtml(`${entry.status}; ${counts}${reasons}`)}</li>`;
+  }).join('');
+  const traversal = report.scope?.traversal
+    ? `<p>Traversal: <code>${escapeHtml(JSON.stringify(report.scope.traversal))}</code></p>`
+    : '';
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:8px}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><p>Subject: <code>${escapeHtml(report.subject.id)}</code></p><h2>Coverage</h2>${traversal}<ul>${coverage}</ul><h2>Findings</h2>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
 }
 
 export function renderSarifV2(report) {

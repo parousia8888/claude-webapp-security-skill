@@ -102,6 +102,20 @@ assert.match(validateReportV2(report({
 })).join('\n'), /duplicate domain/);
 assert.match(validateReportV2(report({ subject: { ...report().subject, binding: 'ephemeral' } })).join('\n'), /persisted subject/);
 assert.match(validateReportV2(report({ coverage: [{ ...coverage, counts: { ...coverage.counts, scanned: 0 } }] })).join('\n'), /not reconciled/);
+assert.match(validateReportV2(report({ coverage: [{
+  ...coverage, counts: { ...coverage.counts, discovered: 2 },
+}] })).join('\n'), /discovered count is not reconciled/);
+assert.match(validateReportV2(report({ coverage: [{
+  ...coverage, counts: { ...coverage.counts, eligible: 2, skipped: 1 },
+}] })).join('\n'), /completed status hides incomplete evidence/);
+assert.match(validateReportV2(report({ coverage: [{
+  ...coverage, reasons: [{ code: 'fixture_reason', count: 1, samplePaths: ['/private/source'] }],
+}] })).join('\n'), /unsafe path/);
+assert.match(validateReportV2(report({ coverage: [{
+  ...coverage, status: 'unavailable', counts: {
+    discovered: 1, eligible: 1, scanned: 0, excluded: 0, skipped: 0, truncated: 0, errors: 1,
+  }, reasons: [],
+}] })).join('\n'), /reason counts are not reconciled/);
 assert.match(validateReportV2(report({ findings: [finding({ baseline: { ...finding().baseline, coverageRef: 'missing-coverage' } })] })).join('\n'), /missing coverage/);
 
 const migrated = report({
