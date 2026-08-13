@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/repair-record.schema.json",
+  "title": "Web App Security Skill repair workflow record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "source", "workflowStatus", "proposal", "approval", "application", "verification", "rollback"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reportSha256", "reportSchemaVersion", "subjectId", "findingId", "findingFingerprint", "evidenceState", "baselineState"],
+      "properties": {
+        "reportSha256": { "$ref": "#/$defs/sha256" },
+        "reportSchemaVersion": { "const": 3 },
+        "subjectId": { "$ref": "#/$defs/text" },
+        "findingId": { "$ref": "#/$defs/id" },
+        "findingFingerprint": { "$ref": "#/$defs/sha256" },
+        "evidenceState": { "enum": ["confirmed", "suspected", "unknown"] },
+        "baselineState": { "enum": ["new", "unchanged", "regressed", "fixed", "unretested", "not_comparable", null] }
+      }
+    },
+    "workflowStatus": { "enum": ["review_required", "ready_for_review", "approved", "applied", "retested", "rolled_back"] },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "touchedPaths", "assumptions", "alternatives", "sideEffects", "blastRadius"],
+      "properties": {
+        "summary": { "$ref": "#/$defs/text" },
+        "touchedPaths": { "$ref": "#/$defs/pathList" },
+        "assumptions": { "$ref": "#/$defs/nonEmptyTextList" },
+        "alternatives": { "$ref": "#/$defs/textList" },
+        "sideEffects": { "$ref": "#/$defs/nonEmptyTextList" },
+        "blastRadius": { "$ref": "#/$defs/nonEmptyTextList" }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "status", "questions", "recordedBy", "recordedAt"],
+      "properties": {
+        "required": { "const": true },
+        "status": { "enum": ["pending", "approved", "rejected"] },
+        "questions": { "$ref": "#/$defs/nonEmptyTextList" },
+        "recordedBy": { "oneOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }] },
+        "recordedAt": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "changedPaths", "appliedAt", "rolledBackAt", "notes"],
+      "properties": {
+        "status": { "enum": ["not_applied", "applied", "rolled_back"] },
+        "changedPaths": { "$ref": "#/$defs/pathList" },
+        "appliedAt": { "type": ["string", "null"], "format": "date-time" },
+        "rolledBackAt": { "type": ["string", "null"], "format": "date-time" },
+        "notes": { "$ref": "#/$defs/textList" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["security", "functional"],
+      "properties": {
+        "security": { "$ref": "#/$defs/verification" },
+        "functional": { "$ref": "#/$defs/verification" }
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition", "action"],
+      "properties": { "condition": { "$ref": "#/$defs/text" }, "action": { "$ref": "#/$defs/text" } }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 4096, "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]+$" },
+    "textList": { "type": "array", "maxItems": 50, "items": { "$ref": "#/$defs/text" } },
+    "nonEmptyTextList": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "$ref": "#/$defs/text" } },
+    "pathList": { "type": "array", "maxItems": 50, "items": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!/)(?![A-Za-z]:[\\/])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000-\\u001f\\u007f]+$" } },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "procedure", "recordedAt", "evidence"],
+      "properties": {
+        "status": { "enum": ["not_run", "passed", "failed", "unknown"] },
+        "procedure": { "$ref": "#/$defs/text" },
+        "recordedAt": { "type": ["string", "null"], "format": "date-time" },
+        "evidence": { "$ref": "#/$defs/textList" }
+      }
+    }
+  }
+}

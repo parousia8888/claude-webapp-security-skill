@@ -154,6 +154,18 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => (
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 })[character]);
 const escapeXml = escapeHtml;
+const evidenceLabels = {
+  confirmed: 'reproduced in the recorded scope',
+  suspected: 'a lead that still needs context or reproduction',
+  unknown: 'the required evidence was unavailable; this is not a pass',
+  not_applicable: 'outside the recorded scope',
+};
+const proposalLabels = {
+  ready_for_review: 'specific proposal ready for human review',
+  review_required: 'missing context or a user decision before application',
+  no_safe_automatic_change: 'no safe automatic change was identified',
+  not_applicable: 'no repair applies to this result',
+};
 
 function listLines(values, fallback = 'None recorded.') {
   return values.length ? values.map((value) => `- ${value}`) : [fallback];
@@ -180,12 +192,12 @@ export function renderFindingMarkdownV3(finding, { technical = false } = {}) {
   const explanation = finding.explanation;
   const lines = [
     `### ${finding.id}: ${finding.title}`, '',
-    `**${finding.domain} / ${finding.severity} / ${finding.state} / ${finding.baseline.state || 'none'}**`, '',
+    `**${finding.domain} / ${finding.severity} / ${finding.state} (${evidenceLabels[finding.state]}) / ${finding.baseline.state || 'none'}**`, '',
     `**Professional term:** ${explanation.technicalTerm}`, '',
     `**What this means:** ${explanation.plainLanguage}`, '',
     `**What could happen:** ${explanation.consequence}`, '',
     `**What the evidence proves:** ${explanation.evidenceBoundary}`, '',
-    `**Proposed change (${explanation.proposal.status}):** ${explanation.proposal.summary}`, '',
+    `**Proposed change (${explanation.proposal.status}: ${proposalLabels[explanation.proposal.status]}):** ${explanation.proposal.summary}`, '',
     '**Alternatives:**', '', ...listLines(explanation.alternatives), '',
     '**Possible side effects:**', '', ...listLines(explanation.sideEffects), '',
     `**Security retest:** ${explanation.securityRetest}`, '',
@@ -254,7 +266,7 @@ export function renderHtmlV3(report) {
     const standards = x.standards.length
       ? `<ul>${x.standards.map((item) => `<li><a href="${escapeHtml(item.url)}">${escapeHtml(item.id)}</a></li>`).join('')}</ul>`
       : '<p>None recorded.</p>';
-    return `<article data-finding-id="${escapeHtml(finding.id)}"><h2>${escapeHtml(finding.title)}</h2><p><strong>${escapeHtml(`${finding.domain} / ${finding.severity} / ${finding.state} / ${finding.baseline.state || 'none'}`)}</strong></p><dl><dt>Professional term</dt><dd>${escapeHtml(x.technicalTerm)}</dd><dt>What this means</dt><dd>${escapeHtml(x.plainLanguage)}</dd><dt>What could happen</dt><dd>${escapeHtml(x.consequence)}</dd><dt>What the evidence proves</dt><dd>${escapeHtml(x.evidenceBoundary)}</dd><dt>Proposed change (${escapeHtml(x.proposal.status)})</dt><dd>${escapeHtml(x.proposal.summary)}</dd><dt>Alternatives</dt><dd>${list(x.alternatives)}</dd><dt>Possible side effects</dt><dd>${list(x.sideEffects)}</dd><dt>Security retest</dt><dd>${escapeHtml(x.securityRetest)}</dd><dt>Functional retest</dt><dd>${escapeHtml(x.functionalRetest)}</dd><dt>Rollback</dt><dd>${escapeHtml(x.rollback)}</dd><dt>Decisions needed from you</dt><dd>${list(x.userDecisions)}</dd><dt>Standards</dt><dd>${standards}</dd></dl></article>`;
+    return `<article data-finding-id="${escapeHtml(finding.id)}"><h2>${escapeHtml(finding.title)}</h2><p><strong>${escapeHtml(`${finding.domain} / ${finding.severity} / ${finding.state} (${evidenceLabels[finding.state]}) / ${finding.baseline.state || 'none'}`)}</strong></p><dl><dt>Professional term</dt><dd>${escapeHtml(x.technicalTerm)}</dd><dt>What this means</dt><dd>${escapeHtml(x.plainLanguage)}</dd><dt>What could happen</dt><dd>${escapeHtml(x.consequence)}</dd><dt>What the evidence proves</dt><dd>${escapeHtml(x.evidenceBoundary)}</dd><dt>Proposed change (${escapeHtml(`${x.proposal.status}: ${proposalLabels[x.proposal.status]}`)})</dt><dd>${escapeHtml(x.proposal.summary)}</dd><dt>Alternatives</dt><dd>${list(x.alternatives)}</dd><dt>Possible side effects</dt><dd>${list(x.sideEffects)}</dd><dt>Security retest</dt><dd>${escapeHtml(x.securityRetest)}</dd><dt>Functional retest</dt><dd>${escapeHtml(x.functionalRetest)}</dd><dt>Rollback</dt><dd>${escapeHtml(x.rollback)}</dd><dt>Decisions needed from you</dt><dd>${list(x.userDecisions)}</dd><dt>Standards</dt><dd>${standards}</dd></dl></article>`;
   }).join('\n');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:12px}dd{margin-left:0}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><h2>Risk summary</h2>${summary ? `<ul>${summary}</ul>` : '<p>No findings were produced by the checks that ran.</p>'}<h2>Adapters</h2><ul>${adapters}</ul><h2>Coverage</h2>${traversal}<ul>${coverage}</ul><h2>Findings</h2>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
 }

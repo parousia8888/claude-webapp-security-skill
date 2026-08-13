@@ -132,6 +132,14 @@
       "evidence": ["scripts/lib/evidence-v3.mjs", "scripts/explain-finding.mjs", "test/report-v3-contract.test.mjs", "test/evidence-loop.test.mjs"]
     },
     {
+      "id": "reviewable-repair-workflow",
+      "name": "Reviewable security repair workflow",
+      "category": "evidence_reporting",
+      "maturity": "stable",
+      "scope": "Creates a private, review-only repair record for one source v3 finding. It preserves evidence state separately from repair progress, requires explicit approval before application, blocks unknown evidence from application, and requires both security and functional retests before a repair can be recorded as retested. The CLI does not edit project files.",
+      "evidence": ["docs/repair-record.schema.json", "references/explanation-repair-workflow.md", "scripts/lib/repair-record.mjs", "scripts/repair-plan.mjs", "test/repair-workflow.test.mjs"]
+    },
+    {
       "id": "distribution-surfaces",
       "name": "Installer and GitHub Action",
       "category": "lifecycle_distribution",

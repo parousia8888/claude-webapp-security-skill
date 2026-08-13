@@ -23,6 +23,8 @@ Commands:
   start <project> [options]    Discover stack and create a versioned, network-free scope
   audit <project|run>          Run deterministic source checks and render evidence
   explain <id> --report <json> Explain one finding from a structured report
+  repair-plan <id> [options]   Create a review-only repair workflow record
+  repair-validate <json>       Validate approval, application, retest and rollback state
   retest <project|run>         Rerun source checks against a required baseline
   doctor [project]             Report adapter versions/prerequisites without downloads
   migrate-report <v1-report>   Bind historical v1 evidence as non-comparable v2 lineage
@@ -141,6 +143,7 @@ const include = [
   'docs/finding.schema.json', 'docs/report.schema.json', 'docs/finding-v2.schema.json',
   'docs/report-v2.schema.json', 'docs/report-v2-migration.md', 'docs/finding-v3.schema.json',
   'docs/report-v3.schema.json', 'docs/report-v3-migration.md',
+  'docs/repair-record.schema.json',
   'docs/adapter-protocol.md', 'docs/alert-policy.md', 'docs/rule-taxonomy.md',
   'docs/stable-source-rules.json',
 ];
@@ -321,6 +324,8 @@ switch (command) {
   case 'start': run(process.execPath, [join(ROOT, 'scripts', 'project-start.mjs'), ...argv]); break;
   case 'audit': run(process.execPath, [join(ROOT, 'scripts', 'project-audit.mjs'), 'audit', ...argv]); break;
   case 'explain': run(process.execPath, [join(ROOT, 'scripts', 'explain-finding.mjs'), ...argv]); break;
+  case 'repair-plan': run(process.execPath, [join(ROOT, 'scripts', 'repair-plan.mjs'), 'create', ...argv]); break;
+  case 'repair-validate': run(process.execPath, [join(ROOT, 'scripts', 'repair-plan.mjs'), 'validate', ...argv]); break;
   case 'retest': run(process.execPath, [join(ROOT, 'scripts', 'project-audit.mjs'), 'retest', ...argv]); break;
   case 'doctor': run(process.execPath, [join(ROOT, 'scripts', 'adapter-doctor.mjs'), ...argv]); break;
   case 'migrate-report': run(process.execPath, [join(ROOT, 'scripts', 'migrate-report.mjs'), ...argv]); break;

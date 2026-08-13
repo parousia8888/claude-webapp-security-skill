@@ -90,6 +90,9 @@ node "$S/scripts/webapp-security.mjs" doctor /path/to/project --adapter all
 node "$S/scripts/webapp-security.mjs" audit /path/to/project \
   --adapter gitleaks --adapter osv --fail-on never
 node "$S/scripts/webapp-security.mjs" explain <finding-id> --report <report.json>
+node "$S/scripts/webapp-security.mjs" repair-plan <finding-id> \
+  --report <report.json> --out <new-private-directory>
+node "$S/scripts/webapp-security.mjs" repair-validate <repair-record.json>
 node "$S/scripts/webapp-security.mjs" start /path/to/project --run-id <retest-run-id>
 node "$S/scripts/webapp-security.mjs" retest \
   /path/to/project/.webapp-security/runs/<retest-run-id> --baseline <report.json>
@@ -144,6 +147,8 @@ are `unknown`, not clean. OSV-Scanner may access the public OSV database.
 - **Minification is not a security boundary.** Client code always reaches the client; it raises recon cost, nothing more.
 - **Secrets discipline in output.** Never print keys, tokens, cookies, auth headers, full share URLs, user emails, or real users' IPs. Report presence, status codes, counts, sanitized paths, and sanitized errors.
 - **A finding is not confirmed until it is reproduced.** Scanner hits, grep matches, and AI-generated suspicions are leads. Say "unconfirmed" when it is unconfirmed.
+- **A proposal is not an applied fix.** Follow [`references/explanation-repair-workflow.md`](references/explanation-repair-workflow.md). Keep finding evidence state separate from repair workflow state, record touched paths, assumptions, alternatives, side effects and blast radius, and get an explicit user decision before changing authentication, authorization, public routes, CORS, cookies/sessions, stored data, destructive migrations or production infrastructure.
+- **A build is not a security retest.** After an approved change, run the smallest relevant security check and the project-native functional tests. If either is unavailable, record `unknown`; do not call the repair `retested` or the finding `fixed`. Keep the rollback condition and action visible.
 
 ## Output contract
 
@@ -166,3 +171,8 @@ Both versions preserve the same evidence states, coverage, policy and exit seman
 tool-specific raw observations separate. A patch is review evidence only. Set baseline state to
 `fixed` only when persisted subject/scope and rule identity are compatible, current coverage
 completed, and the condition is affirmatively absent.
+
+Use `repair-plan` to create a separate private review record. Its workflow states
+`review_required`, `ready_for_review`, `approved`, `applied`, `retested` and `rolled_back` describe
+what happened to a proposed change; they never replace `confirmed`, `suspected`, `unknown` or
+`not_applicable`. The command never edits project files.
