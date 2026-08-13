@@ -424,9 +424,14 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   [31657298727](https://github.com/parousia8888/web-app-security-skill/actions/runs/31657298727)
   and CodeQL
   [31657298751](https://github.com/parousia8888/web-app-security-skill/actions/runs/31657298751)
-  also passed. Live GitHub metadata validation passed after #1/#2/#5 closed.
+  also passed. Release-state CI
+  [31658167450](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658167450)
+  passed Ubuntu/macOS on Node 20/22 and CodeQL
+  [31658167426](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658167426)
+  passed. Live GitHub metadata validation passed after #1/#2/#5 closed and after the release-state
+  contract was added.
 - Commit / CI / release: correctness implementation `f227c3d`; issue-state contract `49cf60f`;
-  release-state implementation pending this phase commit and CI evidence.
+  release-state implementation `0ca668e`.
   Issues #1, #2 and #5 are closed with commit/test/CI evidence. The Marketplace listing is live and
   still reports `v0.3.0`; the signed `v0.3.0` and `v1` tags both resolve to
   `d7df9fa6efd466c3eb13768c3b9ad259d2636e04`. Existing public `@v1` consumer run
