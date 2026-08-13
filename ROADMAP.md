@@ -48,9 +48,9 @@ v0.5.0 is the source-detection and understandable-remediation release:
   classified five-project ordinary-source review;
 - a source-focused local demo that records both security and normal functional retests.
 
-The signed release, reproducible artifacts and verified installer are published. The remaining M9
-work is immutable Action consumer verification and guarded `v1` promotion; the stable alias stays
-on v0.4.0 until those gates pass.
+The signed release, reproducible artifacts and verified installer are published. Immutable
+`v0.5.0` and signed `v1` Action references both passed external crawl and source consumers. The
+guarded `v1` promotion is complete and the stable alias resolves to the v0.5.0 release source.
 
 The complete audited baseline, milestone sequence, tests, stop conditions and publication gates
 live in the [v0.5.0 engineering plan](docs/V0.5.0_ENGINEERING_PLAN.md). Built-in depth for other

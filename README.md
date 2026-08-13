@@ -284,8 +284,8 @@ requires deployment authorization acknowledgement:
     fail-on: high
 ```
 
-For repeatable CI, use the immutable v0.5.0 commit above. The stable major-version alias remains on
-v0.4.0 until the separate v0.5.0 consumer and promotion gates complete:
+For repeatable CI, use the immutable v0.5.0 commit above. The signed stable major-version alias now
+resolves to the same v0.5.0 source after both crawl and source modes passed an external consumer:
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
@@ -305,8 +305,9 @@ caller; the Action never downloads them:
     fail-on: high
 ```
 
-The moving `v1` tag is updated only after a versioned release passes the real consumer workflow;
-review release notes before accepting an update to it.
+The moving `v1` tag is updated only after a versioned release passes the real consumer workflow.
+Review release notes before accepting a future update to it; use the full commit above when the
+workflow must not move.
 
 ## Trust and release evidence
 
