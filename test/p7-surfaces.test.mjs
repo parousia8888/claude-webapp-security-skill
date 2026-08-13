@@ -20,9 +20,10 @@ for (const [script, expected] of [
 
 const evidence = readFileSync(join(ROOT, 'docs', 'launch-evidence.md'), 'utf8');
 const metadata = JSON.parse(readFileSync(join(ROOT, 'docs', 'github-metadata.json'), 'utf8'));
+const releaseState = JSON.parse(readFileSync(join(ROOT, 'docs', 'release-state.json'), 'utf8'));
 assert.match(evidence, /2 security HIGH; 11 discoverability HIGH \+ 5 MEDIUM; 1 reliability MEDIUM -> 0 active HIGH \/ 0 active MEDIUM/);
 assert.doesNotMatch(evidence, /13\s+(?:high|HIGH)/);
-assert.match(evidence, /releases\/tag\/v0\.3\.0/);
+assert.ok(evidence.includes(`releases/tag/${releaseState.publishedRelease.tag}`));
 assert.doesNotMatch(evidence, /img\.shields\.io\/github\/(?:stars|forks)|star target/i);
 assert.deepEqual(
   Object.fromEntries(metadata.roadmapIssues.map((issue) => [issue.number, issue.state])),
