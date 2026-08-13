@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "scripts/generate-adoption-assets.mjs",
+  "product": "Web App Security Skill",
+  "repository": "https://github.com/parousia8888/web-app-security-skill",
+  "marketplace": "https://github.com/marketplace/actions/web-app-security-skill",
+  "release": {
+    "version": "0.3.0",
+    "url": "https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0"
+  },
+  "promise": {
+    "en": "Scope, audit, harden, and retest web projects with AI coding agents and reproducible evidence.",
+    "zh-CN": "把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。"
+  },
+  "capabilityContract": {
+    "total": 14,
+    "automatedRegressionTested": 8,
+    "agentGuided": 6,
+    "planned": 0,
+    "evidence": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md"
+  },
+  "ownedLocalDemo": {
+    "before": {
+      "high": 13,
+      "medium": 6
+    },
+    "after": {
+      "high": 0,
+      "medium": 0
+    },
+    "fixed": 21,
+    "thirdPartyTarget": false,
+    "evidence": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md"
+  },
+  "caseEvidence": {
+    "ordinaryFixedCommitJourneys": 3,
+    "methodologyStudies": 5,
+    "hostedInstancesProbedInOrdinaryJourneys": false,
+    "upstreamValidationClaimed": false,
+    "evidence": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md"
+  },
+  "externalState": {
+    "communityPublication": "external_validation_pending",
+    "upstreamValidation": "external_validation_pending",
+    "independentUserSessions": "external_validation_pending"
+  },
+  "prohibitedInferences": [
+    "general scanner coverage",
+    "precision percentage",
+    "project is secure",
+    "upstream validation",
+    "external publication already occurred"
+  ]
+}

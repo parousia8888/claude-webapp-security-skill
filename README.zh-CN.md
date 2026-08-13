@@ -242,6 +242,7 @@ SAST 引擎的 CLI 精度分数。
 开始。误报报告必须提供脱敏的最小 fixture 和期望分类；敏感信息走 private vulnerability reporting。
 
 [生成式 launch evidence](docs/launch-evidence.md)只汇集可复现的能力、demo、项目旅程、方法论案例和
-release 事实。
+release 事实。[发布素材包](docs/adoption/launch-brief.zh-CN.md)提供带证据链接的中英文渠道草稿，
+以及可复用的公开案例/私下披露流程，但不声称外部发布已经发生。
 
 MIT License。

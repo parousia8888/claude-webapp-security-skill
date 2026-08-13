@@ -271,6 +271,8 @@ from [bounded good-first issues](docs/GOOD_FIRST_ISSUES.md), the issue forms, an
 expected classification; sensitive details go through private vulnerability reporting.
 
 The [generated launch evidence](docs/launch-evidence.md) collects only reproducible capability,
-demo, project-journey, methodology-study and release facts.
+demo, project-journey, methodology-study and release facts. The
+[publication kit](docs/adoption/launch-brief.md) provides evidence-linked drafts and a reusable
+public/private case-study workflow without claiming that external publication has occurred.
 
 MIT licensed.

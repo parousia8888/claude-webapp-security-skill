@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "caseId": "owned-fixture-case",
+  "project": {
+    "name": "Owned local fixture",
+    "repository": "parousia8888/web-app-security-skill"
+  },
+  "source": {
+    "commit": "d7df9fa6efd466c3eb13768c3b9ad259d2636e04",
+    "hostedInstanceProbed": false,
+    "networkDenied": true
+  },
+  "authorizationBoundary": "Repository-owned local fixture only; no live target and no third-party system.",
+  "evidence": [
+    {
+      "id": "owned-fixture-before-after",
+      "title": "Local crawl-boundary hardening loop",
+      "state": "confirmed",
+      "summary": "The same local fixture path records findings, a minimal patch, and a retest.",
+      "locations": ["docs/demo-evidence.md"]
+    }
+  ],
+  "falsePositiveClosures": [],
+  "patch": {
+    "status": "applied_locally",
+    "summary": "The fixture patch changes only repository-owned crawl policy and exposed-artifact behavior."
+  },
+  "retest": {
+    "result": "fixed",
+    "summary": "The required-baseline retest records the fixture findings as fixed."
+  },
+  "disclosure": {
+    "state": "not_required",
+    "upstreamResponse": "",
+    "publicAuthorization": true
+  },
+  "limitations": [
+    "This proves the owned fixture workflow, not general scanner coverage.",
+    "No live deployment or third-party application was tested."
+  ]
+}

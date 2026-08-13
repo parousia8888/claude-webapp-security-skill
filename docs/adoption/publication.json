@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "product": "Web App Security Skill",
+  "repositoryUrl": "https://github.com/parousia8888/web-app-security-skill",
+  "marketplaceUrl": "https://github.com/marketplace/actions/web-app-security-skill",
+  "audience": {
+    "en": "Web product owners and builders who use AI coding agents and need a reviewable security-hardening workflow without offensive-security expertise.",
+    "zh-CN": "使用 AI coding agent、需要可审查 Web 安全加固流程，但不具备攻防专业背景的 Web 产品所有者与开发者。"
+  },
+  "positioning": {
+    "en": "An agent skill and deterministic evidence toolkit for scoping, auditing, proposing minimal hardening patches, and retesting web projects.",
+    "zh-CN": "一套用于范围确认、风险检查、最小加固补丁和复测的 agent skill 与确定性证据工具。"
+  },
+  "limitations": {
+    "en": [
+      "The deterministic CLI is narrow and is not a general SAST engine or universal vulnerability scanner.",
+      "Agent-guided reviews require project context and human review; installing the Skill does not prove a project secure.",
+      "The animated result comes from an intentionally misconfigured, repository-owned local fixture and does not establish third-party coverage.",
+      "The ordinary project journeys are fixed-commit source reviews; no hosted instance was probed and no upstream validation is claimed."
+    ],
+    "zh-CN": [
+      "确定性 CLI 的范围有限，不是通用 SAST 引擎或全覆盖漏洞扫描器。",
+      "agent-guided 审查需要项目上下文和人工复核；安装 Skill 不代表项目已经安全。",
+      "动画结果来自仓库自有、故意错误配置的本地 fixture，不代表第三方项目覆盖率。",
+      "普通项目旅程是固定 commit 的源码审查；未探测托管实例，也不声称得到上游验证。"
+    ]
+  },
+  "externalState": {
+    "communityPublication": "external_validation_pending",
+    "upstreamValidation": "external_validation_pending",
+    "independentUserSessions": "external_validation_pending"
+  }
+}
