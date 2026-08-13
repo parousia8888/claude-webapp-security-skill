@@ -154,12 +154,13 @@ Multiple `--fail-on-domain <domain=threshold>` options may be combined. Effectiv
 recorded in the report. The [generated rule taxonomy](docs/rule-taxonomy.md) separates source rule
 kind, family, language, domain, severity, default evidence state and standards. Exact stable source
 counts and complete explanation metadata come from the machine-readable
-[`stable-source-rules.json`](docs/stable-source-rules.json): 12 built-in risk rules, 2 built-in
-evidence-integrity rules and 3 external adapter risk rules on `main`. Eight of the built-in risk
-rules are bounded JavaScript/TypeScript lexical leads for dynamic execution, shell execution, HTML
-sinks, credentialed wildcard CORS, disabled TLS verification, unsafe JWT verification and
-hard-coded authentication secrets. They do not prove input flow or runtime reachability and remain
-`suspected` until independently reproduced.
+[`stable-source-rules.json`](docs/stable-source-rules.json): 20 built-in risk rules, 2 built-in
+evidence-integrity rules and 3 external adapter risk rules on `main`. Eight JavaScript/TypeScript
+and eight Python rules are bounded lexical leads for execution, unsafe browser or framework
+configuration, transport, authentication secrets and deserialization. Their exact detection and
+false-positive boundaries are recorded in the [JS/TS](docs/js-ts-rule-decisions.md) and
+[Python](docs/python-rule-decisions.md) decisions. They do not prove input flow or runtime
+reachability and remain `suspected` until independently reproduced.
 
 ## Capability boundary
 

@@ -4,6 +4,9 @@ import { createFinding } from './evidence.mjs';
 import {
   classifyJsTsSource, inspectJsTsSource, JS_TS_SOURCE_RULE_IDS,
 } from './js-ts-source-audit.mjs';
+import {
+  classifyPythonSource, inspectPythonSource, PYTHON_SOURCE_RULE_IDS,
+} from './python-source-audit.mjs';
 import { DEFAULT_SOURCE_TRAVERSAL_LIMITS, sourceTraversalLimits } from './project-identity.mjs';
 import { SOURCE_RULES } from './source-rules.mjs';
 
@@ -249,6 +252,34 @@ export function auditSource(projectRoot, limits = DEFAULT_SOURCE_TRAVERSAL_LIMIT
       continue;
     }
     for (const ruleId of JS_TS_SOURCE_RULE_IDS) account(trackers[ruleId], 'scanned', null, file.path);
+    for (const finding of inspected.findings) findings.push(createFinding(finding));
+  }
+
+  for (const file of files) {
+    const classification = classifyPythonSource(file.path);
+    if (!classification.eligible) {
+      for (const ruleId of PYTHON_SOURCE_RULE_IDS) {
+        account(trackers[ruleId], 'excluded', classification.reason, file.path);
+      }
+      continue;
+    }
+    const loaded = load(file);
+    if (loaded.outcome !== 'scanned') {
+      for (const ruleId of PYTHON_SOURCE_RULE_IDS) {
+        account(trackers[ruleId], loaded.outcome, loaded.code, file.path);
+      }
+      noteIntegrity(loaded.outcome, loaded.code, file.path);
+      continue;
+    }
+    const inspected = inspectPythonSource(file.path, loaded.text);
+    if (inspected.error) {
+      for (const ruleId of PYTHON_SOURCE_RULE_IDS) {
+        account(trackers[ruleId], 'errors', inspected.error.code, file.path);
+      }
+      noteIntegrity('errors', inspected.error.code, file.path);
+      continue;
+    }
+    for (const ruleId of PYTHON_SOURCE_RULE_IDS) account(trackers[ruleId], 'scanned', null, file.path);
     for (const finding of inspected.findings) findings.push(createFinding(finding));
   }
 

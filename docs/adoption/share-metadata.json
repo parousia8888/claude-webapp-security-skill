@@ -15,9 +15,9 @@
     "zh-CN": "把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。"
   },
   "capabilityContract": {
-    "total": 22,
+    "total": 21,
     "stableDetection": 7,
-    "plannedDetection": 3,
+    "plannedDetection": 2,
     "evidenceReporting": 5,
     "lifecycleDistribution": 1,
     "agentGuided": 6,

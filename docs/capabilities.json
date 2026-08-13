@@ -48,8 +48,8 @@
       "name": "Narrow deterministic source audit",
       "category": "detection",
       "maturity": "stable",
-      "scope": "Checks four narrow source rule families: lockfile absence, environment-named files, public Node inspector bindings and common production source-map settings. It is not general SAST.",
-      "evidence": ["scripts/lib/source-audit.mjs", "scripts/lib/source-rule-registry.mjs", "docs/stable-source-rules.json", "test/source-rule-registry.test.mjs", "test/evidence-loop.test.mjs"]
+      "scope": "Runs 20 stable built-in risk rules and 2 evidence-integrity rules: four shared configuration checks plus eight bounded JavaScript/TypeScript and eight bounded Python leads. Syntax matches remain suspected and this is not whole-program SAST.",
+      "evidence": ["scripts/lib/source-audit.mjs", "scripts/lib/js-ts-source-audit.mjs", "scripts/lib/python-source-audit.mjs", "scripts/lib/source-rule-registry.mjs", "docs/stable-source-rules.json", "test/js-ts-source-audit.test.mjs", "test/python-source-audit.test.mjs", "test/source-rule-registry.test.mjs"]
     },
     {
       "id": "aws-exposure-inventory",
@@ -74,15 +74,6 @@
       "maturity": "stable",
       "scope": "Opt-in OSV-Scanner 2.5.0 adapter for recorded lockfile advisory matches. Matches remain suspected until project impact is established; evidence preserves advisory identity and upstream severity without local inflation.",
       "evidence": ["scripts/lib/external-adapters.mjs", "test/external-adapters.test.mjs", "test/real-adapters.test.mjs"]
-    },
-    {
-      "id": "javascript-python-source-expansion",
-      "name": "JavaScript/TypeScript and Python source-rule expansion",
-      "category": "detection",
-      "maturity": "planned",
-      "plannedFor": "0.5.0",
-      "scope": "Planned high-confidence built-in checks for common execution, injection, browser-output, session, transport, deserialization, file/path and framework-exposure risks. No new rule is available until its positive and safe-neighbour fixtures ship.",
-      "evidence": []
     },
     {
       "id": "mature-sast-adapter",
