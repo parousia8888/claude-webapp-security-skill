@@ -174,33 +174,178 @@ async function pool(items, fn) {
 
 // ---------------------------------------------------------------- sitemap
 
-function extractTags(xml, tag) {
-  const out = [];
-  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'gi');
-  let m;
-  while ((m = re.exec(xml))) out.push(m[1].trim());
-  return out;
+function decodeXmlEntities(text) {
+  const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+  if (/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);)/i.test(text)) {
+    throw new Error('unknown or unescaped XML entity');
+  }
+  return text.replace(/&([^;]+);/g, (_match, entity) => {
+    if (Object.hasOwn(named, entity)) return named[entity];
+    let point;
+    if (/^#\d+$/.test(entity)) point = Number(entity.slice(1));
+    else if (/^#x[0-9a-f]+$/i.test(entity)) point = Number.parseInt(entity.slice(2), 16);
+    else throw new Error(`unknown XML entity &${entity};`);
+    const legal = point === 0x9 || point === 0xa || point === 0xd
+      || (point >= 0x20 && point <= 0xd7ff)
+      || (point >= 0xe000 && point <= 0xfffd)
+      || (point >= 0x10000 && point <= 0x10ffff);
+    if (!legal) throw new Error(`invalid numeric XML entity &${entity};`);
+    return String.fromCodePoint(point);
+  });
+}
+
+function parseSitemapXml(xml) {
+  if (/<!DOCTYPE\b/i.test(xml)) throw new Error('DOCTYPE/external declarations are not supported');
+  if (/<!ENTITY\b/i.test(xml)) throw new Error('external entity declarations are not supported');
+
+  const stack = [];
+  const locs = [];
+  let root = null;
+  let locText = null;
+  let cursor = 0;
+  const localName = (name) => name.split(':').pop().toLowerCase();
+
+  while (cursor < xml.length) {
+    if (xml[cursor] !== '<') {
+      const end = xml.indexOf('<', cursor);
+      const raw = xml.slice(cursor, end === -1 ? xml.length : end);
+      const decoded = decodeXmlEntities(raw);
+      if (locText !== null) locText += decoded;
+      cursor = end === -1 ? xml.length : end;
+      continue;
+    }
+    if (xml.startsWith('<!--', cursor)) {
+      const end = xml.indexOf('-->', cursor + 4);
+      if (end === -1) throw new Error('unclosed XML comment');
+      cursor = end + 3;
+      continue;
+    }
+    if (xml.startsWith('<![CDATA[', cursor)) {
+      const end = xml.indexOf(']]>', cursor + 9);
+      if (end === -1) throw new Error('unclosed CDATA section');
+      if (locText !== null) locText += xml.slice(cursor + 9, end);
+      cursor = end + 3;
+      continue;
+    }
+    if (xml.startsWith('<?', cursor)) {
+      const end = xml.indexOf('?>', cursor + 2);
+      if (end === -1) throw new Error('unclosed XML processing instruction');
+      cursor = end + 2;
+      continue;
+    }
+    if (xml.startsWith('<!', cursor)) throw new Error('unsupported XML declaration');
+
+    let end = cursor + 1;
+    let quote = null;
+    for (; end < xml.length; end += 1) {
+      const char = xml[end];
+      if (quote) {
+        if (char === quote) quote = null;
+      } else if (char === '"' || char === "'") quote = char;
+      else if (char === '>') break;
+    }
+    if (end >= xml.length || quote) throw new Error('unclosed XML tag');
+    const tag = xml.slice(cursor, end + 1);
+    const close = /^<\/\s*([A-Za-z_][\w:.-]*)\s*>$/.exec(tag);
+    if (close) {
+      const expected = stack.pop();
+      if (!expected || expected !== close[1]) {
+        throw new Error(`mismatched closing tag </${close[1]}>; expected ${expected ? `</${expected}>` : 'none'}`);
+      }
+      if (localName(close[1]) === 'loc') {
+        locs.push((locText || '').trim());
+        locText = null;
+      }
+      cursor = end + 1;
+      continue;
+    }
+    const open = /^<\s*([A-Za-z_][\w:.-]*)\b/.exec(tag);
+    if (!open) throw new Error(`malformed XML tag near byte ${cursor}`);
+    const selfClosing = /\/\s*>$/.test(tag);
+    const name = open[1];
+    const local = localName(name);
+    if (!root) root = local;
+    if (locText !== null && local !== 'loc') throw new Error('<loc> may not contain child elements');
+    if (local === 'loc') {
+      if (locText !== null) throw new Error('nested <loc> element');
+      locText = '';
+    }
+    if (!selfClosing) stack.push(name);
+    else if (local === 'loc') {
+      locs.push('');
+      locText = null;
+    }
+    cursor = end + 1;
+  }
+
+  if (stack.length) throw new Error(`unclosed XML tag <${stack[stack.length - 1]}>`);
+  if (!['urlset', 'sitemapindex'].includes(root)) throw new Error('root element must be <urlset> or <sitemapindex>');
+  if (locs.some((loc) => !loc)) throw new Error('empty <loc> element');
+  return { type: root, locs };
+}
+
+function scopedHttpUrl(value, base) {
+  let parsed;
+  try { parsed = new URL(value, base); } catch { throw new Error(`invalid sitemap URL: ${value}`); }
+  if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error(`unsupported sitemap URL protocol: ${parsed.protocol}`);
+  if (parsed.origin !== ORIGIN) throw new Error(`sitemap URL is outside the audited origin: ${parsed.origin}`);
+  return parsed.href;
+}
+
+function addSitemapUnknown(url, message) {
+  findings.push({
+    severity: 'high', code: 'sitemap-parse-unknown', state: 'unknown',
+    message, detail: { url },
+  });
 }
 
 async function collectSitemap(url, seen = new Set(), depth = 0) {
-  if (depth > 2 || seen.has(url)) return { urls: [], maps: [] };
-  seen.add(url);
-  const res = await req(url);
-  const maps = [{ url, status: res.status, bytes: res.bytes }];
+  let scoped;
+  try { scoped = scopedHttpUrl(url, ORIGIN); } catch (error) {
+    const message = String(error.message || error);
+    addSitemapUnknown(String(url), message);
+    return { urls: [], maps: [{ url: String(url), status: 0, bytes: 0, parseState: 'unknown', parseError: message }] };
+  }
+  if (depth > 2 || seen.has(scoped)) return { urls: [], maps: [] };
+  seen.add(scoped);
+  const res = await req(scoped);
+  const map = { url: scoped, status: res.status, bytes: res.bytes, parseState: 'not-parsed' };
+  const maps = [map];
   if (res.status !== 200 || !res.body) return { urls: [], maps };
 
-  const isIndex = /<sitemapindex/i.test(res.body);
-  const locs = extractTags(res.body, 'loc').map((s) => s.replace(/^<!\[CDATA\[|\]\]>$/g, '').trim());
-  if (isIndex) {
+  let parsed;
+  try {
+    parsed = parseSitemapXml(res.body);
+    map.parseState = 'confirmed';
+  } catch (error) {
+    map.parseState = 'unknown';
+    map.parseError = String(error.message || error);
+    addSitemapUnknown(scoped, map.parseError);
+    return { urls: [], maps };
+  }
+  if (parsed.type === 'sitemapindex') {
     const urls = [];
-    for (const child of locs.slice(0, 10)) {
+    for (const child of parsed.locs.slice(0, 10)) {
       const sub = await collectSitemap(child, seen, depth + 1);
+      const childUnknown = sub.maps.find((entry) => entry.parseState === 'unknown');
+      if (childUnknown) {
+        map.parseState = 'unknown';
+        map.parseError = `child sitemap evidence is unknown: ${childUnknown.url}`;
+      }
       urls.push(...sub.urls);
       maps.push(...sub.maps);
     }
+    if (map.parseState === 'unknown') return { urls: [], maps };
     return { urls, maps };
   }
-  return { urls: locs, maps };
+  try {
+    return { urls: parsed.locs.map((loc) => scopedHttpUrl(loc, scoped)), maps };
+  } catch (error) {
+    map.parseState = 'unknown';
+    map.parseError = String(error.message || error);
+    addSitemapUnknown(scoped, map.parseError);
+    return { urls: [], maps };
+  }
 }
 
 // ---------------------------------------------------------------- main
@@ -333,7 +478,9 @@ for (const m of report.sitemaps) {
     } catch { /* ignore */ }
   }
 }
-if (!sitemapUrls.length) add('high', 'sitemap-empty', 'No URLs discovered from any sitemap.');
+if (!sitemapUrls.length && !findings.some((finding) => finding.state === 'unknown')) {
+  add('high', 'sitemap-empty', 'No URLs discovered from any sitemap.');
+}
 
 // --- sample sitemap URLs
 const sample = sitemapUrls.slice(0, MAX_URLS);
@@ -550,4 +697,5 @@ const fail = FAIL_ON === 'never' ? false
   : FAIL_ON === 'high' ? Boolean(counts.high)
     : FAIL_ON === 'medium' ? Boolean(counts.high || counts.medium)
       : Boolean(counts.high || counts.medium || counts.low);
-process.exit(fail ? 1 : 0);
+const evidenceUnknown = findings.some((finding) => finding.state === 'unknown');
+process.exit(evidenceUnknown ? 3 : fail ? 1 : 0);

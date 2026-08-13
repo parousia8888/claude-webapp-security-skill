@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Crawler range evidence now rejects missing, non-array, empty, invalid-CIDR, future and stale
+  vendor data. The claimed product's own validated list is still authoritative; a sibling product
+  cannot verify or convict it. `unverifiable` now exits `3`, while traffic remains subject to normal
+  anonymous-client limits rather than an evidence-based block.
+- AWS nested inventory permission failures now remain explicit `UNCHECKED` results instead of
+  becoming fabricated IAM MFA or CloudTrail findings. Captured AWS error payloads are withheld,
+  and an audit with unknown checks but no confirmed HIGH result exits `3`.
+- Sitemap parsing now safely normalizes predefined/numeric entities and CDATA, rejects external
+  declarations and malformed XML, and constrains sitemap indexes and sampled URLs to the audited
+  origin. Unknown sitemap evidence still writes a report, queues no URLs from that document, and
+  exits `3` independently of `--fail-on`.
+
+### Added
+- Deterministic local fixtures for crawler range integrity, nested AWS permission denial and
+  sitemap XML/off-origin boundaries. The tests prohibit third-party network access and exercise
+  the real CLIs.
+
 ## [0.3.0] — 2026-08-13
 
 ### Added

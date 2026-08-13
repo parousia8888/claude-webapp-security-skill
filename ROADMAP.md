@@ -24,12 +24,17 @@ See the [v0.3.0 release evidence](docs/releases/v0.3.0.md) and
 
 ## Correctness backlog
 
-- [#1](https://github.com/parousia8888/web-app-security-skill/issues/1): malformed, empty and stale
-  crawler-range JSON fixtures with fail-closed result semantics.
-- [#2](https://github.com/parousia8888/web-app-security-skill/issues/2): fake AWS CLI
-  permission-denied fixtures that preserve `UNCHECKED` rather than pass.
-- [#5](https://github.com/parousia8888/web-app-security-skill/issues/5): sitemap XML entities and
-  CDATA regression fixtures.
+Completed on `main` after v0.3.0; included in the next patch release only after the release gate:
+
+- [x] [#1](https://github.com/parousia8888/web-app-security-skill/issues/1): malformed, empty, stale
+  and wrong-product crawler-range fixtures; invalid evidence is `unverifiable` and exit `3`.
+- [x] [#2](https://github.com/parousia8888/web-app-security-skill/issues/2): fake AWS CLI
+  permission-denied fixtures preserve `UNCHECKED` and never synthesize MFA/CloudTrail findings.
+- [x] [#5](https://github.com/parousia8888/web-app-security-skill/issues/5): sitemap entities, CDATA,
+  malformed XML, external declarations and off-origin entries are covered by local fixtures.
+
+Still open:
+
 - [#4](https://github.com/parousia8888/web-app-security-skill/issues/4): an informational
   `security.txt` check that never labels absence a vulnerability.
 - [#6](https://github.com/parousia8888/web-app-security-skill/issues/6): ShellCheck and an

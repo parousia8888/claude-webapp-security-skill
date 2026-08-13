@@ -47,6 +47,11 @@ finding() {
 ok()   { say "- [ok] $1"; }
 note() { say "- $1"; }
 skip() { UNCHECKED=$((UNCHECKED+1)); say "- _[UNCHECKED] $1_"; }
+sanitize_error() {
+  # AWS/SSO wrappers can echo credentials or session material in an error. The
+  # operation name is already in the report; keep the captured payload private.
+  printf '%s' 'AWS CLI call failed; details withheld'
+}
 
 # run <description> <aws args...>  → sets RUN_OUT, returns non-zero on failure.
 # Must NOT be called inside $( ), or skip()/counters run in a lost subshell.
@@ -56,12 +61,10 @@ run() {
     [ "$RUN_OUT" = "None" ] && RUN_OUT=""   # empty JMESPath result
     return 0
   fi
-  skip "$desc — $(printf '%s' "$RUN_OUT" | tail -1 | cut -c1-160)"
+  skip "$desc — $(sanitize_error "$RUN_OUT")"
   RUN_OUT=""
   return 1
 }
-# quiet single-value query; empty on failure
-q() { "${AWS[@]}" "$@" 2>/dev/null; }
 count() { set -- $1; echo $#; }
 
 epoch_of() { # ISO8601 → epoch seconds, portable-ish
@@ -98,45 +101,60 @@ if run 'iam get-account-summary' iam get-account-summary \
 fi
 
 if run 'iam list-users' iam list-users --query 'Users[].UserName'; then
-  for u in $RUN_OUT; do
-    mfa="$(q iam list-mfa-devices --user-name "$u" --query 'length(MFADevices)')"
-    [ "${mfa:-0}" = "0" ] && finding MED "IAM user \`$u\` has no MFA device"
-    keys="$(q iam list-access-keys --user-name "$u" --query 'AccessKeyMetadata[?Status==`Active`].[AccessKeyId,CreateDate]')"
-    while read -r kid kdate; do
-      [ -z "${kid:-}" ] && continue
-      age=$(( ( $(date -u +%s) - $(epoch_of "$kdate") ) / 86400 ))
-      [ "$age" -gt 90 ] 2>/dev/null && finding MED "IAM user \`$u\` has an active access key ${age} days old (rotate ≤90d)"
-    done <<< "$keys"
+  users="$RUN_OUT"
+  for u in $users; do
+    if run "iam list-mfa-devices for $u" iam list-mfa-devices --user-name "$u" --query 'length(MFADevices)'; then
+      [ "${RUN_OUT:-0}" = "0" ] && finding MED "IAM user \`$u\` has no MFA device"
+    fi
+    if run "iam list-access-keys for $u" iam list-access-keys --user-name "$u" --query 'AccessKeyMetadata[?Status==`Active`].[AccessKeyId,CreateDate]'; then
+      keys="$RUN_OUT"
+      while read -r kid kdate; do
+        [ -z "${kid:-}" ] && continue
+        age=$(( ( $(date -u +%s) - $(epoch_of "$kdate") ) / 86400 ))
+        [ "$age" -gt 90 ] 2>/dev/null && finding MED "IAM user \`$u\` has an active access key ${age} days old (rotate ≤90d)"
+      done <<< "$keys"
+    fi
   done
 fi
 
 if run 'iam list-policies (attached, customer-managed)' iam list-policies --scope Local --only-attached --query 'Policies[].[PolicyName,Arn]'; then
+  policies="$RUN_OUT"
   while read -r pname parn; do
     [ -z "${parn:-}" ] && continue
-    ver="$(q iam get-policy --policy-arn "$parn" --query 'Policy.DefaultVersionId')"
-    [ -z "$ver" ] && continue
-    doc="$(q iam get-policy-version --policy-arn "$parn" --version-id "$ver" --output json | tr -d ' \n')"
-    printf '%s' "$doc" | grep -q '"Action":"\*"' && printf '%s' "$doc" | grep -q '"Resource":"\*"' \
-      && finding HIGH "attached customer policy \`$pname\` grants Action:* on Resource:*"
-  done <<< "$RUN_OUT"
+    if run "iam get-policy for $pname" iam get-policy --policy-arn "$parn" --query 'Policy.DefaultVersionId'; then
+      ver="$RUN_OUT"
+      [ -z "$ver" ] && continue
+      if run "iam get-policy-version for $pname" iam get-policy-version --policy-arn "$parn" --version-id "$ver" --output json; then
+        doc="$(printf '%s' "$RUN_OUT" | tr -d ' \n')"
+        printf '%s' "$doc" | grep -q '"Action":"\*"' && printf '%s' "$doc" | grep -q '"Resource":"\*"' \
+          && finding HIGH "attached customer policy \`$pname\` grants Action:* on Resource:*"
+      fi
+    fi
+  done <<< "$policies"
 fi
 
-if q iam get-account-password-policy >/dev/null 2>&1; then
+if RUN_OUT="$("${AWS[@]}" iam get-account-password-policy 2>&1)"; then
   ok "IAM account password policy configured"
-else
+elif printf '%s' "$RUN_OUT" | grep -q 'NoSuchEntity'; then
   finding LOW "no IAM account password policy configured"
+else
+  skip "iam get-account-password-policy — $(sanitize_error "$RUN_OUT")"
 fi
+RUN_OUT=""
 
 # ---------------------------------------------------------------- network
 head2 "2. Network exposure"
 
 SENSITIVE_PORTS="22 23 445 3389 3306 5432 27017 6379 9200 9300 5601 11211 8080 8000 5000"
 if run 'ec2 describe-security-groups' ec2 describe-security-groups --query 'SecurityGroups[].[GroupId,GroupName]'; then
+  security_groups="$RUN_OUT"
   while read -r sgid sgname; do
     [ -z "${sgid:-}" ] && continue
-    open="$(q ec2 describe-security-groups --group-ids "$sgid" \
-      --query 'SecurityGroups[].IpPermissions[?contains(IpRanges[].CidrIp, `0.0.0.0/0`) || contains(Ipv6Ranges[].CidrIpv6, `::/0`)].[IpProtocol,FromPort,ToPort]')"
-    [ -z "$open" ] && continue
+    if ! run "ec2 describe-security-groups ingress for $sgid" ec2 describe-security-groups --group-ids "$sgid" \
+      --query 'SecurityGroups[].IpPermissions[?contains(IpRanges[].CidrIp, `0.0.0.0/0`) || contains(Ipv6Ranges[].CidrIpv6, `::/0`)].[IpProtocol,FromPort,ToPort]'; then
+      continue
+    fi
+    open="$RUN_OUT"; [ -z "$open" ] && continue
     while read -r proto from to; do
       [ -z "${proto:-}" ] && continue
       if [ "$proto" = "-1" ]; then
@@ -153,7 +171,7 @@ if run 'ec2 describe-security-groups' ec2 describe-security-groups --query 'Secu
         note "SG \`$sgid\` ($sgname) open on $from — acceptable only if this origin is CDN-locked (see aws-hardening.md §2)"
       fi
     done <<< "$open"
-  done <<< "$RUN_OUT"
+  done <<< "$security_groups"
 fi
 
 if run 'ec2 describe-flow-logs' ec2 describe-flow-logs --query 'FlowLogs[].FlowLogId'; then
@@ -206,22 +224,26 @@ if pab="$("${AWS[@]}" s3control get-public-access-block --account-id "$ACCOUNT" 
 elif printf '%s' "$pab" | grep -q "NoSuchPublicAccessBlockConfiguration"; then
   finding HIGH "no account-level S3 Block Public Access configuration exists — a single careless bucket policy or ACL can make data public. Enable it account-wide."
 else
-  skip "s3control get-public-access-block — $(printf '%s' "$pab" | tail -1 | cut -c1-160)"
+  skip "s3control get-public-access-block — $(sanitize_error "$pab")"
 fi
 
 if run 's3api list-buckets' s3api list-buckets --query 'Buckets[].Name'; then
-  for b in $RUN_OUT; do
-    bpab="$(q s3api get-public-access-block --bucket "$b" \
-      --query 'PublicAccessBlockConfiguration.[BlockPublicAcls,IgnorePublicAcls,BlockPublicPolicy,RestrictPublicBuckets]')"
-    if [ -z "${bpab:-}" ] || printf '%s' "$bpab" | grep -q "False"; then
-      finding MED "bucket \`$b\` does not have Block Public Access fully enabled"
+  buckets="$RUN_OUT"
+  for b in $buckets; do
+    if run "s3api get-public-access-block for $b" s3api get-public-access-block --bucket "$b" \
+      --query 'PublicAccessBlockConfiguration.[BlockPublicAcls,IgnorePublicAcls,BlockPublicPolicy,RestrictPublicBuckets]'; then
+      bpab="$RUN_OUT"
+      printf '%s' "$bpab" | grep -q "False" && finding MED "bucket \`$b\` does not have Block Public Access fully enabled"
     fi
-    [ "$(q s3api get-bucket-policy-status --bucket "$b" --query 'PolicyStatus.IsPublic')" = "True" ] \
-      && finding HIGH "bucket \`$b\` has a **public** bucket policy"
-    enc="$(q s3api get-bucket-encryption --bucket "$b" --query 'ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm')"
-    [ -z "${enc:-}" ] && finding MED "bucket \`$b\` has no default encryption"
-    ver="$(q s3api get-bucket-versioning --bucket "$b" --query 'Status')"
-    [ "${ver:-None}" != "Enabled" ] && note "bucket \`$b\`: versioning not enabled"
+    if run "s3api get-bucket-policy-status for $b" s3api get-bucket-policy-status --bucket "$b" --query 'PolicyStatus.IsPublic'; then
+      [ "$RUN_OUT" = "True" ] && finding HIGH "bucket \`$b\` has a **public** bucket policy"
+    fi
+    if run "s3api get-bucket-encryption for $b" s3api get-bucket-encryption --bucket "$b" --query 'ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm'; then
+      [ -z "$RUN_OUT" ] && finding MED "bucket \`$b\` has no default encryption"
+    fi
+    if run "s3api get-bucket-versioning for $b" s3api get-bucket-versioning --bucket "$b" --query 'Status'; then
+      [ "${RUN_OUT:-None}" != "Enabled" ] && note "bucket \`$b\`: versioning not enabled"
+    fi
   done
 fi
 
@@ -266,13 +288,16 @@ if run 'cloudfront list-distributions' cloudfront list-distributions --query 'Di
 fi
 
 if run 'elbv2 describe-load-balancers' elbv2 describe-load-balancers --query 'LoadBalancers[].[LoadBalancerArn,LoadBalancerName]'; then
+  load_balancers="$RUN_OUT"
   while read -r arn name; do
     [ -z "${arn:-}" ] && continue
-    q elbv2 describe-listeners --load-balancer-arn "$arn" --query 'Listeners[].Protocol' | grep -qw HTTP \
-      && note "ALB \`$name\` has an HTTP listener — confirm it only redirects to HTTPS"
-    logs="$(q elbv2 describe-load-balancer-attributes --load-balancer-arn "$arn" --query 'Attributes[?Key==`access_logs.s3.enabled`].Value')"
-    [ "${logs:-false}" != "true" ] && finding LOW "ALB \`$name\` has access logs disabled"
-  done <<< "$RUN_OUT"
+    if run "elbv2 describe-listeners for $name" elbv2 describe-listeners --load-balancer-arn "$arn" --query 'Listeners[].Protocol'; then
+      printf '%s' "$RUN_OUT" | grep -qw HTTP && note "ALB \`$name\` has an HTTP listener — confirm it only redirects to HTTPS"
+    fi
+    if run "elbv2 describe-load-balancer-attributes for $name" elbv2 describe-load-balancer-attributes --load-balancer-arn "$arn" --query 'Attributes[?Key==`access_logs.s3.enabled`].Value'; then
+      [ "${RUN_OUT:-false}" != "true" ] && finding LOW "ALB \`$name\` has access logs disabled"
+    fi
+  done <<< "$load_balancers"
 fi
 
 if run 'wafv2 list-web-acls (regional)' wafv2 list-web-acls --scope REGIONAL --query 'WebACLs[].Name'; then
@@ -286,16 +311,19 @@ if run 'cloudtrail describe-trails' cloudtrail describe-trails --query 'trailLis
   if [ -z "$RUN_OUT" ]; then
     finding HIGH "no CloudTrail trail configured — there is no audit log of API activity"
   else
+    trails="$RUN_OUT"
     while read -r tname multi validation; do
       [ -z "${tname:-}" ] && continue
       [ "$multi" != "True" ] && finding MED "CloudTrail \`$tname\` is not multi-region"
       [ "$validation" != "True" ] && finding LOW "CloudTrail \`$tname\` has log file validation disabled"
-      if [ "$(q cloudtrail get-trail-status --name "$tname" --query 'IsLogging')" = "True" ]; then
-        ok "CloudTrail \`$tname\` is logging"
-      else
-        finding HIGH "CloudTrail \`$tname\` is **not currently logging**"
+      if run "cloudtrail get-trail-status for $tname" cloudtrail get-trail-status --name "$tname" --query 'IsLogging'; then
+        if [ "$RUN_OUT" = "True" ]; then
+          ok "CloudTrail \`$tname\` is logging"
+        else
+          finding HIGH "CloudTrail \`$tname\` is **not currently logging**"
+        fi
       fi
-    done <<< "$RUN_OUT"
+    done <<< "$trails"
   fi
 fi
 
@@ -336,4 +364,5 @@ if [ -n "$OUT_DIR" ]; then
 fi
 
 [ "$HIGH" -gt 0 ] && exit 1
+[ "$UNCHECKED" -gt 0 ] && exit 3
 exit 0

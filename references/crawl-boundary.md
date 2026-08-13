@@ -135,6 +135,17 @@ Rules that prevent the usual damage:
 4. `Crawl-delay` is ignored by Googlebot. Bing and Yandex honor it. Use Search Console / Bing Webmaster crawl settings for Google-side rate control.
 5. **Every sitemap listed must itself be crawlable.** A `Sitemap:` line pointing at a `Disallow`ed or 404 path is a silent failure.
 6. Wildcards (`*`, `$`) are supported by major crawlers but not universally. `Disallow: /*.json$` blocks nothing on crawlers without `$` support — do not rely on it for anything that matters.
+
+### Sitemap evidence boundary
+
+`scripts/crawl-surface-audit.mjs` treats a sitemap as confirmed evidence only after bounded XML
+parsing succeeds. It supports normal escaped text, decimal/hex numeric entities and CDATA, while
+rejecting DOCTYPE/entity declarations, malformed nesting, unknown entities, empty locations and
+non-HTTP(S) URLs. Every sitemap, sitemap-index child and sampled `<loc>` must stay on the audited
+origin. An invalid or off-origin entry produces `sitemap-parse-unknown`, queues no URLs from that
+document, writes the report, and exits `3` even with `--fail-on never`. This keeps an evidence
+failure distinct from both a confirmed finding and a passing audit, and prevents sitemap content
+from turning the audit into an off-scope request mechanism.
 7. Serve robots.txt from the **apex of every host and scheme you serve**, including `www.` and any bare-IP or alternate domain that resolves to the origin. A staging host with the production robots.txt is a common leak.
 8. Changing robots.txt is a production change: keep it in version control, diff it in review, and re-run the audit script after deploy.
 

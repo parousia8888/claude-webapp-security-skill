@@ -68,7 +68,10 @@ node .../verify-crawler-ip.mjs --ip 20.171.207.1 --ua GPTBot --ranges
 node .../verify-crawler-ip.mjs --file ./ips.txt --ranges --out ./reports/exposure
 
 # add a source the skill does not ship
-node .../verify-crawler-ip.mjs --ip 1.2.3.4 --ranges --source claude=https://vendor.example/ips.json
+node .../verify-crawler-ip.mjs --ip 1.2.3.4 --ua ClaudeBot --ranges --source claudebot=https://vendor.example/ips.json
+
+# reject range data older than the chosen evidence window (default: 30 days)
+node .../verify-crawler-ip.mjs --ip 1.2.3.4 --ua GPTBot --ranges --max-range-age-days 30
 ```
 
 Verdicts:
@@ -79,6 +82,12 @@ Verdicts:
 | `spoofed` | proven owner **disagrees** with the vendor the UA claims (rDNS proves vendor B, or the IP is absent from vendor A's *successfully-loaded* range) | block, and treat every other request from that client as hostile |
 | `unverifiable` | no usable signal — vendor publishes none, **or its range list could not be fetched this run** | treat as an anonymous client; rate-limit normally; do **not** block |
 | `not-a-known-bot` | UA matches no known crawler | ordinary client |
+
+CLI exit codes are part of the evidence contract: `0` means the requested identity decision was
+completed, `1` means at least one claim was proven spoofed, `2` means invalid CLI input, and `3`
+means at least one claimed crawler remained `unverifiable`. Exit `3` is intentionally non-success:
+traffic should still be treated as an anonymous client rather than blocked, but CI and operators
+must not mistake unavailable evidence for a completed verification.
 
 ## Extracting the candidates from logs
 
@@ -99,5 +108,9 @@ Then feed the IP list to the script. Two things worth measuring on the verified 
 - **Verification is per-request identity, not per-request intent.** A verified `Claude-User` fetch is a live human's request, not a bulk crawl — do not shape it like a crawler.
 - **Never grant a verified bot access to PRIVATE paths.** Verification answers "is this really Googlebot", not "should Googlebot see this". Nothing about being a real crawler authorizes anything.
 - **IPv6.** Vendor ranges include IPv6 prefixes; a matcher that only handles IPv4 will silently return `spoofed` for legitimate traffic. The bundled script handles both (with IPv4/IPv6 CIDR-boundary tests).
-- **Fail open on a fetch failure, never closed.** If the vendor's published range list can't be downloaded (network blip, URL moved), the verdict must be `unverifiable`, not `spoofed`. A verifier that convicts on "we couldn't check" turns a transient outage into a wrongful block of a real crawler — an SEO self-inflicted wound. The script distinguishes "source loaded, IP absent" (spoof) from "source failed to load" (unverifiable).
+- **Validate the evidence source before matching.** A range response must contain a non-empty
+  `prefixes` array, one valid IPv4 or IPv6 CIDR per entry, and a parseable `creationTime` no older
+  than `--max-range-age-days`. Missing, empty, malformed, future, or stale data is unavailable
+  evidence, never proof that the client is absent.
+- **Fail open for traffic, fail non-zero for evidence.** If the vendor's published range list can't be downloaded or validated, the verdict must be `unverifiable`, not `spoofed`, and the CLI exits `3`. A verifier that convicts on "we couldn't check" wrongfully blocks real crawlers; one that exits `0` lets automation misread unknown as success. The script distinguishes "valid source loaded, IP absent" (spoof) from "source unavailable or invalid" (unverifiable).
 - **Cache the vendor lists** and fail *open for logging, closed for privileges*: if a fetch fails, log `unverifiable` and apply normal limits rather than granting an exemption.

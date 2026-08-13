@@ -10,10 +10,11 @@
  *   node verify-crawler-ip.mjs --ip 66.249.66.1 --ua "Googlebot/2.1"
  *   node verify-crawler-ip.mjs --file ips.txt --ranges --out ./reports
  *   node verify-crawler-ip.mjs --ip 1.2.3.4 --ranges --source vendor=https://vendor.example/ips.json
+ *   node verify-crawler-ip.mjs --ip 1.2.3.4 --ranges --max-range-age-days 30
  *
  * --file format: one entry per line, `ip` or `ip<TAB or whitespace>user agent`.
  *
- * Exit code 1 if any entry is verdict=spoofed.
+ * Exit code 1 if any entry is verdict=spoofed; 3 if evidence is unavailable.
  */
 
 import { promises as dns } from 'node:dns';
@@ -29,7 +30,13 @@ const all = (n) => argv.reduce((acc, v, i) => (v === `--${n}` ? [...acc, argv[i 
 const USE_RANGES = flag('ranges');
 const OUT_DIR = arg('out');
 const QUIET = flag('quiet');
+const MAX_RANGE_AGE_DAYS = Number(arg('max-range-age-days', 30));
 const log = (...m) => { if (!QUIET) console.error('·', ...m); };
+
+if (!Number.isInteger(MAX_RANGE_AGE_DAYS) || MAX_RANGE_AGE_DAYS < 1 || MAX_RANGE_AGE_DAYS > 3650) {
+  console.error('error: --max-range-age-days must be an integer from 1 to 3650');
+  process.exit(2);
+}
 
 // --------------------------------------------------------------- vendor data
 
@@ -100,11 +107,10 @@ const UA_PRODUCT = [
 
 // Range-source name → canonical vendor (for cross-vendor spoof detection). Only names whose
 // default URLs ship above are mapped; --source can add more (name is treated as its own vendor).
-const RANGE_VENDOR = {
-  googlebot: 'google', 'google-special': 'google', 'google-user-triggered': 'google',
-  bingbot: 'bing',
-  gptbot: 'openai', 'oai-searchbot': 'openai', 'chatgpt-user': 'openai',
-};
+const RANGE_VENDOR = Object.fromEntries(
+  UA_PRODUCT.filter((product) => product.source).map((product) => [product.source, product.vendor]),
+);
+Object.assign(RANGE_VENDOR, { 'google-special': 'google', 'google-user-triggered': 'google' });
 
 /** The product a UA claims: { vendor, source } or null. */
 export function uaProduct(ua = '') {
@@ -252,14 +258,57 @@ async function fcrdns(ip) {
 }
 
 const rangeCache = new Map();
+function rangeClockMs() {
+  const epoch = Number(process.env.SOURCE_DATE_EPOCH);
+  return Number.isFinite(epoch) && epoch >= 0 ? epoch * 1000 : Date.now();
+}
+
+function parseCreationTime(value) {
+  if (typeof value !== 'string' || !value.trim()) throw new Error('creationTime is missing');
+  const normalized = /(?:Z|[+-]\d\d:\d\d)$/i.test(value) ? value : `${value}Z`;
+  const timestamp = Date.parse(normalized);
+  if (!Number.isFinite(timestamp)) throw new Error('creationTime is invalid');
+  const ageMs = rangeClockMs() - timestamp;
+  if (ageMs < 0) throw new Error('creationTime is unexpectedly in the future');
+  const ageDays = ageMs / 86400000;
+  if (ageDays > MAX_RANGE_AGE_DAYS) {
+    throw new Error(`creationTime is stale (${Math.floor(ageDays)} days; max ${MAX_RANGE_AGE_DAYS})`);
+  }
+  return new Date(timestamp).toISOString();
+}
+
+function validatePrefix(entry, index) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+    throw new Error(`prefixes[${index}] must be an object`);
+  }
+  const keys = ['ipv4Prefix', 'ipv6Prefix'].filter((key) => Object.hasOwn(entry, key));
+  if (keys.length !== 1 || typeof entry[keys[0]] !== 'string') {
+    throw new Error(`prefixes[${index}] must contain exactly one string ipv4Prefix or ipv6Prefix`);
+  }
+  const cidr = entry[keys[0]];
+  const pieces = cidr.split('/');
+  const parsed = pieces.length === 2 ? parseIp(pieces[0]) : null;
+  const length = Number(pieces[1]);
+  const expectedBits = keys[0] === 'ipv4Prefix' ? 32 : 128;
+  if (!parsed || parsed.bits !== expectedBits || !Number.isInteger(length) || length < 0 || length > expectedBits) {
+    throw new Error(`invalid CIDR at prefixes[${index}]: ${cidr}`);
+  }
+  return cidr;
+}
+
 async function loadRanges(name, url) {
   if (rangeCache.has(name)) return rangeCache.get(name);
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(15000), headers: { accept: 'application/json' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    const prefixes = (json.prefixes || []).map((p) => p.ipv4Prefix || p.ipv6Prefix).filter(Boolean);
-    rangeCache.set(name, { ok: true, prefixes });
+    if (!json || typeof json !== 'object' || Array.isArray(json)) throw new Error('range response must be a JSON object');
+    if (!Object.hasOwn(json, 'prefixes')) throw new Error('prefixes is missing');
+    if (!Array.isArray(json.prefixes)) throw new Error('prefixes must be an array');
+    if (json.prefixes.length === 0) throw new Error('prefixes array is empty');
+    const creationTime = parseCreationTime(json.creationTime);
+    const prefixes = json.prefixes.map(validatePrefix);
+    rangeCache.set(name, { ok: true, prefixes, creationTime });
     log(`ranges ${name}: ${prefixes.length} prefixes`);
   } catch (e) {
     rangeCache.set(name, { ok: false, error: String(e.message || e), prefixes: [] });
@@ -290,11 +339,13 @@ async function verify(ip, ua = '') {
   // crossRangeVendor = the vendor of the first successfully-loaded range that contains the IP.
   let crossRangeVendor = null;
   const sourceState = new Map(); // source name -> 'loaded-hit' | 'loaded-miss' | 'failed'
+  const sourceError = new Map();
   if (USE_RANGES) {
     for (const [name, url] of Object.entries(RANGE_SOURCES)) {
       const data = await loadRanges(name, url);
       const hit = data.ok && data.prefixes.some((c) => inCidr(ip, c));
       sourceState.set(name, !data.ok ? 'failed' : hit ? 'loaded-hit' : 'loaded-miss');
+      if (!data.ok) sourceError.set(name, data.error);
       if (hit && !crossRangeVendor) { crossRangeVendor = RANGE_VENDOR[name] ?? name; out.evidence.range = name; }
     }
   }
@@ -311,6 +362,9 @@ async function verify(ip, ua = '') {
   out.method = d.method;
   if (d.mismatch) out.evidence.mismatch = d.mismatch;
   if (d.note) out.evidence.note = d.note;
+  if (out.verdict === 'unverifiable' && claimedSourceState === 'unavailable') {
+    out.evidence.note = `${claimedSource} unavailable: ${sourceError.get(claimedSource) || 'range evidence could not be validated'} — cannot decide; do not block`;
+  }
 
   if (out.verdict === 'unverifiable' && !claimsAnyBot) out.verdict = 'not-a-known-bot';
   if (out.verdict === 'unverifiable' && claimsRangeOnly && !USE_RANGES) {
@@ -355,7 +409,7 @@ for (const r of results) {
     || r.evidence.rdns?.hostname || r.evidence.rdns?.failed || '—';
   lines.push(`| ${r.ip} | ${(r.ua || '—').slice(0, 40)} | ${r.verdict === 'spoofed' ? '**spoofed**' : r.verdict} | ${r.vendor || '—'} | ${r.method || '—'} | ${String(ev).slice(0, 80)} |`);
 }
-lines.push('', 'Reminder: `verified` permits a rate-limit exemption only. It never authorizes access to a private path.');
+lines.push('', 'Reminder: confirmed crawler identity permits a rate-limit exemption only. It never authorizes access to a private path.');
 const md = lines.join('\n');
 
 if (OUT_DIR) {
@@ -367,6 +421,6 @@ if (OUT_DIR) {
 }
 
 console.log(md);
-process.exit(tally.spoofed ? 1 : 0);
+process.exit(tally.spoofed ? 1 : tally.unverifiable ? 3 : 0);
 
 } // end RUN_CLI
