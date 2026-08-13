@@ -77,9 +77,10 @@ for (const marker of [
   'none are counted as detection coverage',
   `${journeys.journeys.length} fixed-commit source journeys`,
   `${contract.methodStudies.length} fixed-commit studies`,
-  '13 high / 6 medium -> 0 high / 0 medium',
+  '2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM -> 0 active HIGH / 0 active MEDIUM',
   `releases/tag/${published.tag}`,
 ]) if (!surfaces.launch.includes(marker)) fail(`launch evidence is missing ${marker}`);
+if (/13\s+(?:high|HIGH)/.test(surfaces.launch)) fail('launch evidence combines cross-domain demo severity');
 
 if (!surfaces.roadmap.includes('## Shipped in v0.3.0') || surfaces.roadmap.includes('## v0.4')) {
   fail('roadmap does not separate shipped v0.3.0 behavior from current backlog');

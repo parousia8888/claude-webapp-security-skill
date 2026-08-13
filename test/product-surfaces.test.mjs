@@ -42,6 +42,9 @@ const server = createServer((req, res) => {
   } else if (req.url === '/') {
     res.writeHead(200, { 'content-type': 'text/html' });
     res.end(`<html><head><link rel="canonical" href="${origin}/"></head><body>${'ok '.repeat(800)}</body></html>`);
+  } else if (req.url === '/.env') {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('FIXTURE_API_KEY=not-a-real-secret');
   } else {
     res.writeHead(404, { 'content-type': 'text/plain' });
     res.end('not found');
@@ -81,7 +84,7 @@ try {
       INPUT_ACKNOWLEDGE_AUTHORIZATION: 'true',
       INPUT_OUTPUT_DIR: actionOut,
       INPUT_FAIL_ON: 'never',
-      INPUT_ACTIVE_PROBE: 'false',
+      INPUT_ACTIVE_PROBE: 'true',
     },
   });
   assert.equal(result.status, 0, result.stderr);
@@ -97,32 +100,33 @@ try {
       INPUT_ACKNOWLEDGE_AUTHORIZATION: 'true',
       INPUT_OUTPUT_DIR: failingActionOut,
       INPUT_FAIL_ON: 'high',
-      INPUT_ACTIVE_PROBE: 'false',
+      INPUT_ACTIVE_PROBE: 'true',
       GITHUB_STEP_SUMMARY: stepSummary,
     },
   });
   assert.equal(result.status, 1, 'Action must preserve the audit failure status');
   assert.ok(existsSync(join(failingActionOut, 'report.json')), 'failing Action must retain evidence');
-  assert.match(readFileSync(stepSummary, 'utf8'), /Crawl surface audit/);
+  assert.match(readFileSync(stepSummary, 'utf8'), /Web App Security report/);
 
   const demoOut = join(temp, 'demo');
   result = await run(process.execPath, [CLI, 'demo', '--out', demoOut]);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /before: 13 high, 6 medium/);
-  assert.match(result.stdout, /after:\s+0 high, 0 medium/);
+  assert.match(result.stdout, /before: 2 security HIGH; 11 discoverability HIGH \+ 5 MEDIUM; 1 reliability MEDIUM/);
+  assert.match(result.stdout, /after:\s+0 active HIGH, 0 active MEDIUM/);
   assert.ok(existsSync(join(demoOut, 'before.json')));
   assert.ok(existsSync(join(demoOut, 'after.json')));
-  const demoEvidenceBefore = JSON.parse(readFileSync(join(demoOut, 'evidence-before.json'), 'utf8'));
-  const demoEvidenceAfter = JSON.parse(readFileSync(join(demoOut, 'evidence-after.json'), 'utf8'));
-  assert.equal(demoEvidenceBefore.schemaVersion, 1);
+  const demoEvidenceBefore = JSON.parse(readFileSync(join(demoOut, 'before.json'), 'utf8'));
+  const demoEvidenceAfter = JSON.parse(readFileSync(join(demoOut, 'after.json'), 'utf8'));
+  assert.equal(demoEvidenceBefore.schemaVersion, 2);
   assert.equal(demoEvidenceBefore.mode, 'demo-before');
   assert.equal(demoEvidenceBefore.summary.byState.confirmed, 21);
+  assert.equal(demoEvidenceBefore.summary.byDomain.security_exposure, 3);
   assert.equal(demoEvidenceAfter.mode, 'demo-after');
   assert.equal(demoEvidenceAfter.summary.byBaseline.fixed, 21);
-  assert.ok(existsSync(join(demoOut, 'evidence-before.html')));
-  assert.ok(existsSync(join(demoOut, 'evidence-after.sarif')));
-  assert.match(readFileSync(join(demoOut, 'summary.md'), 'utf8'), /\| Before \| 13 \| 6 \|/);
-  assert.match(readFileSync(join(demoOut, 'summary.md'), 'utf8'), /\| Retest \| 0 \| 0 \|/);
+  assert.ok(existsSync(join(demoOut, 'before.html')));
+  assert.ok(existsSync(join(demoOut, 'after.sarif')));
+  assert.match(readFileSync(join(demoOut, 'summary.md'), 'utf8'), /\| Before \| 2 \| 11 \| 5 \| 1 \|/);
+  assert.match(readFileSync(join(demoOut, 'summary.md'), 'utf8'), /\| Retest \| 0 \| 0 \| 0 \| 0 \|/);
   assert.match(readFileSync(join(demoOut, 'hardening.patch'), 'utf8'), /GET \/\.env\s+-> 404/);
 
   const fakeHome = join(temp, 'home');

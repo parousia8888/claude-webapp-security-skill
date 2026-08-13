@@ -10,7 +10,7 @@
 
 ## 检查、补丁与复测闭环
 
-仓库自有本地 demo 的初始结果为 **13 high / 6 medium**，随后生成可审查补丁，并对同一个 fixture 复测到 **0 high / 0 medium**；生成记录把 **21 项 finding 标记为 fixed**。该 fixture 在本地运行，不接触第三方目标。
+仓库自有本地 demo 的初始结果为 **2 个 security HIGH、11 个 discoverability HIGH + 5 个 MEDIUM、1 个 reliability MEDIUM**，随后生成可审查补丁，并对同一个 fixture 复测到 **0 个 active HIGH / 0 个 active MEDIUM**；生成记录把 **21 项 finding 标记为 fixed**。该 fixture 在本地运行，不接触第三方目标。
 
 [查看生成的 demo、报告与补丁](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md)。
 

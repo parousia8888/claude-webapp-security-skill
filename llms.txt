@@ -51,7 +51,7 @@ This file is an informational map for automated readers. It is not a ranking dir
 
 - scripts/crawl-surface-audit.mjs: parses robots.txt, llms.txt and sitemaps; probes private paths; replays URLs across eleven crawler user agents to detect edge blocking and cloaking. Node 18+, no dependencies.
 - scripts/verify-crawler-ip.mjs: verifies a client IP against the crawler its user agent claims, by forward-confirmed reverse DNS or vendor-published CIDR ranges. IPv4 and IPv6.
-- scripts/aws-exposure-audit.sh: read-only AWS posture inventory. Failed checks are reported as UNCHECKED, never as passing.
+- scripts/aws-exposure-audit.sh: read-only AWS posture inventory. Missing, denied or malformed evidence is v2 unknown coverage, never passing.
 
 ## Constraints the skill enforces
 

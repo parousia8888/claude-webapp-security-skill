@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'no
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  assertComparableBaseline, compareFindingsV2, createReportV2, failsThresholdV2,
+  assertComparableBaseline, compareFindingsV2, createReportV2, exitCodeV2,
   initializeFindingsV2, policyForFailOn, readBaselineV2, sourceFindingV2, writeReportBundleV2,
 } from './lib/evidence-v2.mjs';
 import { auditSource, renderPatch } from './lib/source-audit.mjs';
@@ -117,7 +117,7 @@ try {
     const loaded = readBaselineV2(resolve(baselinePath));
     baseline = assertComparableBaseline(subject, loaded.report, loaded.rawBytes);
     if (baseline.sourceDigest !== loaded.sourceDigest) throw new Error('baseline digest metadata is inconsistent');
-    findings = compareFindingsV2(current, coverage, loaded.report);
+    findings = compareFindingsV2(current, coverage, loaded.report, ruleset);
   } else {
     findings = initializeFindingsV2(current, coverage);
   }
@@ -156,7 +156,7 @@ try {
   console.log(`states:    confirmed=${report.summary.byState.confirmed}, suspected=${report.summary.byState.suspected}, unknown=${report.summary.byState.unknown}`);
   console.log(`baseline:  new=${report.summary.byBaseline.new}, fixed=${report.summary.byBaseline.fixed}, unchanged=${report.summary.byBaseline.unchanged}, regressed=${report.summary.byBaseline.regressed}, unretested=${report.summary.byBaseline.unretested}, not_comparable=${report.summary.byBaseline.not_comparable}`);
   console.log('network:   none');
-  process.exit(failsThresholdV2(report) ? 1 : 0);
+  process.exit(exitCodeV2(report));
 } catch (error) {
   usage(2, error.message);
 }

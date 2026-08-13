@@ -56,7 +56,7 @@
       "name": "AWS exposure inventory helper",
       "category": "detection",
       "maturity": "stable",
-      "scope": "Runs a read-only, permission-aware AWS inventory helper. Denied or unavailable reads remain UNCHECKED and never become fabricated posture findings.",
+      "scope": "Runs a read-only, permission-aware AWS inventory helper. Denied, missing or malformed evidence becomes explicit v2 unknown coverage and never a fabricated posture finding.",
       "evidence": ["scripts/aws-exposure-audit.sh", "test/aws-permission-evidence.test.mjs"]
     },
     {
@@ -98,7 +98,7 @@
       "name": "Stable multi-format finding reports",
       "category": "evidence_reporting",
       "maturity": "stable",
-      "scope": "Renders source v2 and remaining crawl/demo/AWS v1 contracts as JSON, Markdown, escaped HTML, SARIF 2.1.0 and JUnit while preserving evidence states and fingerprints. Shared v2 runtime migration is not complete.",
+      "scope": "Renders source, crawl, demo, crawler-identity, edge and AWS v2 conclusions as JSON, Markdown, escaped HTML, SARIF 2.1.0 and JUnit while preserving domain, evidence state, baseline state and fingerprints. Legacy v1 remains historical input only.",
       "evidence": ["docs/finding-v2.schema.json", "docs/report-v2.schema.json", "docs/finding.schema.json", "docs/report.schema.json", "scripts/lib/evidence-v2.mjs", "scripts/lib/evidence.mjs", "test/evidence-loop.test.mjs"]
     },
     {

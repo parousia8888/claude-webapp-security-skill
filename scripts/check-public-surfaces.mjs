@@ -72,15 +72,22 @@ for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
   }
 }
 
-const result = evidence.match(/\| Owned local fixture \| (\d+) high, (\d+) medium .* \| (\d+) high, (\d+) medium \|/);
+const result = evidence.match(/\| Owned local fixture \| (\d+) \| (\d+) \/ (\d+) \| (\d+) \| .* \| (\d+) active HIGH, (\d+) active MEDIUM \|/);
 if (!result) fail('generated demo evidence has no result row');
 if (result) {
-  const [beforeHigh, beforeMedium, afterHigh, afterMedium] = result.slice(1);
-  for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
-    for (const marker of [`${beforeHigh} high`, `${beforeMedium} medium`, `${afterHigh} high`, `${afterMedium} medium`]) {
+  const [securityHigh, discoverabilityHigh, discoverabilityMedium, reliabilityMedium, afterHigh, afterMedium] = result.slice(1);
+  for (const [path, text, markers] of [
+    ['README.md', en, [`${securityHigh} HIGH`, `${discoverabilityHigh} HIGH + ${discoverabilityMedium} MEDIUM`, `${reliabilityMedium} MEDIUM`, `${afterHigh} active HIGH / MEDIUM`]],
+    ['README.zh-CN.md', zh, [`${securityHigh} HIGH`, `${discoverabilityHigh} HIGH + ${discoverabilityMedium} MEDIUM`, `${reliabilityMedium} MEDIUM`, `${afterHigh} active HIGH / MEDIUM`]],
+  ]) {
+    for (const marker of markers) {
       if (!text.includes(marker)) fail(`${path} is missing generated demo count ${marker}`);
     }
   }
+}
+
+for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
+  if (/13\s+(?:high|HIGH)/.test(text)) fail(`${path} combines cross-domain demo severity`);
 }
 
 if (/Replace the placeholder|替换占位符/.test(`${en}\n${zh}`)) fail('stale Action placeholder copy remains');

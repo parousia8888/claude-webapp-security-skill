@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="Owned local fixture: audit finds 13 high and 6 medium issues, a reviewable patch is shown, and the same path retests at 0 high and 0 medium"></a>
+  <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="Owned local fixture: audit finds 2 security HIGH, 11 discoverability HIGH plus 5 MEDIUM, and 1 reliability MEDIUM; a reviewable patch is shown and the same path retests with no active HIGH or MEDIUM findings"></a>
 </p>
 
 <p align="center"><a href="docs/demo-evidence.md">Read the generated reports and patch behind this demo.</a></p>
@@ -35,9 +35,9 @@
 Run an intentionally misconfigured local web app, audit it, apply the fixture's hardening, and
 retest it through the same product path. Nothing reaches the network.
 
-| Input | Confirmed before | Reviewable change | Retest |
-|---|---|---|---|
-| Owned local fixture | 13 high, 6 medium | crawl policy, exposed artifacts, unknown-route status | 0 high, 0 medium |
+| Input | Security | Discoverability | Reliability | Reviewable change | Retest |
+|---|---:|---:|---:|---|---|
+| Owned local fixture | 2 HIGH | 11 HIGH + 5 MEDIUM | 1 MEDIUM | crawl policy, exposed artifacts, unknown-route status | 0 active HIGH / MEDIUM |
 
 ```bash
 git clone https://github.com/parousia8888/web-app-security-skill.git
@@ -187,9 +187,10 @@ webapp-security aws --profile default --region us-east-1 --out ./security-report
 Active rate-limit verification also requires `--acknowledge-authorization`. Network or evidence
 failure is `unknown` and exits non-zero; it is never rendered as safe.
 
-The v2 runtime currently covers the deterministic source audit. Crawl, demo, crawler identity,
-edge and AWS surfaces retain their existing formats until the shared-runtime milestone; their
-results must not be described as v2 merely because the source path is v2.
+Source, crawl, demo, crawler identity, edge and AWS conclusions use the same v2 finding, coverage,
+policy and exit-code runtime. Tool-specific raw observations are written separately from those
+conclusions. Historical v1 reports remain readable only for display, release verification and
+explicit non-comparable migration; they are never accepted as a comparable baseline.
 
 ## GitHub Action
 

@@ -79,8 +79,10 @@ try {
     assert.equal(result.status, 0, `${fixture}: ${result.stderr}\n${result.stdout}`);
     assert.ok(requests.includes(expectedRequest), `${fixture}: ${requests.join(', ')}`);
     const report = JSON.parse(readFileSync(join(result.out, 'report.json'), 'utf8'));
-    assert.equal(report.sitemapUrlCount, 1);
-    assert.equal(report.sitemaps[0].parseState, 'confirmed');
+    const observations = JSON.parse(readFileSync(join(result.out, 'report.observations.json'), 'utf8'));
+    assert.equal(report.schemaVersion, 2);
+    assert.equal(observations.sitemapUrlCount, 1);
+    assert.equal(observations.sitemaps[0].parseState, 'confirmed');
   }
 
   for (const [fixture, expected] of [
@@ -93,11 +95,12 @@ try {
     assert.equal(result.status, 3, `${fixture}: ${result.stderr}\n${result.stdout}`);
     assert.ok(existsSync(join(result.out, 'report.json')));
     const report = JSON.parse(readFileSync(join(result.out, 'report.json'), 'utf8'));
-    assert.equal(report.sitemaps[0].parseState, 'unknown');
-    const finding = report.findings.find((item) => item.code === 'sitemap-parse-unknown');
+    const observations = JSON.parse(readFileSync(join(result.out, 'report.observations.json'), 'utf8'));
+    assert.equal(observations.sitemaps[0].parseState, 'unknown');
+    const finding = report.findings.find((item) => item.rule.id === 'sitemap-parse-unknown');
     assert.equal(finding?.state, 'unknown');
-    assert.match(finding?.message || '', expected);
-    assert.equal(report.sampledUrls.length, 0);
+    assert.match(finding?.summary || '', expected);
+    assert.equal(observations.sampledUrls.length, 0);
   }
 
   assert.deepEqual(externalRequests, [], 'external entity target must never be requested');

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
@@ -12,6 +13,7 @@ const SCRIPT = join(ROOT, 'scripts', 'verify-crawler-ip.mjs');
 const FIXTURES = join(ROOT, 'test', 'fixtures', 'crawler-ranges');
 const LOCAL_ONLY = join(ROOT, 'test', 'helpers', 'local-network-only.cjs');
 const requests = [];
+const temp = mkdtempSync(join(tmpdir(), 'web-app-security-crawler-identity-'));
 
 const server = createServer((req, res) => {
   requests.push(req.url);
@@ -45,7 +47,7 @@ function run(base, ownFixture, siblingFixture = 'valid-miss.json', options = {})
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [
       SCRIPT, '--ip', '203.0.113.1', '--ua', options.ua || 'GPTBot/1.2', '--ranges',
-      '--max-range-age-days', '365', ...sources,
+      '--max-range-age-days', '365', ...sources, ...(options.extraArgs || []),
     ], {
       cwd: ROOT,
       env: {
@@ -95,18 +97,39 @@ try {
   const wrongProduct = await run(base, 'missing-prefixes.json', 'valid-hit.json');
   assert.equal(wrongProduct.status, 3, wrongProduct.stderr);
   assert.match(wrongProduct.stdout, /unverifiable/);
-  assert.doesNotMatch(wrongProduct.stdout, /verified|\*\*spoofed\*\*/);
+  assert.match(wrongProduct.stdout, /Evidence states: confirmed=0, suspected=0, unknown=1/);
 
   const customAnthropic = await run(base, 'valid-miss.json', 'valid-miss.json', {
     ua: 'ClaudeBot/1.0',
     sources: [['claudebot', 'valid-hit.json']],
   });
   assert.equal(customAnthropic.status, 0, customAnthropic.stderr);
-  assert.match(customAnthropic.stdout, /verified.*anthropic/);
+  assert.match(customAnthropic.stdout, /Crawler identity verified/);
+  assert.match(customAnthropic.stdout, /"vendor":"anthropic"/);
+
+  const out = join(temp, 'report');
+  const written = await run(base, 'valid-hit.json', 'valid-miss.json', {
+    extraArgs: ['--out', out, '--report-name', 'crawler-fixture'],
+  });
+  assert.equal(written.status, 0, written.stderr);
+  const report = JSON.parse(readFileSync(join(out, 'crawler-fixture.json'), 'utf8'));
+  const observations = JSON.parse(readFileSync(join(out, 'crawler-fixture.observations.json'), 'utf8'));
+  assert.equal(report.schemaVersion, 2);
+  assert.equal(report.ruleset.adapters[0].id, 'builtin-crawler-identity');
+  assert.equal(report.findings[0].domain, 'security_exposure');
+  assert.equal(report.findings[0].state, 'confirmed');
+  assert.equal(report.findings[0].baseline.state, 'new');
+  assert.equal(observations.schemaVersion, 1);
+  assert.equal(observations.results[0].verdict, 'verified');
+  assert.equal(statSync(out).mode & 0o777, 0o700);
+  for (const name of ['crawler-fixture.json', 'crawler-fixture.md', 'crawler-fixture.html', 'crawler-fixture.sarif', 'crawler-fixture.junit.xml', 'crawler-fixture.sha256', 'crawler-fixture.observations.json']) {
+    assert.equal(statSync(join(out, name)).mode & 0o777, 0o600, `${name} must be private`);
+  }
 
   assert.ok(requests.length > 0);
   assert.ok(requests.every((path) => /^\/(?:http-503|[a-z-]+\.json)$/.test(path)), requests.join(', '));
-  console.log('✓ crawler range evidence: malformed, empty, stale and sibling sources fail unknown/non-zero');
+  console.log('✓ crawler range evidence: v2 bundle plus malformed, stale and sibling-source unknowns');
 } finally {
   server.close();
+  rmSync(temp, { recursive: true, force: true });
 }

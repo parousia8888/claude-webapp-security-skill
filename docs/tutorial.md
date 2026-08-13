@@ -175,6 +175,7 @@ appears, production health degrades or evidence would expose a secret.
 | `webapp-security: command not found` | Add `~/.local/bin` to `PATH`, or invoke the checkout's `node scripts/webapp-security.mjs` |
 | Exit code `1` | Findings met `--fail-on`; evidence was still written |
 | Exit code `2` | Usage, scope, authorization or evidence setup failed; do not treat it as a pass |
+| Exit code `3` | Required evidence was unknown, partial or unavailable and no configured confirmed threshold breach took precedence |
 | `refusing to overwrite existing evidence` | Choose a new `--out` directory or report name; retain the baseline |
 | Unsupported or ambiguous stack | Keep `unknown` and use the agent-guided methodology |
 | Remote check blocked | Supply recorded authorization and acknowledgement only for an owned target |

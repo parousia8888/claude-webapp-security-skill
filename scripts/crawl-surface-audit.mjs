@@ -10,7 +10,7 @@
  *
  * Options:
  *   --site <url>        required, origin to audit
- *   --out <dir>         write JSON + Markdown reports here (default: stdout only)
+ *   --out <dir>         write v2 report bundle + raw observations (default: stdout only)
  *   --report-name <s>   stable basename in --out (default: timestamped)
  *   --max-urls <n>      sitemap URLs to spot-check (default 20)
  *   --matrix <n>        URLs to replay across the crawler UA matrix (default 3)
@@ -21,13 +21,24 @@
  *   --acknowledge-authorization
  *                       confirm ownership or written authorization for active probes
  *   --fail-on <level>   exit 1 at high, medium, low, or never (default high)
+ *   --baseline <json>   compare with a compatible persisted v2 crawl report
+ *   --subject-id <id>   explicit persisted subject identity for repeatable audits
+ *   --scope-id <id>     stable scope binding used with --subject-id
+ *   --mode <mode>       audit, retest, demo-before, or demo-after (default audit)
  *   --quiet             suppress progress output on stderr
  */
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { parseRobots, robotsVerdict } from './lib/robots.mjs';
+import {
+  assertComparableBaseline, compareFindingsV2, createFindingV2, createReportV2, exitCodeV2,
+  initializeFindingsV2, policyForFailOn, readBaselineV2, renderMarkdownV2, writeReportBundleV2,
+} from './lib/evidence-v2.mjs';
+import { crawlCoverage, CRAWL_ADAPTER, crawlRule, crawlRuleset } from './lib/crawl-rules.mjs';
+import { digestValue } from './lib/project-identity.mjs';
 
 // ---------------------------------------------------------------- args
 
@@ -52,6 +63,10 @@ if (!['http:', 'https:'].includes(parsedSite.protocol)) {
 const ORIGIN = parsedSite.origin;
 const OUT_DIR = arg('out');
 const REPORT_NAME = arg('report-name');
+const BASELINE_PATH = arg('baseline');
+const SUBJECT_ID = arg('subject-id');
+const SCOPE_ID = arg('scope-id');
+const MODE = arg('mode', 'audit');
 const MAX_URLS = Number(arg('max-urls', 20));
 const MATRIX_URLS = Number(arg('matrix', 3));
 const CONCURRENCY = Number(arg('concurrency', 4));
@@ -83,8 +98,43 @@ if (REPORT_NAME && !/^[a-zA-Z0-9._-]+$/.test(REPORT_NAME)) {
   console.error('error: --report-name may contain only letters, digits, dot, underscore, and dash');
   process.exit(2);
 }
+if (!['audit', 'retest', 'demo-before', 'demo-after'].includes(MODE)) {
+  console.error('error: --mode must be audit, retest, demo-before, or demo-after');
+  process.exit(2);
+}
+if (MODE === 'retest' && !BASELINE_PATH) {
+  console.error('error: --mode retest requires --baseline');
+  process.exit(2);
+}
+if (Boolean(SUBJECT_ID) !== Boolean(SCOPE_ID)) {
+  console.error('error: --subject-id and --scope-id must be supplied together');
+  process.exit(2);
+}
+if (SUBJECT_ID && !/^project-[a-f0-9]{32}$/.test(SUBJECT_ID)) {
+  console.error('error: --subject-id must match project- followed by 32 lowercase hex characters');
+  process.exit(2);
+}
+if (SCOPE_ID && !/^[a-zA-Z0-9._-]{3,128}$/.test(SCOPE_ID)) {
+  console.error('error: --scope-id contains unsupported characters');
+  process.exit(2);
+}
+if (BASELINE_PATH && !SUBJECT_ID) {
+  console.error('error: baseline comparison requires explicit --subject-id and --scope-id');
+  process.exit(2);
+}
 
 const log = (...m) => { if (!QUIET) console.error('·', ...m); };
+
+function timestamp() {
+  const now = process.env.SOURCE_DATE_EPOCH
+    ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000)
+    : new Date();
+  if (Number.isNaN(now.getTime())) {
+    console.error('error: SOURCE_DATE_EPOCH must be numeric');
+    process.exit(2);
+  }
+  return now.toISOString();
+}
 
 // ---------------------------------------------------------------- constants
 
@@ -130,11 +180,9 @@ const PRIVATE_PROBES = [
 
 // ---------------------------------------------------------------- http
 
-const findings = [];
-const add = (severity, code, message, detail) =>
-  findings.push({ severity, code, message, ...(detail ? { detail } : {}) });
-
-const SEV_ORDER = { high: 0, medium: 1, low: 2, info: 3 };
+const signals = [];
+const add = (severity, code, message, detail, state = 'confirmed') =>
+  signals.push({ severity, code, state, message, ...(detail ? { detail } : {}) });
 
 async function req(url, { method = 'GET', ua = BROWSER_UA, redirect = 'manual' } = {}) {
   try {
@@ -293,10 +341,7 @@ function scopedHttpUrl(value, base) {
 }
 
 function addSitemapUnknown(url, message) {
-  findings.push({
-    severity: 'high', code: 'sitemap-parse-unknown', state: 'unknown',
-    message, detail: { url },
-  });
+  add('high', 'sitemap-parse-unknown', message, { url, subject: url }, 'unknown');
 }
 
 async function collectSitemap(url, seen = new Set(), depth = 0) {
@@ -309,8 +354,14 @@ async function collectSitemap(url, seen = new Set(), depth = 0) {
   if (depth > 2 || seen.has(scoped)) return { urls: [], maps: [] };
   seen.add(scoped);
   const res = await req(scoped);
-  const map = { url: scoped, status: res.status, bytes: res.bytes, parseState: 'not-parsed' };
+  const map = { url: scoped, status: res.status, bytes: res.bytes, parseState: 'not-parsed', error: res.error || null };
   const maps = [map];
+  if (res.status === 0) {
+    map.parseState = 'unknown';
+    add('high', 'sitemap-fetch-unknown', `Sitemap evidence could not be fetched: ${res.error}.`,
+      { url: scoped, subject: scoped }, 'unknown');
+    return { urls: [], maps };
+  }
   if (res.status !== 200 || !res.body) return { urls: [], maps };
 
   let parsed;
@@ -350,9 +401,11 @@ async function collectSitemap(url, seen = new Set(), depth = 0) {
 
 // ---------------------------------------------------------------- main
 
-const report = {
+const observations = {
+  schemaVersion: 1,
+  adapter: CRAWL_ADAPTER.id,
   site: ORIGIN,
-  generatedAt: new Date().toISOString(),
+  generatedAt: timestamp(),
   robots: null,
   llms: null,
   sitemaps: [],
@@ -360,7 +413,6 @@ const report = {
   sampledUrls: [],
   uaMatrix: [],
   privateProbes: [],
-  findings,
 };
 
 log(`auditing ${ORIGIN}`);
@@ -370,7 +422,7 @@ const robotsRes = await req(`${ORIGIN}/robots.txt`);
 let robots = null;
 if (robotsRes.status === 200 && /disallow|allow|user-agent/i.test(robotsRes.body)) {
   robots = parseRobots(robotsRes.body);
-  report.robots = {
+  observations.robots = {
     status: 200,
     bytes: robotsRes.bytes,
     groupCount: robots.groups.length,
@@ -418,7 +470,7 @@ if (robotsRes.status === 200 && /disallow|allow|user-agent/i.test(robotsRes.body
         `robots.txt disallows "/" for ${token}; this is a live user asking an assistant to open your page, and they will see a fetch failure.`);
     }
   }
-  report.robots.policy = policy;
+  observations.robots.policy = policy;
 
   // finding: no sitemap declared
   if (!robots.sitemaps.length) add('medium', 'robots-no-sitemap', 'robots.txt declares no Sitemap:. Crawlers must then discover every URL by link.');
@@ -430,17 +482,25 @@ if (robotsRes.status === 200 && /disallow|allow|user-agent/i.test(robotsRes.body
       '"$" anchors are honoured by major crawlers but not universally; do not rely on them for anything that matters.',
       { rules: [...new Set(dollarRules.map((r) => `${r.type}: ${r.path}`))] });
   }
+} else if (robotsRes.status === 0) {
+  add('high', 'robots-fetch-unknown', `robots.txt evidence could not be fetched: ${robotsRes.error}.`,
+    { url: `${ORIGIN}/robots.txt`, subject: `${ORIGIN}/robots.txt` }, 'unknown');
+  observations.robots = { status: 0, error: robotsRes.error || null };
+} else if (robotsRes.status === 404) {
+  add('medium', 'robots-missing', 'robots.txt returned 404. Every crawler will apply its own defaults.',
+    { status: 404, subject: `${ORIGIN}/robots.txt` });
+  observations.robots = { status: 404, error: null };
 } else {
-  add(robotsRes.status === 404 ? 'medium' : 'high', 'robots-missing',
-    `robots.txt returned ${robotsRes.status || 'no response'}. Every crawler will apply its own defaults.`);
-  report.robots = { status: robotsRes.status, error: robotsRes.error || null };
+  add('high', 'robots-http-error', `robots.txt returned HTTP ${robotsRes.status}; the published crawl policy is unavailable.`,
+    { status: robotsRes.status, subject: `${ORIGIN}/robots.txt` });
+  observations.robots = { status: robotsRes.status, error: robotsRes.error || null };
 }
 
 // --- llms.txt
 const llmsRes = await req(`${ORIGIN}/llms.txt`);
 if (llmsRes.status === 200) {
   const urls = [...llmsRes.body.matchAll(/https?:\/\/[^\s)>\]"']+/g)].map((m) => m[0]);
-  report.llms = { status: 200, bytes: llmsRes.bytes, urlCount: urls.length, urls: urls.slice(0, 200) };
+  observations.llms = { status: 200, bytes: llmsRes.bytes, urlCount: urls.length, urls: urls.slice(0, 200) };
   log(`llms.txt: ${urls.length} URLs`);
   const foreign = urls.filter((u) => { try { return new URL(u).origin !== ORIGIN; } catch { return false; } });
   if (foreign.length) add('info', 'llms-external-urls', 'llms.txt references external origins.', { count: foreign.length });
@@ -452,7 +512,9 @@ if (llmsRes.status === 200) {
     if (blocked.length) add('medium', 'llms-lists-disallowed-urls', 'llms.txt advertises URLs that robots.txt disallows.', { urls: blocked.slice(0, 20) });
   }
 } else {
-  report.llms = { status: llmsRes.status };
+  observations.llms = { status: llmsRes.status, error: llmsRes.error || null };
+  if (llmsRes.status === 0) add('low', 'llms-fetch-unknown', `llms.txt evidence could not be fetched: ${llmsRes.error}.`,
+    { url: `${ORIGIN}/llms.txt`, subject: `${ORIGIN}/llms.txt` }, 'unknown');
 }
 
 // --- sitemaps
@@ -460,15 +522,16 @@ const sitemapCandidates = robots?.sitemaps?.length ? robots.sitemaps : [`${ORIGI
 let sitemapUrls = [];
 for (const sm of sitemapCandidates.slice(0, 5)) {
   const { urls, maps } = await collectSitemap(sm);
-  report.sitemaps.push(...maps);
+  observations.sitemaps.push(...maps);
   sitemapUrls.push(...urls);
 }
 sitemapUrls = [...new Set(sitemapUrls)];
-report.sitemapUrlCount = sitemapUrls.length;
-log(`sitemaps: ${report.sitemaps.length} files, ${sitemapUrls.length} unique URLs`);
+observations.sitemapUrlCount = sitemapUrls.length;
+log(`sitemaps: ${observations.sitemaps.length} files, ${sitemapUrls.length} unique URLs`);
 
-for (const m of report.sitemaps) {
-  if (m.status !== 200) add('high', 'sitemap-unreachable', `Declared sitemap returned ${m.status}.`, { url: m.url });
+for (const m of observations.sitemaps) {
+  if (m.status === 0) continue;
+  if (m.status !== 200) add('high', 'sitemap-unreachable', `Declared sitemap returned HTTP ${m.status}.`, { url: m.url, subject: m.url });
   else if (robots) {
     try {
       const p = new URL(m.url);
@@ -478,7 +541,8 @@ for (const m of report.sitemaps) {
     } catch { /* ignore */ }
   }
 }
-if (!sitemapUrls.length && !findings.some((finding) => finding.state === 'unknown')) {
+if (!sitemapUrls.length && observations.sitemaps.length
+    && observations.sitemaps.every((map) => map.status === 200 && map.parseState === 'confirmed')) {
   add('high', 'sitemap-empty', 'No URLs discovered from any sitemap.');
 }
 
@@ -493,16 +557,17 @@ const sampleResults = await pool(sample, async (u) => {
   let robotsAllowed = true, robotsBy = 'n/a';
   try { const v = robotsVerdict(robots, 'Googlebot', new URL(u).pathname); robotsAllowed = v.allowed; robotsBy = v.by; } catch { /* ignore */ }
   return {
-    url: u, status: res.status, bytes: res.bytes,
+    url: u, status: res.status, bytes: res.bytes, error: res.error || null,
     xRobotsTag: xrt || null, metaRobots: meta ? meta[1] : null,
     canonical: canonical ? canonical[1] : null,
     location: res.location, robotsAllowed, robotsBy,
   };
 });
-report.sampledUrls = sampleResults;
+observations.sampledUrls = sampleResults;
 
 for (const r of sampleResults) {
-  if (r.status === 0) add('medium', 'sitemap-url-unreachable', 'Sitemap URL did not respond.', { url: r.url });
+  if (r.status === 0) add('medium', 'sitemap-url-fetch-unknown', `Sitemap URL evidence could not be fetched: ${r.error}.`,
+    { url: r.url, subject: r.url }, 'unknown');
   else if (r.status >= 500) add('high', 'sitemap-url-5xx', `Sitemap URL returned ${r.status}.`, { url: r.url });
   else if (r.status === 404 || r.status === 410) add('high', 'sitemap-url-404', `Sitemap URL returned ${r.status}; stale sitemap entries waste crawl budget and look like a broken site.`, { url: r.url });
   else if (r.status >= 300 && r.status < 400) add('medium', 'sitemap-url-redirect', `Sitemap URL redirects (${r.status}); list the final URL instead.`, { url: r.url, to: r.location });
@@ -531,18 +596,27 @@ for (const target of matrixTargets) {
     rows.push({ agent: token, status: res.status, bytes: res.bytes, xRobotsTag: res.headers['x-robots-tag'] || null, error: res.error || null });
     if (DELAY) await new Promise((r) => setTimeout(r, DELAY));
   }
-  report.uaMatrix.push({ url: target, rows });
+  observations.uaMatrix.push({ url: target, rows });
 
   const base = rows.find((r) => r.agent === 'browser');
-  if (!base || base.status !== 200) {
-    add('high', 'baseline-fetch-failed', 'Baseline browser fetch did not return 200; matrix comparison is unreliable.', { url: target, status: base?.status });
+  if (!base || base.status === 0) {
+    add('high', 'matrix-baseline-unknown', 'Baseline browser evidence could not be fetched; UA comparison did not run.',
+      { url: target, status: base?.status || 0, error: base?.error || null, subject: target }, 'unknown');
+    continue;
+  }
+  if (base.status !== 200) {
+    add('high', 'baseline-fetch-failed', `Baseline browser returned HTTP ${base.status}; UA comparison did not run.`,
+      { url: target, status: base.status, subject: target });
+    add('high', 'matrix-comparison-unavailable', 'UA comparison requires a successful browser baseline.',
+      { url: target, status: base.status, subject: target }, 'unknown');
     continue;
   }
   for (const r of rows) {
     if (r.agent === 'browser') continue;
     const role = UA_ROLES[r.agent] || 'other';
     if (r.status === 0) {
-      add('high', 'crawler-request-failed', `Request as ${r.agent} failed (${r.error}).`, { url: target });
+      add('high', 'crawler-request-unknown', `Request as ${r.agent} failed (${r.error}).`,
+        { url: target, agent: r.agent, subject: `${target}#${r.agent}` }, 'unknown');
     } else if (r.status === 403 || r.status === 401 || r.status === 429 || r.status === 503) {
       add('high', 'crawler-blocked',
         `${r.agent} received ${r.status} while a browser received 200 — this crawler is being blocked at the edge/WAF. Check bot-fight / AI-scraper settings and managed rule groups.`,
@@ -569,7 +643,11 @@ if (PROBE) {
   const nonce = randomUUID().slice(0, 12);
   const baseline = await req(`${ORIGIN}/__no-such-path-${nonce}`);
   const soft = baseline.status === 200 ? { bytes: baseline.bytes } : null;
-  report.notFoundBaseline = { status: baseline.status, bytes: baseline.bytes, softNotFound: Boolean(soft) };
+  observations.notFoundBaseline = { status: baseline.status, bytes: baseline.bytes, softNotFound: Boolean(soft), error: baseline.error || null };
+  if (baseline.status === 0) {
+    add('high', 'probe-baseline-unknown', `Unknown-route baseline could not be fetched: ${baseline.error}.`,
+      { subject: 'not-found-baseline' }, 'unknown');
+  }
   if (soft) {
     add('medium', 'soft-404-catchall',
       'A non-existent path returns 200 with the app shell instead of 404. Crawlers index and re-crawl garbage URLs, real 404s become invisible, and the highest-signal scanner-detection rule (404 ratio per client) stops working. Return a real 404 status for unmatched routes.',
@@ -583,9 +661,9 @@ if (PROBE) {
       /(BEGIN [A-Z ]*PRIVATE KEY|aws_secret_access_key|[A-Z_]*API[_-]?KEY\s*=|"dependencies"|\[core\]|ref:\s*refs\/)/i.test(res.body || '');
     const isSoft = Boolean(soft) && res.status === 200 &&
       Math.abs(res.bytes - soft.bytes) <= Math.max(512, soft.bytes * 0.02);
-    return { path: p, status: res.status, bytes: res.bytes, contentType: res.headers['content-type'] || null, looksSensitive: bodyHint, softNotFound: isSoft };
+    return { path: p, status: res.status, bytes: res.bytes, contentType: res.headers['content-type'] || null, looksSensitive: bodyHint, softNotFound: isSoft, error: res.error || null };
   });
-  report.privateProbes = probeResults;
+  observations.privateProbes = probeResults;
 
   const softCount = probeResults.filter((r) => r.softNotFound && !r.looksSensitive).length;
   if (softCount) {
@@ -593,7 +671,10 @@ if (PROBE) {
   }
 
   for (const r of probeResults) {
-    if (r.softNotFound && !r.looksSensitive) {
+    if (r.status === 0) {
+      add('high', 'probe-request-unknown', `Private-path evidence for ${r.path} could not be fetched: ${r.error}.`,
+        { path: r.path, subject: r.path }, 'unknown');
+    } else if (r.softNotFound && !r.looksSensitive) {
       continue; // reported once as soft-404-catchall
     } else if (r.status === 200 && r.looksSensitive) {
       add('high', 'sensitive-file-exposed', `${r.path} returned 200 with content matching a secret/config pattern.`, { path: r.path, bytes: r.bytes });
@@ -613,10 +694,16 @@ if (PROBE) {
   if (firstJs) {
     const mapUrl = `${firstJs.split('?')[0]}.map`;
     const mapRes = await req(mapUrl, { method: 'HEAD' });
-    report.sourceMap = { url: mapUrl, status: mapRes.status };
+    observations.sourceMap = { url: mapUrl, status: mapRes.status, error: mapRes.error || null };
     if (mapRes.status === 200) {
       add('high', 'source-map-exposed', 'A production source map is publicly served; it reconstructs original sources and comments.', { url: mapUrl });
+    } else if (mapRes.status === 0) {
+      add('high', 'source-map-check-unknown', `Source-map evidence could not be fetched: ${mapRes.error}.`,
+        { url: mapUrl, subject: mapUrl }, 'unknown');
     }
+  } else if (home.status === 0) {
+    add('high', 'source-map-discovery-unknown', `Homepage evidence for source-map discovery could not be fetched: ${home.error}.`,
+      { url: `${ORIGIN}/`, subject: `${ORIGIN}/` }, 'unknown');
   }
   if (scripts.some((s) => /\?v=[a-z][a-z0-9-]{4,}/i.test(s))) {
     add('low', 'semantic-cache-buster', 'Asset URLs carry semantic cache-busting values that leak internal release or feature names; use content hashes.');
@@ -625,77 +712,127 @@ if (PROBE) {
 
 // ---------------------------------------------------------------- output
 
-findings.sort((a, b) => SEV_ORDER[a.severity] - SEV_ORDER[b.severity]);
-const counts = findings.reduce((acc, f) => ({ ...acc, [f.severity]: (acc[f.severity] || 0) + 1 }), {});
-
-function toMarkdown() {
-  const L = [];
-  L.push(`# Crawl surface audit — ${ORIGIN}`, '', `Generated: ${report.generatedAt}`, '');
-  L.push(`**Findings:** ${counts.high || 0} high · ${counts.medium || 0} medium · ${counts.low || 0} low · ${counts.info || 0} info`, '');
-
-  L.push('## Findings', '');
-  if (!findings.length) L.push('_None._', '');
-  for (const f of findings) {
-    L.push(`- **[${f.severity}] ${f.code}** — ${f.message}`);
-    if (f.detail) L.push(`  - ${JSON.stringify(f.detail)}`);
-  }
-  L.push('');
-
-  if (report.robots?.policy) {
-    L.push('## robots.txt policy by crawler', '', '| Crawler | Role | `/` allowed | Own group |', '|---|---|---|---|');
-    for (const [token, p] of Object.entries(report.robots.policy)) {
-      L.push(`| ${token} | ${p.role} | ${p.rootAllowed ? 'yes' : '**no**'} | ${p.hasOwnGroup ? 'yes' : 'no'} |`);
-    }
-    L.push('');
-  }
-
-  for (const m of report.uaMatrix) {
-    L.push(`## UA matrix — ${m.url}`, '', '| Agent | Status | Bytes | X-Robots-Tag |', '|---|---|---|---|');
-    for (const r of m.rows) L.push(`| ${r.agent} | ${r.status} | ${r.bytes} | ${r.xRobotsTag || '—'} |`);
-    L.push('');
-  }
-
-  if (report.sampledUrls.length) {
-    L.push('## Sitemap URL spot check', '', '| URL | Status | Bytes | robots | noindex |', '|---|---|---|---|---|');
-    for (const r of report.sampledUrls) {
-      const ni = /noindex/i.test(`${r.xRobotsTag || ''} ${r.metaRobots || ''}`) ? 'yes' : '—';
-      L.push(`| ${r.url} | ${r.status} | ${r.bytes} | ${r.robotsAllowed ? 'allow' : '**disallow**'} | ${ni} |`);
-    }
-    L.push('');
-  }
-
-  if (report.privateProbes.length) {
-    L.push('## Private-path probes', '', '| Path | Status | Bytes | Note |', '|---|---|---|---|');
-    for (const r of report.privateProbes) {
-      L.push(`| ${r.path} | ${r.status} | ${r.bytes} | ${r.softNotFound ? 'soft 404 (app shell)' : '—'} |`);
-    }
-    L.push('');
-  }
-
-  L.push('## Not covered by this audit', '',
-    '- JavaScript-rendered content (this audit is HTTP-only — and so are most AI crawlers)',
-    '- Authenticated flows and object-level authorization',
-    '- Whether a real crawler from its own IP is served the same response (use Search Console / Bing Webmaster URL inspection)',
-    '- WAF behaviour under sustained load', '');
-  return L.join('\n');
+function surfaceStatus(results, enabled = true) {
+  if (!enabled) return 'not_applicable';
+  if (!results.length) return 'unavailable';
+  const failed = results.filter((item) => item.status === 0 || item.parseState === 'unknown').length;
+  if (!failed) return 'completed';
+  return failed === results.length ? 'unavailable' : 'partial';
 }
 
-const md = toMarkdown();
+const surfaceStatuses = {
+  robots: observations.robots?.status === 0 ? 'unavailable' : 'completed',
+  llms: observations.llms?.status === 0 ? 'unavailable' : 'completed',
+  sitemap: surfaceStatus(observations.sitemaps),
+  sample: observations.sitemapUrlCount === 0
+    ? 'not_applicable'
+    : surfaceStatus(observations.sampledUrls),
+  matrix: surfaceStatus(observations.uaMatrix.flatMap((entry) => entry.rows)),
+  probe: surfaceStatus(observations.privateProbes, PROBE),
+  'source-map': PROBE
+    ? observations.sourceMap?.status === 0 || signals.some((signal) => signal.code === 'source-map-discovery-unknown')
+      ? 'unavailable'
+      : 'completed'
+    : 'not_applicable',
+};
+const ruleset = crawlRuleset();
+const coverage = crawlCoverage(signals, surfaceStatuses);
+const normalizedSubject = (value) => JSON.stringify(value || {}).replaceAll(ORIGIN, '{origin}');
+const current = signals.map((signal) => createFindingV2({
+  ruleset,
+  adapterId: CRAWL_ADAPTER.id,
+  rule: crawlRule(signal.code),
+  title: signal.message.split(/[.;]\s/)[0],
+  severity: signal.severity,
+  state: signal.state,
+  summary: signal.message,
+  evidence: {
+    subject: normalizedSubject(signal.detail?.subject || { code: signal.code, message: signal.message }),
+    origin: ORIGIN,
+    observation: signal.detail || {},
+  },
+  remediation: signal.state === 'unknown'
+    ? 'Restore the evidence source or required capability, then rerun the same scoped check.'
+    : signal.code.startsWith('robots-') || signal.code.startsWith('sitemap-') || signal.code.includes('crawler') || signal.code.includes('noindex')
+      ? 'Align the origin, robots, sitemap and edge policy with the intended public crawl boundary.'
+      : 'Remove the exposed surface or enforce the intended response at the origin or edge.',
+  retest: 'Run the same crawl scope and adapter revision again; do not infer success from an unavailable request.',
+}));
+
+const auditBoundary = {
+  version: 1,
+  surface: 'crawl',
+  originBinding: SCOPE_ID || ORIGIN,
+  activeProbe: PROBE,
+  maxUrls: MAX_URLS,
+  matrixUrls: MATRIX_URLS,
+};
+const subject = {
+  id: SUBJECT_ID || `project-${randomUUID().replaceAll('-', '').slice(0, 32)}`,
+  binding: SUBJECT_ID ? 'persisted' : 'ephemeral',
+  scopeDigest: digestValue(auditBoundary),
+  localPathIncluded: false,
+};
+let baseline = null;
+let v2Findings;
+try {
+  if (BASELINE_PATH) {
+    const loaded = readBaselineV2(BASELINE_PATH);
+    baseline = assertComparableBaseline(subject, loaded.report, loaded.rawBytes);
+    if (baseline.sourceDigest !== loaded.sourceDigest) throw new Error('baseline digest metadata is inconsistent');
+    v2Findings = compareFindingsV2(current, coverage, loaded.report, ruleset);
+  } else {
+    v2Findings = initializeFindingsV2(current, coverage);
+  }
+} catch (error) {
+  console.error(`error: ${error.message}`);
+  process.exit(2);
+}
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const v2Report = createReportV2({
+  version: readFileSync(join(ROOT, 'VERSION'), 'utf8').trim(),
+  generatedAt: observations.generatedAt,
+  mode: MODE,
+  subject,
+  ruleset,
+  scope: {
+    auditBoundary,
+    authorizationStatus: PROBE ? 'explicitly-acknowledged' : 'passive-only',
+    checkModes: PROBE ? ['network-passive', 'network-active'] : ['network-passive'],
+    networkAccessPerformed: true,
+  },
+  coverage,
+  findings: v2Findings,
+  baseline,
+  policy: policyForFailOn(FAIL_ON),
+  limitations: [
+    'HTTP observations do not prove application authorization, business logic, identity or data-layer security.',
+    'Crawler user-agent replay does not prove that a request originated from a vendor-owned crawler address.',
+    PROBE
+      ? 'Active probes were limited to the documented bounded path list.'
+      : 'Private paths and production source maps were not probed because active mode was disabled.',
+  ],
+});
+const md = renderMarkdownV2(v2Report);
 
 if (OUT_DIR) {
-  mkdirSync(OUT_DIR, { recursive: true });
-  const stamp = report.generatedAt.replace(/[:.]/g, '-');
+  mkdirSync(OUT_DIR, { recursive: true, mode: 0o700 });
+  const stamp = observations.generatedAt.replace(/[:.]/g, '-');
   const host = new URL(ORIGIN).hostname;
   const base = REPORT_NAME || `crawl-surface-${host}-${stamp}`;
-  writeFileSync(join(OUT_DIR, `${base}.json`), JSON.stringify(report, null, 2));
-  writeFileSync(join(OUT_DIR, `${base}.md`), md);
-  log(`wrote report to ${OUT_DIR}`);
+  try {
+    writeReportBundleV2(v2Report, OUT_DIR, base);
+    writeFileSync(join(OUT_DIR, `${base}.observations.json`), `${JSON.stringify(observations, null, 2)}\n`, {
+      mode: 0o600,
+      flag: 'wx',
+    });
+  } catch (error) {
+    console.error(`error: ${error.message}`);
+    process.exit(2);
+  }
+  log(`wrote report bundle and raw observations to ${OUT_DIR}`);
 }
 
 console.log(md);
-const fail = FAIL_ON === 'never' ? false
-  : FAIL_ON === 'high' ? Boolean(counts.high)
-    : FAIL_ON === 'medium' ? Boolean(counts.high || counts.medium)
-      : Boolean(counts.high || counts.medium || counts.low);
-const evidenceUnknown = findings.some((finding) => finding.state === 'unknown');
-process.exit(evidenceUnknown ? 3 : fail ? 1 : 0);
+process.exit(exitCodeV2(v2Report));

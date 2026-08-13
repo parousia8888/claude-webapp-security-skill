@@ -10,7 +10,7 @@
 
 项目地址：https://github.com/parousia8888/web-app-security-skill
 
-这个项目把 Web 安全加固拆成范围确认、证据分类、最小补丁和强制复测。自有本地 fixture 的生成式 demo 为 13 high / 6 medium，应用可审查补丁后沿同一路径复测为 0 high / 0 medium；报告、补丁和生成方式都可以检查。
+这个项目把 Web 安全加固拆成范围确认、证据分类、最小补丁和强制复测。自有本地 fixture 的生成式 demo 为 2 个 security HIGH、11 个 discoverability HIGH + 5 个 MEDIUM、1 个 reliability MEDIUM，应用可审查补丁后沿同一路径复测为 0 个 active HIGH / 0 个 active MEDIUM；报告、补丁和生成方式都可以检查。
 
 目前能力合同明确列出 5 个 stable 窄检测家族、2 个 planned 检测 adapter 和 6 项 agent-guided 方法；证据/报告与分发能力不计入检测覆盖。另有 3 个固定 commit 的普通开源项目旅程，保留零 finding、误报关闭和 unknown 结果，未探测线上实例。
 

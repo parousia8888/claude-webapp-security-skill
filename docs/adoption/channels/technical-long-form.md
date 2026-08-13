@@ -10,7 +10,7 @@ Building a reviewable web-security loop for AI coding agents
 
 I built [Web App Security Skill](https://github.com/parousia8888/web-app-security-skill) around one constraint: a security workflow should leave reviewable evidence instead of ending at a list of warnings. The workflow records scope, classifies evidence, proposes a minimal patch, and requires a retest before calling a finding fixed.
 
-The repository-owned demo deliberately starts with 13 high and 6 medium findings. It shows the patch and reruns the same path at 0 high and 0 medium, with 21 findings recorded as fixed. [The generated reports and patch are public](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md).
+The repository-owned demo deliberately starts with 2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM. It shows the patch and reruns the same path at 0 active HIGH / 0 active MEDIUM, with 21 findings recorded as fixed. [The generated reports and patch are public](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md).
 
 The current contract names 5 stable narrow detection families and keeps 4 evidence/reporting plus 1 lifecycle/distribution capabilities outside that detection count. Context-heavy API, identity, data and cloud review still depends on 6 agent-guided methods and human review. [The full category-by-maturity matrix links each claim to evidence](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md).
 

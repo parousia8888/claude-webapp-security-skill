@@ -5,9 +5,9 @@
 The fixture is local and intentionally misconfigured. The same audit path runs before and after
 the proposed hardening; no third-party host is contacted.
 
-| Input | Confirmed before | Reviewable change | Retest |
-|---|---|---|---|
-| Owned local fixture | 13 high, 6 medium | public crawl policy, sensitive artifact responses, unknown-route status | 0 high, 0 medium |
+| Input | Security HIGH | Discoverability HIGH / MEDIUM | Reliability MEDIUM | Reviewable change | Retest |
+|---|---:|---:|---:|---|---|
+| Owned local fixture | 2 | 11 / 5 | 1 | public crawl policy, sensitive artifact responses, unknown-route status | 0 active HIGH, 0 active MEDIUM |
 
 Representative confirmed evidence before the change:
 

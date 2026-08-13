@@ -2,7 +2,7 @@
 
 Scoped to a typical stack: Route53/DNS → CloudFront (or Cloudflare) → ALB or EC2 → app → managed DB, plus S3, IAM, secrets, logging.
 
-Run `scripts/aws-exposure-audit.sh` first — read-only `describe`/`list`/`get` calls that produce the inventory these checks refer to. Anything the script could not check due to missing IAM permissions must appear in the report as *unchecked*, never as *passed*. Nested inventory calls follow the same rule: a denied per-user MFA read cannot become "no MFA", and a denied trail-status read cannot become "not logging". The script exits `3` when no confirmed HIGH finding exists but one or more checks remain `UNCHECKED`; `1` remains reserved for confirmed HIGH findings.
+Run `scripts/aws-exposure-audit.sh` first. Its Bash layer issues read-only `describe`/`list`/`get` calls and parses AWS CLI JSON; the Node bridge owns v2 findings, coverage, renderers and exit policy. A missing CLI, denied operation or malformed response becomes explicit `unknown` evidence, never a pass or a fabricated control failure. Nested reads follow the same rule: a denied per-user MFA read cannot become "no MFA", and a denied trail-status read cannot become "not logging". Exit `1` requires a confirmed finding that crosses the recorded policy; otherwise incomplete evidence exits `3`. Raw AWS errors and resource identifiers are not written to the report bundle.
 
 Priority order below is by real-world blast radius, not by checklist convention.
 

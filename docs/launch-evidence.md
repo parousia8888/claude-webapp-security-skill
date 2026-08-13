@@ -11,7 +11,7 @@ artifacts and reproduced local behavior; they do not claim universal scanner cov
 |---|---|---|
 | Detection contract | 5 stable narrow detection families; 2 planned detection adapters | [Generated matrix](capabilities.md) |
 | Supporting contract | 4 evidence/reporting, 1 lifecycle/distribution and 6 agent-guided capabilities; none are counted as detection coverage | [Generated matrix](capabilities.md) |
-| Local before/after demo | 13 high / 6 medium -> 0 high / 0 medium | [Generated demo evidence](demo-evidence.md) |
+| Local before/after demo | 2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM -> 0 active HIGH / 0 active MEDIUM | [Generated demo evidence](demo-evidence.md) |
 | Ordinary project journeys | 3 fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |
 | Source methodology studies | 5 fixed-commit studies, kept separate from CLI precision claims | [Study method](case-studies/README.md) |
 | Release | v0.3.0 signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance | [v0.3.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0) |

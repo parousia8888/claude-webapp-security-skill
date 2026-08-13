@@ -1,4 +1,4 @@
-import { digestValue } from './project-identity.mjs';
+import { createRulesetV2 } from './ruleset-v2.mjs';
 
 export const BUILTIN_SOURCE_ADAPTER = {
   id: 'builtin-source',
@@ -14,24 +14,8 @@ export const SOURCE_RULES = [
   { id: 'source-stack-unsupported', revision: '1', domain: 'evidence_integrity' },
 ];
 
-export function adapterRulesetDigest(adapter, rules) {
-  return digestValue({
-    adapter: { id: adapter.id, version: adapter.version },
-    rules: [...rules].map(({ id, revision }) => ({ id, revision }))
-      .sort((left, right) => left.id.localeCompare(right.id)),
-  });
-}
-
 export function sourceRuleset() {
-  const adapter = {
-    ...BUILTIN_SOURCE_ADAPTER,
-    rulesetDigest: adapterRulesetDigest(BUILTIN_SOURCE_ADAPTER, SOURCE_RULES),
-  };
-  return {
-    digest: digestValue({ fingerprintVersion: 2, adapters: [adapter] }),
-    fingerprintVersion: 2,
-    adapters: [adapter],
-  };
+  return createRulesetV2([{ ...BUILTIN_SOURCE_ADAPTER, rules: SOURCE_RULES }]);
 }
 
 export function sourceRule(ruleId) {

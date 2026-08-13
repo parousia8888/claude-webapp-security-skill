@@ -7,8 +7,9 @@ import {
   V2_BASELINE_STATES, V2_DOMAINS, V2_RESULT_STATES,
 } from './report-v2-contract.mjs';
 import {
-  adapterRulesetDigest, BUILTIN_SOURCE_ADAPTER, sourceRule, sourceRuleset,
+  BUILTIN_SOURCE_ADAPTER, sourceRule, sourceRuleset,
 } from './source-rules.mjs';
+import { adapterRulesetDigest } from './ruleset-v2.mjs';
 
 export const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'];
 const severityRank = new Map(SEVERITIES.map((severity, index) => [severity, index]));
@@ -49,38 +50,57 @@ function findingFingerprint({ rule, location, evidence }) {
   });
 }
 
-function emptyBaseline(state = 'new') {
+function emptyBaseline(state = 'new', coverage = null) {
   return {
     state,
     priorFingerprint: null,
     compatibility: state === 'new' ? 'not_attempted' : 'compatible',
-    currentCheck: 'completed',
-    coverageRef: null,
+    currentCheck: coverage?.status === 'completed' ? 'completed' : coverage ? 'incomplete' : 'not_run',
+    coverageRef: coverage?.id || null,
     reasonCode: state === 'new' ? 'no_comparable_prior_finding' : null,
   };
 }
 
-export function sourceFindingV2(legacyFinding, ruleset = sourceRuleset()) {
-  const rule = sourceRule(legacyFinding.ruleId);
-  const adapter = ruleset.adapters.find((item) => item.id === BUILTIN_SOURCE_ADAPTER.id);
+export function createFindingV2({
+  ruleset, adapterId, rule, title, severity, state, summary, location = null,
+  evidence = {}, remediation, retest,
+}) {
+  const adapter = ruleset.adapters.find((item) => item.id === adapterId);
+  if (!adapter) throw new Error(`finding references unregistered adapter: ${adapterId}`);
   const core = {
     schemaVersion: 2,
     fingerprintVersion: 2,
     rule: { id: rule.id, revision: rule.revision },
     adapter: { id: adapter.id, version: adapter.version, rulesetDigest: adapter.rulesetDigest },
     domain: rule.domain,
+    title,
+    severity,
+    state,
+    summary,
+    location,
+    evidence: stableValue(evidence),
+    remediation,
+    retest,
+    baseline: emptyBaseline(),
+  };
+  const fingerprint = findingFingerprint(core);
+  return { ...core, id: `${rule.id}-${fingerprint.slice(0, 12)}`, fingerprint };
+}
+
+export function sourceFindingV2(legacyFinding, ruleset = sourceRuleset()) {
+  return createFindingV2({
+    ruleset,
+    adapterId: BUILTIN_SOURCE_ADAPTER.id,
+    rule: sourceRule(legacyFinding.ruleId),
     title: legacyFinding.title,
     severity: legacyFinding.severity,
     state: legacyFinding.state,
     summary: legacyFinding.summary,
     location: legacyFinding.location || null,
-    evidence: stableValue(legacyFinding.evidence || {}),
+    evidence: legacyFinding.evidence || {},
     remediation: legacyFinding.remediation,
     retest: legacyFinding.retest,
-    baseline: emptyBaseline(),
-  };
-  const fingerprint = findingFingerprint(core);
-  return { ...core, id: `${rule.id}-${fingerprint.slice(0, 12)}`, fingerprint };
+  });
 }
 
 function clone(value) {
@@ -134,9 +154,8 @@ function baselineFor(state, previous, coverage, reasonCode) {
   };
 }
 
-export function compareFindingsV2(currentFindings, currentCoverage, baselineReport) {
+export function compareFindingsV2(currentFindings, currentCoverage, baselineReport, currentRuleset) {
   const coverage = coverageMap(currentCoverage);
-  const currentRuleset = sourceRuleset();
   const previousByFingerprint = new Map(baselineReport.findings.map((finding) => [finding.fingerprint, finding]));
   const previousCoverage = coverageMap(baselineReport.coverage);
   const currentFingerprints = new Set(currentFindings.map((finding) => finding.fingerprint));
@@ -179,7 +198,7 @@ export function compareFindingsV2(currentFindings, currentCoverage, baselineRepo
     } else if (!completed(check)) {
       retained.baseline = baselineFor('unretested', previous, check, 'current_check_incomplete');
     } else {
-      const adapter = sourceRuleset().adapters.find((item) => item.id === check.adapterId);
+      const adapter = currentRuleset.adapters.find((item) => item.id === check.adapterId);
       if (adapter) retained.adapter = {
         id: adapter.id, version: adapter.version, rulesetDigest: adapter.rulesetDigest,
       };
@@ -194,10 +213,10 @@ export function initializeFindingsV2(currentFindings, currentCoverage) {
   const coverage = coverageMap(currentCoverage);
   return currentFindings.map((finding) => {
     const check = coverage.get(finding.rule.id);
-    if (!completed(check) || check.ruleRevision !== finding.rule.revision) {
-      throw new Error(`cannot initialize finding without completed compatible coverage: ${finding.rule.id}`);
+    if (!check || check.ruleRevision !== finding.rule.revision) {
+      throw new Error(`cannot initialize finding without compatible coverage: ${finding.rule.id}`);
     }
-    return { ...clone(finding), baseline: baselineFor('new', null, check) };
+    return { ...clone(finding), baseline: emptyBaseline('new', check) };
   });
 }
 
@@ -273,12 +292,18 @@ export function validateRuntimeReportV2(report) {
   if (report?.tool?.name !== 'Web App Security Skill' || typeof report?.tool?.version !== 'string') errors.push('report.tool is invalid');
   if (Number.isNaN(Date.parse(report?.generatedAt))) errors.push('report.generatedAt is invalid');
   if (!Array.isArray(report?.limitations)) errors.push('report.limitations must be an array');
+  const adapterIds = new Set();
+  for (const adapter of report?.ruleset?.adapters || []) {
+    if (adapterIds.has(adapter.id)) errors.push(`duplicate ruleset adapter ${adapter.id}`);
+    adapterIds.add(adapter.id);
+  }
   const coverageKeys = new Set();
   for (const entry of report?.coverage || []) {
     if (!entry.ruleId || !entry.ruleRevision) errors.push('coverage requires rule identity');
     const key = `${entry.adapterId}:${entry.ruleId}`;
     if (coverageKeys.has(key)) errors.push(`duplicate coverage rule ${key}`);
     coverageKeys.add(key);
+    if (!adapterIds.has(entry.adapterId)) errors.push(`coverage references absent adapter ${entry.adapterId}`);
   }
   if (report?.ruleset?.adapters && report?.coverage) {
     const expected = expectedRuleset(report);
@@ -327,6 +352,8 @@ export function renderMarkdownV2(report) {
     `- Generated: ${report.generatedAt}`,
     `- Findings: ${report.summary.total}`,
     `- Evidence states: ${V2_RESULT_STATES.map((state) => `${state}=${report.summary.byState[state]}`).join(', ')}`,
+    '', '## Coverage', '',
+    ...report.coverage.map((entry) => `- \`${entry.adapterId}/${entry.ruleId}@${entry.ruleRevision}\`: ${entry.status}`),
     '', '## Findings', '',
   ];
   if (!report.findings.length) lines.push('No findings were produced by the checks that ran.', '');
@@ -352,7 +379,8 @@ export function renderHtmlV2(report) {
 <p>${escapeHtml(finding.summary)}</p>
 <dl><dt>ID</dt><dd><code>${escapeHtml(finding.id)}</code></dd><dt>Location</dt><dd><code>${escapeHtml(finding.location ? `${finding.location.path}${finding.location.line ? `:${finding.location.line}` : ''}` : 'project-wide')}</code></dd><dt>Evidence</dt><dd><code>${escapeHtml(JSON.stringify(finding.evidence))}</code></dd><dt>Remediation</dt><dd>${escapeHtml(finding.remediation)}</dd><dt>Retest</dt><dd>${escapeHtml(finding.retest)}</dd></dl>
 </article>`).join('\n');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:8px}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><p>Subject: <code>${escapeHtml(report.subject.id)}</code></p>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
+  const coverage = report.coverage.map((entry) => `<li><code>${escapeHtml(`${entry.adapterId}/${entry.ruleId}@${entry.ruleRevision}`)}</code>: ${escapeHtml(entry.status)}</li>`).join('');
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:8px}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><p>Subject: <code>${escapeHtml(report.subject.id)}</code></p><h2>Coverage</h2><ul>${coverage}</ul><h2>Findings</h2>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
 }
 
 export function renderSarifV2(report) {
@@ -387,9 +415,10 @@ export function renderJunitV2(report) {
   const skipped = report.findings.length - failures;
   const cases = report.findings.map((finding) => {
     const attrs = `classname="web-app-security.${escapeXml(finding.rule.id)}" name="${escapeXml(finding.id)}"`;
-    if (finding.baseline.state === 'fixed') return `<testcase ${attrs}><skipped message="fixed in retest"/></testcase>`;
-    if (finding.state !== 'confirmed') return `<testcase ${attrs}><skipped message="${escapeXml(finding.state)}"/></testcase>`;
-    return `<testcase ${attrs}><failure message="${escapeXml(`${finding.severity}: ${finding.title}`)}">${escapeXml(finding.summary)}</failure></testcase>`;
+    const properties = `<properties><property name="domain" value="${escapeXml(finding.domain)}"/><property name="evidenceState" value="${escapeXml(finding.state)}"/><property name="baselineState" value="${escapeXml(finding.baseline.state)}"/></properties>`;
+    if (finding.baseline.state === 'fixed') return `<testcase ${attrs}>${properties}<skipped message="fixed in retest"/></testcase>`;
+    if (finding.state !== 'confirmed') return `<testcase ${attrs}>${properties}<skipped message="${escapeXml(finding.state)}"/></testcase>`;
+    return `<testcase ${attrs}>${properties}<failure message="${escapeXml(`${finding.severity}: ${finding.title}`)}">${escapeXml(finding.summary)}</failure></testcase>`;
   }).join('');
   return `<?xml version="1.0" encoding="UTF-8"?><testsuite name="Web App Security Skill" tests="${report.findings.length}" failures="${failures}" skipped="${skipped}">${cases}</testsuite>\n`;
 }
@@ -446,6 +475,18 @@ export function failsThresholdV2(report) {
     if (failOn === 'never' || finding.state !== 'confirmed' || finding.baseline.state === 'fixed') return false;
     return severityRank.get(finding.severity) <= severityRank.get(failOn);
   });
+}
+
+export function hasIncompleteEvidenceV2(report) {
+  return report.findings.some((finding) => finding.state === 'unknown'
+      && finding.baseline.state !== 'fixed')
+    || report.coverage.some((entry) => ['partial', 'unavailable'].includes(entry.status));
+}
+
+export function exitCodeV2(report) {
+  if (failsThresholdV2(report)) return 1;
+  if (hasIncompleteEvidenceV2(report)) return 3;
+  return 0;
 }
 
 export function reportDigest(report) {

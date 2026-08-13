@@ -163,6 +163,7 @@ webapp-security rebind /path/to/moved-project \
 | `webapp-security: command not found` | 把 `~/.local/bin` 加入 `PATH`，或运行 checkout 中的 `node scripts/webapp-security.mjs` |
 | 退出码 `1` | Finding 达到 `--fail-on` 阈值；证据仍会写出 |
 | 退出码 `2` | 用法、范围、授权或证据准备失败；不能当作通过 |
+| 退出码 `3` | 必需证据为 unknown、partial 或 unavailable，且没有优先级更高的已确认阈值 finding |
 | `refusing to overwrite existing evidence` | 使用新的 `--out` 或报告名，并保留原 baseline |
 | Stack 不支持或有歧义 | 保留 `unknown`，转入 agent-guided 方法 |
 | 远程检查被阻止 | 仅对自有目标补充已记录授权和显式确认 |

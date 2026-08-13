@@ -1,10 +1,9 @@
 #!/usr/bin/env node
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { once } from 'node:events';
-import { applyBaseline, createFinding, createReport, writeReportBundle } from './lib/evidence.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const outIndex = process.argv.indexOf('--out');
@@ -27,7 +26,11 @@ async function audit(mode) {
     '--out', out, '--report-name', mode, '--active-probe', '--max-urls', '1',
     '--acknowledge-authorization',
     '--matrix', '1', '--delay', '0', '--timeout', '3000', '--fail-on', 'never', '--quiet',
+    '--subject-id', 'project-00000000000000000000000000000001',
+    '--scope-id', 'owned-insecure-demo-crawl-v1',
+    '--mode', mode === 'before' ? 'demo-before' : 'demo-after',
   ];
+  if (mode === 'after') args.push('--baseline', join(out, 'before.json'));
   const child = spawn(process.execPath, args, { stdio: ['ignore', 'ignore', 'inherit'] });
   const [code] = await once(child, 'exit');
   app.child.kill('SIGTERM');
@@ -53,43 +56,18 @@ writeFileSync(join(out, 'hardening.patch'), `--- insecure-demo/before.conf
 -GET /missing -> 200 (SPA shell)
 +GET /missing -> 404
 `);
-const before = JSON.parse(await (await import('node:fs/promises')).readFile(join(out, 'before.json'), 'utf8'));
-const after = JSON.parse(await (await import('node:fs/promises')).readFile(join(out, 'after.json'), 'utf8'));
-const count = (report, severity) => report.findings.filter((finding) => finding.severity === severity).length;
-const now = process.env.SOURCE_DATE_EPOCH
-  ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000).toISOString()
-  : new Date().toISOString();
-const version = (await (await import('node:fs/promises')).readFile(join(ROOT, 'VERSION'), 'utf8')).trim();
-const normalized = (raw) => raw.findings.map((finding) => createFinding({
-  ruleId: `crawl.${finding.code}`,
-  title: finding.message.split(/[.;]\s/)[0],
-  severity: finding.severity,
-  state: 'confirmed',
-  discriminator: JSON.stringify({ message: finding.message, detail: finding.detail || null }),
-  summary: finding.message,
-  evidence: { subject: raw.site, ...(finding.detail ? { detail: finding.detail } : {}) },
-  remediation: 'Review the generated crawl report and enforce the intended boundary at the server or edge.',
-  retest: 'Run the same owned local fixture through the crawl audit again.',
-}));
-const scope = { projectRoot: 'examples/insecure-demo', authorizationStatus: 'owned-local-fixture', checkModes: ['local'], networkAccessPerformed: false };
-const beforeEvidence = createReport({
-  version, generatedAt: now, mode: 'demo-before', scope,
-  findings: normalized(before).map((finding) => ({ ...finding, baselineState: 'new' })),
-  limitations: ['Intentional local crawl-boundary fixture only; no third-party target or authenticated application flow was tested.'],
-});
-const afterEvidence = createReport({
-  version, generatedAt: now, mode: 'demo-after', scope,
-  findings: applyBaseline(normalized(after), beforeEvidence),
-  baseline: { path: 'evidence-before.json', generatedAt: beforeEvidence.generatedAt },
-  limitations: ['Intentional local crawl-boundary fixture only; no third-party target or authenticated application flow was tested.'],
-});
-writeReportBundle(beforeEvidence, out, 'evidence-before');
-writeReportBundle(afterEvidence, out, 'evidence-after');
-const summary = `# Demo result\n\n| Stage | High | Medium | Evidence |\n|---|---:|---:|---|\n| Before | ${count(before, 'high')} | ${count(before, 'medium')} | \`before.json\`, \`before.md\` |\n| Proposed hardening | - | - | \`hardening.patch\` |\n| Retest | ${count(after, 'high')} | ${count(after, 'medium')} | \`after.json\`, \`after.md\` |\n\nThe patch is evidence for review. A fix is counted only from the retest output.\n`;
+const before = JSON.parse(readFileSync(join(out, 'before.json'), 'utf8'));
+const after = JSON.parse(readFileSync(join(out, 'after.json'), 'utf8'));
+const count = (report, severity) => report.findings
+  .filter((finding) => finding.severity === severity && finding.baseline.state !== 'fixed').length;
+const domainCount = (report, domain, severity) => report.findings
+  .filter((finding) => finding.domain === domain && finding.severity === severity
+    && finding.baseline.state !== 'fixed').length;
+const summary = `# Demo result\n\n| Stage | Security HIGH | Discoverability HIGH | Discoverability MEDIUM | Reliability MEDIUM | Evidence |\n|---|---:|---:|---:|---:|---|\n| Before | ${domainCount(before, 'security_exposure', 'high')} | ${domainCount(before, 'search_discoverability', 'high')} | ${domainCount(before, 'search_discoverability', 'medium')} | ${domainCount(before, 'reliability', 'medium')} | \`before.json\`, \`before.md\` |\n| Proposed hardening | - | - | - | - | \`hardening.patch\` |\n| Retest | ${domainCount(after, 'security_exposure', 'high')} | ${domainCount(after, 'search_discoverability', 'high')} | ${domainCount(after, 'search_discoverability', 'medium')} | ${domainCount(after, 'reliability', 'medium')} | \`after.json\`, \`after.md\` |\n\nThe patch is evidence for review. A fix is counted only from the compatible v2 retest output.\n`;
 writeFileSync(join(out, 'summary.md'), summary);
 console.log(`Demo complete in ${out}
-before: ${count(before, 'high')} high, ${count(before, 'medium')} medium
-after:  ${count(after, 'high')} high, ${count(after, 'medium')} medium
+before: ${domainCount(before, 'security_exposure', 'high')} security HIGH; ${domainCount(before, 'search_discoverability', 'high')} discoverability HIGH + ${domainCount(before, 'search_discoverability', 'medium')} MEDIUM; ${domainCount(before, 'reliability', 'medium')} reliability MEDIUM
+after:  ${count(after, 'high')} active HIGH, ${count(after, 'medium')} active MEDIUM
 
 Reports:
   ${join(out, 'summary.md')}

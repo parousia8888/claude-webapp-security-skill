@@ -15,7 +15,12 @@ const HEIGHT = 472;
 const temp = mkdtempSync(join(tmpdir(), 'web-app-security-demo-gif-'));
 
 function count(report, severity) {
-  return report.findings.filter((finding) => finding.severity === severity).length;
+  return report.findings.filter((finding) => finding.severity === severity && finding.baseline.state !== 'fixed').length;
+}
+
+function domainCount(report, domain, severity) {
+  return report.findings.filter((finding) => finding.domain === domain
+    && finding.severity === severity && finding.baseline.state !== 'fixed').length;
 }
 
 function frame(title, subtitle, lines, { accent = 5, delay = 180 } = {}) {
@@ -49,9 +54,9 @@ try {
   if (demo.status !== 0) throw new Error(demo.stderr || demo.stdout || 'demo failed');
   const before = JSON.parse(readFileSync(join(temp, 'before.json'), 'utf8'));
   const after = JSON.parse(readFileSync(join(temp, 'after.json'), 'utf8'));
-  const evidenceAfter = JSON.parse(readFileSync(join(temp, 'evidence-after.json'), 'utf8'));
+  const evidenceAfter = after;
   const patch = readFileSync(join(temp, 'hardening.patch'), 'utf8');
-  const codes = new Set(before.findings.map((finding) => finding.code));
+  const codes = new Set(before.findings.map((finding) => finding.rule.id));
   for (const required of [
     'robots-blocks-search-crawler', 'sensitive-file-exposed', 'source-map-exposed', 'soft-404-catchall',
   ]) {
@@ -62,6 +67,14 @@ try {
   const beforeMedium = count(before, 'medium');
   const afterHigh = count(after, 'high');
   const afterMedium = count(after, 'medium');
+  const beforeByDomain = {
+    security_exposure: { high: domainCount(before, 'security_exposure', 'high') },
+    search_discoverability: {
+      high: domainCount(before, 'search_discoverability', 'high'),
+      medium: domainCount(before, 'search_discoverability', 'medium'),
+    },
+    reliability: { medium: domainCount(before, 'reliability', 'medium') },
+  };
   const fixed = evidenceAfter.summary.byBaseline.fixed;
   const patchLines = [
     normalizedPatchLine(patch, /^\+Allow: \/$/),
@@ -74,11 +87,11 @@ try {
       { text: 'AUDIT -> REVIEWABLE PATCH -> RETEST', color: 5 },
       { text: 'REPORTS ARE GENERATED, NOT TYPED BY HAND', color: 6 },
     ], { accent: 5, delay: 150 }),
-    frame('AUDIT / BEFORE', `${beforeHigh} HIGH / ${beforeMedium} MEDIUM`, [
-      { text: '[HIGH] ROBOTS BLOCK SEARCH CRAWLERS', color: 2 },
-      { text: '[HIGH] /.ENV RETURNS 200', color: 2 },
-      { text: '[MED] APP.JS.MAP IS PUBLIC', color: 4 },
-      { text: '[MED] UNKNOWN ROUTE RETURNS 200', color: 4 },
+    frame('AUDIT / BEFORE', `${beforeByDomain.security_exposure.high} SECURITY HIGH`, [
+      { text: `${beforeByDomain.search_discoverability.high} DISCOVERABILITY HIGH`, color: 2 },
+      { text: `${beforeByDomain.search_discoverability.medium} DISCOVERABILITY MEDIUM`, color: 4 },
+      { text: `${beforeByDomain.reliability.medium} RELIABILITY MEDIUM`, color: 4 },
+      { text: 'SEVERITY IS NEVER COMBINED ACROSS DOMAINS', color: 6 },
     ], { accent: 2, delay: 220 }),
     frame('PATCH / REVIEW FIRST', 'MINIMUM FIXTURE HARDENING', [
       { text: patchLines[0], color: 3 },
@@ -100,16 +113,20 @@ try {
   const gif = encodeGif({ width: WIDTH, height: HEIGHT, frames });
   const digest = createHash('sha256').update(gif).digest('hex');
   const metadata = `${JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: 2,
     generator: 'scripts/generate-demo-gif.mjs',
-    sources: ['scripts/demo.mjs', 'before.json', 'hardening.patch', 'after.json', 'evidence-after.json'],
+    sources: ['scripts/demo.mjs', 'before.json', 'hardening.patch', 'after.json'],
     width: WIDTH,
     height: HEIGHT,
     frames: frames.length,
     durationMilliseconds: frames.reduce((sum, item) => sum + item.delay * 10, 0),
     bytes: gif.length,
     sha256: digest,
-    result: { before: { high: beforeHigh, medium: beforeMedium }, after: { high: afterHigh, medium: afterMedium }, fixed },
+    result: {
+      before: { active: { high: beforeHigh, medium: beforeMedium }, byDomain: beforeByDomain },
+      after: { active: { high: afterHigh, medium: afterMedium } },
+      fixed,
+    },
     boundary: 'owned-local-fixture-no-third-party-target',
   }, null, 2)}\n`;
 

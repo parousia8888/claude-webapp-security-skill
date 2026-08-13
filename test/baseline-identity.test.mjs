@@ -130,24 +130,24 @@ try {
     'production-source-map-enabled': { status: 'unavailable', reasonCode: 'adapter_unavailable' },
   });
   let compared = compareFindingsV2(
-    current.filter((finding) => finding.rule.id !== 'production-source-map-enabled'), unavailable, baseReport,
+    current.filter((finding) => finding.rule.id !== 'production-source-map-enabled'), unavailable, baseReport, ruleset,
   );
   assert.equal(compared.find((finding) => finding.rule.id === 'production-source-map-enabled').baseline.state, 'unretested');
 
   const removed = completed.filter((entry) => entry.ruleId !== 'production-source-map-enabled');
-  compared = compareFindingsV2(current.filter((finding) => finding.rule.id !== 'production-source-map-enabled'), removed, baseReport);
+  compared = compareFindingsV2(current.filter((finding) => finding.rule.id !== 'production-source-map-enabled'), removed, baseReport, ruleset);
   assert.equal(compared.find((finding) => finding.rule.id === 'production-source-map-enabled').baseline.reasonCode, 'rule_not_run');
 
   const revised = completed.map((entry) => entry.ruleId === 'production-source-map-enabled'
     ? { ...entry, ruleRevision: '2' } : entry);
-  compared = compareFindingsV2(current.filter((finding) => finding.rule.id !== 'production-source-map-enabled'), revised, baseReport);
+  compared = compareFindingsV2(current.filter((finding) => finding.rule.id !== 'production-source-map-enabled'), revised, baseReport, ruleset);
   assert.equal(compared.find((finding) => finding.rule.id === 'production-source-map-enabled').baseline.state, 'not_comparable');
   assert.equal(compared.find((finding) => finding.rule.id === 'production-source-map-enabled').baseline.reasonCode, 'rule_revision_changed');
   assert.equal(ruleset.fingerprintVersion, 2);
 
   const adapterChanged = structuredClone(baseReport);
   adapterChanged.ruleset.adapters[0].version = '0.9.0';
-  compared = compareFindingsV2(current, completed, adapterChanged);
+  compared = compareFindingsV2(current, completed, adapterChanged, ruleset);
   assert.ok(compared.every((finding) => finding.baseline.state === 'not_comparable'));
   assert.ok(compared.every((finding) => finding.baseline.reasonCode === 'adapter_version_changed'));
 
@@ -161,7 +161,7 @@ try {
     counts: { discovered: 1, eligible: 1, scanned: 1, excluded: 0, skipped: 0, truncated: 0, errors: 0 },
     reasons: [],
   }];
-  compared = compareFindingsV2([...current, added], addedCoverage, baseReport);
+  compared = compareFindingsV2([...current, added], addedCoverage, baseReport, ruleset);
   assert.equal(compared.find((finding) => finding.rule.id === 'new-compatible-rule').baseline.state, 'new');
 
   const legacy = {

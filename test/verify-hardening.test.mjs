@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import http from 'node:http';
 import https from 'node:https';
+import { readFileSync, statSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -65,7 +66,11 @@ redirect.listen(0, '127.0.0.1');
 await once(redirect, 'listening');
 const httpSite = `http://localhost:${redirect.address().port}`;
 
-const passive = await command('/bin/bash', [SCRIPT, '--site', secureSite, '--http-site', httpSite, '--n', '1'], {
+const reportDir = join(temp, 'edge-report');
+const passive = await command('/bin/bash', [
+  SCRIPT, '--site', secureSite, '--http-site', httpSite, '--n', '1',
+  '--out', reportDir, '--report-name', 'edge-fixture',
+], {
   env: { ...process.env, CURL_CA_BUNDLE: cert },
 });
 check('passive hardening verification succeeds', passive.code === 0, passive.stdout + passive.stderr);
@@ -73,6 +78,14 @@ check('passive mode skips burst', /skipped; pass --active-rate-limit/.test(passi
 check('TLS 1.2 is tested', /TLS 1\.2 handshake succeeds/.test(passive.stdout));
 check('TLS 1.0 is rejected', /TLS 1\.0 handshake rejected/.test(passive.stdout));
 check('certificate chain is validated', /certificate chain and hostname validate/.test(passive.stdout));
+const report = JSON.parse(readFileSync(join(reportDir, 'edge-fixture.json'), 'utf8'));
+const observations = JSON.parse(readFileSync(join(reportDir, 'edge-fixture.observations.json'), 'utf8'));
+check('edge output uses report v2', report.schemaVersion === 2 && report.ruleset.adapters[0]?.id === 'builtin-edge');
+check('edge conclusions keep raw observations separate', observations.schemaVersion === 1 && Array.isArray(observations.observations));
+check('edge report directory is private', (statSync(reportDir).mode & 0o777) === 0o700);
+for (const name of ['edge-fixture.json', 'edge-fixture.md', 'edge-fixture.html', 'edge-fixture.sarif', 'edge-fixture.junit.xml', 'edge-fixture.sha256', 'edge-fixture.observations.json']) {
+  check(`${name} is private`, (statSync(join(reportDir, name)).mode & 0o777) === 0o600);
+}
 
 const active = await command('/bin/bash', [
   SCRIPT, '--site', secureSite, '--http-site', httpSite, '--active-rate-limit', '--acknowledge-authorization', '--n', '1',
@@ -90,12 +103,18 @@ const noAck = await command('/bin/bash', [SCRIPT, '--site', secureSite, '--activ
 check('active rate-limit requires authorization acknowledgement', noAck.code === 2 && /requires --acknowledge-authorization/.test(noAck.stderr));
 
 const unreachable = await command('/bin/bash', [SCRIPT, '--site', 'http://127.0.0.1:1', '--active-rate-limit', '--acknowledge-authorization', '--n', '1']);
-check('network failure cannot pass', unreachable.code !== 0, unreachable.stdout + unreachable.stderr);
+check('network failure exits 3', unreachable.code === 3, unreachable.stdout + unreachable.stderr);
 check('network failure is not called crawler-safe', !/content class remained available/.test(unreachable.stdout));
+
+const missingCurl = await command('/bin/bash', [SCRIPT, '--site', secureSite], {
+  env: { ...process.env, WEBAPP_SECURITY_CURL_BIN: 'webapp-security-missing-curl' },
+});
+check('missing curl exits 3', missingCurl.code === 3, missingCurl.stdout + missingCurl.stderr);
+check('missing curl is explicit unknown evidence', /edge-curl-capability.*unavailable/.test(missingCurl.stdout));
 
 secure.close();
 redirect.close();
 await rm(temp, { recursive: true, force: true });
 
 if (failed) process.exit(1);
-console.log('ok verify-hardening: passive/active, TLS, redirect, certificate, network failure, and CLI bounds');
+console.log('ok verify-hardening: v2 bundle, passive/active, TLS, redirect, certificate, network failure, and CLI bounds');

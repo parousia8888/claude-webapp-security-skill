@@ -11,7 +11,7 @@
 | Codex | Skill directory under `~/.codex/skills/` | `agents/openai.yaml`, Skill validator and isolated lifecycle tests |
 | Ordinary CLI | `~/.local/share/web-app-security` plus `~/.local/bin/webapp-security` | Extracted-release lifecycle under a network-denied isolated home |
 | GitHub Actions | Linux runner; composite Action | Local entrypoint test plus manually dispatched real `@v1` consumer workflow |
-| AWS CLI | v2 recommended | Optional; permission failures are `UNCHECKED` |
+| AWS CLI | v2 recommended | Optional; missing CLI, permission failures and malformed JSON are v2 `unknown` evidence |
 | Windows | WSL2 only | Native PowerShell is not currently supported |
 
 Project discovery currently identifies Node projects from `package.json`, common JavaScript

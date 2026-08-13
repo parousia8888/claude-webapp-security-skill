@@ -10,7 +10,12 @@ const OUTPUT = join(ROOT, 'docs', 'demo-evidence.md');
 const temp = mkdtempSync(join(tmpdir(), 'web-app-security-demo-'));
 
 function count(report, severity) {
-  return report.findings.filter((finding) => finding.severity === severity).length;
+  return report.findings.filter((finding) => finding.severity === severity && finding.baseline.state !== 'fixed').length;
+}
+
+function domainCount(report, domain, severity) {
+  return report.findings.filter((finding) => finding.domain === domain
+    && finding.severity === severity && finding.baseline.state !== 'fixed').length;
 }
 
 try {
@@ -25,7 +30,7 @@ try {
 
   const before = JSON.parse(readFileSync(join(temp, 'before.json'), 'utf8'));
   const after = JSON.parse(readFileSync(join(temp, 'after.json'), 'utf8'));
-  const ids = new Set(before.findings.map((finding) => finding.code));
+  const ids = new Set(before.findings.map((finding) => finding.rule.id));
   const required = [
     'robots-blocks-search-crawler',
     'sensitive-file-exposed',
@@ -43,9 +48,9 @@ try {
 The fixture is local and intentionally misconfigured. The same audit path runs before and after
 the proposed hardening; no third-party host is contacted.
 
-| Input | Confirmed before | Reviewable change | Retest |
-|---|---|---|---|
-| Owned local fixture | ${count(before, 'high')} high, ${count(before, 'medium')} medium | public crawl policy, sensitive artifact responses, unknown-route status | ${count(after, 'high')} high, ${count(after, 'medium')} medium |
+| Input | Security HIGH | Discoverability HIGH / MEDIUM | Reliability MEDIUM | Reviewable change | Retest |
+|---|---:|---:|---:|---|---|
+| Owned local fixture | ${domainCount(before, 'security_exposure', 'high')} | ${domainCount(before, 'search_discoverability', 'high')} / ${domainCount(before, 'search_discoverability', 'medium')} | ${domainCount(before, 'reliability', 'medium')} | public crawl policy, sensitive artifact responses, unknown-route status | ${count(after, 'high')} active HIGH, ${count(after, 'medium')} active MEDIUM |
 
 Representative confirmed evidence before the change:
 

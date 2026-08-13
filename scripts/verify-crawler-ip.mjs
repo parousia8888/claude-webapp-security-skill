@@ -21,6 +21,17 @@ import { promises as dns } from 'node:dns';
 import { isIP } from 'node:net';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import {
+  createFindingV2, createReportV2, exitCodeV2, initializeFindingsV2, policyForFailOn,
+  renderMarkdownV2, writeReportBundleV2,
+} from './lib/evidence-v2.mjs';
+import {
+  CRAWLER_IDENTITY_ADAPTER, crawlerIdentityCoverage, crawlerIdentityRule,
+  crawlerIdentityRuleset,
+} from './lib/crawler-identity-rules.mjs';
+import { digestValue } from './lib/project-identity.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (n, d = null) => { const i = argv.indexOf(`--${n}`); return i === -1 ? d : argv[i + 1]; };
@@ -29,12 +40,22 @@ const all = (n) => argv.reduce((acc, v, i) => (v === `--${n}` ? [...acc, argv[i 
 
 const USE_RANGES = flag('ranges');
 const OUT_DIR = arg('out');
+const REPORT_NAME = arg('report-name');
 const QUIET = flag('quiet');
+const FAIL_ON = arg('fail-on', 'high');
 const MAX_RANGE_AGE_DAYS = Number(arg('max-range-age-days', 30));
 const log = (...m) => { if (!QUIET) console.error('·', ...m); };
 
 if (!Number.isInteger(MAX_RANGE_AGE_DAYS) || MAX_RANGE_AGE_DAYS < 1 || MAX_RANGE_AGE_DAYS > 3650) {
   console.error('error: --max-range-age-days must be an integer from 1 to 3650');
+  process.exit(2);
+}
+if (!['critical', 'high', 'medium', 'low', 'never'].includes(FAIL_ON)) {
+  console.error('error: --fail-on must be critical, high, medium, low, or never');
+  process.exit(2);
+}
+if (REPORT_NAME && !/^[a-zA-Z0-9._-]+$/.test(REPORT_NAME)) {
+  console.error('error: --report-name contains unsupported characters');
   process.exit(2);
 }
 
@@ -398,29 +419,118 @@ if (fileArg) {
 
 const results = [];
 for (const t of targets) results.push(await verify(t.ip, t.ua));
+if (results.some((result) => result.verdict === 'invalid-ip')) {
+  console.error('error: input contains an invalid IP address');
+  process.exit(2);
+}
 
 const tally = results.reduce((a, r) => ({ ...a, [r.verdict]: (a[r.verdict] || 0) + 1 }), {});
-
-const lines = [];
-lines.push(`# Crawler identity verification`, '', `Checked ${results.length} address(es) · ${Object.entries(tally).map(([k, v]) => `${k}: ${v}`).join(' · ')}`, '');
-lines.push('| IP | Claimed UA | Verdict | Vendor | Method | Evidence |', '|---|---|---|---|---|---|');
-for (const r of results) {
-  const ev = r.evidence.mismatch || r.evidence.note || r.evidence.range
-    || r.evidence.rdns?.hostname || r.evidence.rdns?.failed || '—';
-  lines.push(`| ${r.ip} | ${(r.ua || '—').slice(0, 40)} | ${r.verdict === 'spoofed' ? '**spoofed**' : r.verdict} | ${r.vendor || '—'} | ${r.method || '—'} | ${String(ev).slice(0, 80)} |`);
+const ruleset = crawlerIdentityRuleset();
+const coverage = crawlerIdentityCoverage(results);
+const ruleForVerdict = {
+  verified: 'crawler-identity-verified',
+  spoofed: 'crawler-identity-spoofed',
+  unverifiable: 'crawler-identity-unverifiable',
+  'not-a-known-bot': 'crawler-identity-not-known',
+};
+const stateForVerdict = {
+  verified: 'confirmed',
+  spoofed: 'confirmed',
+  unverifiable: 'unknown',
+  'not-a-known-bot': 'not_applicable',
+};
+const severityForVerdict = {
+  verified: 'info',
+  spoofed: 'high',
+  unverifiable: 'high',
+  'not-a-known-bot': 'info',
+};
+const current = results.map((result) => createFindingV2({
+  ruleset,
+  adapterId: CRAWLER_IDENTITY_ADAPTER.id,
+  rule: crawlerIdentityRule(ruleForVerdict[result.verdict]),
+  title: `Crawler identity ${result.verdict}`,
+  severity: severityForVerdict[result.verdict],
+  state: stateForVerdict[result.verdict],
+  summary: result.verdict === 'verified'
+    ? `The address evidence matches the claimed crawler identity using ${result.method}.`
+    : result.verdict === 'spoofed'
+      ? 'The address evidence contradicts the claimed crawler identity.'
+      : result.verdict === 'unverifiable'
+        ? 'The required crawler identity evidence was unavailable or insufficient; do not block on this result.'
+        : 'The user-agent does not claim a crawler product known to this adapter.',
+  evidence: {
+    subject: `${result.ip}|${result.ua || ''}`,
+    ip: result.ip,
+    claimedUserAgent: result.ua,
+    verdict: result.verdict,
+    vendor: result.vendor,
+    method: result.method,
+    observation: result.evidence,
+  },
+  remediation: result.verdict === 'spoofed'
+    ? 'Do not grant crawler exemptions to this request; apply the normal public-path controls and rate limits.'
+    : result.verdict === 'unverifiable'
+      ? 'Restore the exact product range or FCrDNS evidence and rerun; keep the request on normal public-path policy meanwhile.'
+      : 'Keep crawler identity separate from authorization; verified crawlers may receive only documented public-path exemptions.',
+  retest: 'Repeat the exact product-level range or forward-confirmed reverse DNS verification with fresh evidence.',
+}));
+const generatedAt = process.env.SOURCE_DATE_EPOCH
+  ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000).toISOString()
+  : new Date().toISOString();
+if (Number.isNaN(Date.parse(generatedAt))) {
+  console.error('error: SOURCE_DATE_EPOCH must be numeric');
+  process.exit(2);
 }
-lines.push('', 'Reminder: confirmed crawler identity permits a rate-limit exemption only. It never authorizes access to a private path.');
-const md = lines.join('\n');
+const auditBoundary = {
+  version: 1,
+  surface: 'crawler-identity',
+  methods: USE_RANGES ? ['fcrdns', 'published-range'] : ['fcrdns'],
+  maxRangeAgeDays: MAX_RANGE_AGE_DAYS,
+  inputCount: targets.length,
+};
+const report = createReportV2({
+  version: readFileSync(join(fileURLToPath(new URL('..', import.meta.url)), 'VERSION'), 'utf8').trim(),
+  generatedAt,
+  mode: 'audit',
+  subject: {
+    id: `project-${randomUUID().replaceAll('-', '').slice(0, 32)}`,
+    binding: 'ephemeral',
+    scopeDigest: digestValue(auditBoundary),
+    localPathIncluded: false,
+  },
+  ruleset,
+  scope: {
+    auditBoundary,
+    checkModes: USE_RANGES ? ['dns', 'network-passive'] : ['dns'],
+    networkAccessPerformed: true,
+  },
+  coverage,
+  findings: initializeFindingsV2(current, coverage),
+  policy: policyForFailOn(FAIL_ON),
+  limitations: [
+    'Crawler identity never grants access to a private path and is not an authorization decision.',
+    'Published range evidence is product-specific and time-bounded; sibling product ranges cannot confirm a claim.',
+  ],
+});
+const md = renderMarkdownV2(report);
 
 if (OUT_DIR) {
-  mkdirSync(OUT_DIR, { recursive: true });
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  writeFileSync(join(OUT_DIR, `crawler-verification-${stamp}.json`), JSON.stringify({ generatedAt: new Date().toISOString(), tally, results }, null, 2));
-  writeFileSync(join(OUT_DIR, `crawler-verification-${stamp}.md`), md);
+  mkdirSync(OUT_DIR, { recursive: true, mode: 0o700 });
+  const stamp = generatedAt.replace(/[:.]/g, '-');
+  const base = REPORT_NAME || `crawler-verification-${stamp}`;
+  writeReportBundleV2(report, OUT_DIR, base);
+  writeFileSync(join(OUT_DIR, `${base}.observations.json`), `${JSON.stringify({
+    schemaVersion: 1,
+    adapter: CRAWLER_IDENTITY_ADAPTER.id,
+    generatedAt,
+    tally,
+    results,
+  }, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
   log(`wrote report to ${OUT_DIR}`);
 }
 
 console.log(md);
-process.exit(tally.spoofed ? 1 : tally.unverifiable ? 3 : 0);
+process.exit(exitCodeV2(report));
 
 } // end RUN_CLI

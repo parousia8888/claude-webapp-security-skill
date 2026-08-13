@@ -10,7 +10,7 @@ Scope, audit, harden, and retest web projects with AI coding agents and reproduc
 
 ## The inspect-patch-retest loop
 
-The repository-owned local demo begins with **13 high / 6 medium**, produces a reviewable patch, and retests the same fixture at **0 high / 0 medium**. The generated record classifies **21 findings as fixed**. The fixture runs locally without a third-party target.
+The repository-owned local demo begins with **2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM**, produces a reviewable patch, and retests the same fixture at **0 active HIGH / 0 active MEDIUM**. The generated record classifies **21 findings as fixed**. The fixture runs locally without a third-party target.
 
 [Watch the generated demo and inspect its reports](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md).
 

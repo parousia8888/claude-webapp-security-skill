@@ -1,27 +1,42 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "generator": "scripts/generate-demo-gif.mjs",
   "sources": [
     "scripts/demo.mjs",
     "before.json",
     "hardening.patch",
-    "after.json",
-    "evidence-after.json"
+    "after.json"
   ],
   "width": 840,
   "height": 472,
   "frames": 5,
   "durationMilliseconds": 10900,
   "bytes": 2742052,
-  "sha256": "037cf1e7bf832c27272bdb1a484c921d404fbbef401a0925621ac26bfacc57ab",
+  "sha256": "c2a69f2cec43e48ba904fd753bf0ab481859730489a9860e730ce780dfdd945c",
   "result": {
     "before": {
-      "high": 13,
-      "medium": 6
+      "active": {
+        "high": 13,
+        "medium": 6
+      },
+      "byDomain": {
+        "security_exposure": {
+          "high": 2
+        },
+        "search_discoverability": {
+          "high": 11,
+          "medium": 5
+        },
+        "reliability": {
+          "medium": 1
+        }
+      }
     },
     "after": {
-      "high": 0,
-      "medium": 0
+      "active": {
+        "high": 0,
+        "medium": 0
+      }
     },
     "fixed": 21
   },

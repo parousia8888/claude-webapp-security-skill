@@ -24,13 +24,18 @@ usage() {
 #   --acknowledge-authorization
 #                          Confirm ownership or written authorization for the active test
 #   --n COUNT              Requests per class, 1..100 (default 30)
+#   --out DIR              Write the v2 report bundle and observations
+#   --report-name NAME     Report basename (default edge-report)
+#   --fail-on LEVEL        critical, high, medium, low, or never (default high)
 EOF
 }
 
 SITE="" HTTP_SITE="" HOST="" CONTENT="/" PROBE="/.env" N=30 ACTIVE_RATE_LIMIT=0 ACKNOWLEDGED=0
+OUT_DIR="" REPORT_NAME="edge-report" FAIL_ON="high"
+CURL_BIN="${WEBAPP_SECURITY_CURL_BIN:-curl}"
 while [ $# -gt 0 ]; do
   case "$1" in
-    --site|--http-site|--host|--content-path|--probe-path|--n)
+    --site|--http-site|--host|--content-path|--probe-path|--n|--out|--report-name|--fail-on)
       [ $# -ge 2 ] || { echo "error: $1 requires a value" >&2; exit 2; }
       case "$1" in
         --site) SITE="$2";;
@@ -39,6 +44,9 @@ while [ $# -gt 0 ]; do
         --content-path) CONTENT="$2";;
         --probe-path) PROBE="$2";;
         --n) N="$2";;
+        --out) OUT_DIR="$2";;
+        --report-name) REPORT_NAME="$2";;
+        --fail-on) FAIL_ON="$2";;
       esac
       shift 2;;
     --active-rate-limit) ACTIVE_RATE_LIMIT=1; shift;;
@@ -61,13 +69,47 @@ case "$PROBE" in /*) ;; *) echo "error: --probe-path must start with /" >&2; exi
   echo "error: --active-rate-limit requires --acknowledge-authorization" >&2
   exit 2
 }
+case "$FAIL_ON" in critical|high|medium|low|never) ;; *) echo "error: --fail-on is invalid" >&2; exit 2;; esac
+case "$REPORT_NAME" in ''|*[!A-Za-z0-9._-]*) echo "error: --report-name contains unsupported characters" >&2; exit 2;; esac
 
-hcurl() { if [ -n "$HOST" ]; then curl -H "Host: $HOST" "$@"; else curl "$@"; fi; }
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+OBS_FILE="$(mktemp "${TMPDIR:-/tmp}/webapp-security-edge.XXXXXX")" || exit 2
+trap 'rm -f "$OBS_FILE"' EXIT
+record() {
+  rule="$1" state="$2" message="$3"
+  encoded="$(printf '%s' "$message" | base64 | tr -d '\n')"
+  printf '%s\t%s\t%s\n' "$rule" "$state" "$encoded" >> "$OBS_FILE"
+}
+emit() {
+  node "$SCRIPT_DIR/edge-hardening-report.mjs" \
+    --observations "$OBS_FILE" --site "$SITE" --report-name "$REPORT_NAME" --fail-on "$FAIL_ON" \
+    --active "$([ "$ACTIVE_RATE_LIMIT" -eq 1 ] && printf true || printf false)" \
+    ${OUT_DIR:+--out "$OUT_DIR"}
+}
+record_all_unknown() {
+  message="$1"
+  for rule in edge-curl-capability edge-hsts edge-nosniff edge-frame-protection edge-referrer-policy \
+    edge-content-security-policy edge-rate-probe-throttling edge-rate-content-availability \
+    edge-http-redirect edge-tls-max-capability edge-tls12-available edge-tls11-rejected \
+    edge-tls10-rejected edge-certificate-validation; do
+    record "$rule" unknown "$message"
+  done
+}
+
+if ! command -v "$CURL_BIN" >/dev/null 2>&1; then
+  record_all_unknown "curl is unavailable; no edge conclusion is possible"
+  emit
+  exit $?
+fi
+record edge-curl-capability passed "curl is available"
+
+hcurl() { if [ -n "$HOST" ]; then "$CURL_BIN" -H "Host: $HOST" "$@"; else "$CURL_BIN" "$@"; fi; }
 
 pass=0; warn=0; unknown=0
-ok()      { echo "  [ok] $1"; pass=$((pass+1)); }
-bad()     { echo "  [fail] $1"; warn=$((warn+1)); }
-unknown() { echo "  [unknown] $1"; unknown=$((unknown+1)); }
+ok()      { echo "  [ok] $2"; record "$1" passed "$2"; pass=$((pass+1)); }
+bad()     { echo "  [fail] $2"; record "$1" failed "$2"; warn=$((warn+1)); }
+unknown() { echo "  [unknown] $2"; record "$1" unknown "$2"; unknown=$((unknown+1)); }
+n_a()     { echo "  [note] $2"; record "$1" not_applicable "$2"; }
 note()    { echo "  [note] $1"; }
 
 echo "== verify-hardening: $SITE =="
@@ -75,25 +117,29 @@ echo "== verify-hardening: $SITE =="
 echo "[headers] $SITE$CONTENT"
 H=""
 if ! H="$(hcurl -skS --connect-timeout 5 --max-time 15 -I "$SITE$CONTENT")"; then
-  bad "header request failed; no header conclusion is possible"
+  H_AVAILABLE=0
+else
+  H_AVAILABLE=1
 fi
 need_re() {
-  if printf '%s' "$H" | grep -iqE "$2"; then ok "$1"; else
-    if [ "${3:-warn}" = "info" ]; then note "$1 — absent (optional)"; else bad "$1 — missing"; fi
+  if [ "$H_AVAILABLE" -eq 0 ]; then unknown "$1" "header request failed; $3 evidence is unavailable"
+  elif printf '%s' "$H" | grep -iqE "$2"; then ok "$1" "$3 present"; else
+    bad "$1" "$3 missing"
   fi
 }
-need_re "Strict-Transport-Security" "^strict-transport-security:"
+need_re edge-hsts "^strict-transport-security:" "Strict-Transport-Security"
 printf '%s' "$H" | grep -iE "^strict-transport-security:" | grep -iq "includesubdomains" \
-  && ok "HSTS includeSubDomains" || note "HSTS lacks includeSubDomains (consider adding)"
-need_re "X-Content-Type-Options: nosniff" "^x-content-type-options:[[:space:]]*nosniff"
-need_re "X-Frame-Options / frame-ancestors" "^x-frame-options:|content-security-policy(-report-only)?:.*frame-ancestors"
-need_re "Referrer-Policy" "^referrer-policy:"
-need_re "Content-Security-Policy (enforced or report-only)" "^content-security-policy(-report-only)?:"
-need_re "Permissions-Policy" "^permissions-policy:" info
+  && note "HSTS includeSubDomains present" || note "HSTS lacks includeSubDomains (consider adding)"
+need_re edge-nosniff "^x-content-type-options:[[:space:]]*nosniff" "X-Content-Type-Options: nosniff"
+need_re edge-frame-protection "^x-frame-options:|content-security-policy(-report-only)?:.*frame-ancestors" "X-Frame-Options / frame-ancestors"
+need_re edge-referrer-policy "^referrer-policy:" "Referrer-Policy"
+need_re edge-content-security-policy "^content-security-policy(-report-only)?:" "Content-Security-Policy"
 
 echo "[rate-limit]"
 if [ "$ACTIVE_RATE_LIMIT" -ne 1 ]; then
   note "skipped; pass --active-rate-limit only after scope/authorization is recorded"
+  n_a edge-rate-probe-throttling "active rate-limit check disabled"
+  n_a edge-rate-content-availability "active rate-limit check disabled"
 else
   echo "  probe=$PROBE content=$CONTENT concurrency=$N"
   burst() {
@@ -113,17 +159,18 @@ else
   note "probe responses: $PB"
   note "content responses: $CT"
   if printf '%s %s' "$PB" "$CT" | grep -qE '(^|[^0-9])000([^0-9]|$)'; then
-    bad "one or more requests failed at the network/TLS layer (HTTP 000); rate-limit result is unknown"
+    unknown edge-rate-probe-throttling "rate-limit request evidence is unavailable (HTTP 000)"
+    unknown edge-rate-content-availability "content availability evidence is unavailable (HTTP 000)"
   else
     if printf '%s' "$PB" | grep -qE '(^|[^0-9])(429|503)([^0-9]|$)'; then
-      ok "probe class is being throttled"
+      ok edge-rate-probe-throttling "probe class is being throttled"
     else
-      bad "probe class never returned 429/503 — limiter absent or below threshold"
+      bad edge-rate-probe-throttling "probe class never returned 429/503; limiter absent or below threshold"
     fi
     if printf '%s' "$CT" | grep -qE '(^|[^0-9])(429|503)([^0-9]|$)'; then
-      bad "content class got 429/503 — normal users and crawlers can be blocked"
+      bad edge-rate-content-availability "content class got 429/503; normal users and crawlers can be blocked"
     else
-      ok "content class remained available"
+      ok edge-rate-content-availability "content class remained available"
     fi
   fi
 fi
@@ -134,43 +181,56 @@ case "$SITE" in
     [ -n "$HTTP_SITE" ] || HTTP_SITE="$(printf '%s' "$SITE" | sed 's,^https:,http:,')"
     RC="$(hcurl -skS --connect-timeout 5 --max-time 15 -o /dev/null -w '%{http_code} %{redirect_url}' "$HTTP_SITE$CONTENT" 2>/dev/null || true)"
     case "$RC" in
-      30[12378]\ https://*) ok "HTTP redirects to HTTPS ($RC)";;
-      000*|'') unknown "HTTP redirect endpoint was unreachable";;
-      *) bad "HTTP did not redirect to HTTPS ($RC)";;
+      30[12378]\ https://*) ok edge-http-redirect "HTTP redirects to HTTPS ($RC)";;
+      000*|'') unknown edge-http-redirect "HTTP redirect endpoint was unreachable";;
+      *) bad edge-http-redirect "HTTP did not redirect to HTTPS ($RC)";;
     esac
 
-    if curl --help all 2>/dev/null | grep -q -- '--tls-max'; then
+    if "$CURL_BIN" --help all 2>/dev/null | grep -q -- '--tls-max'; then
+      record edge-tls-max-capability passed "curl supports --tls-max"
       if hcurl -skS --connect-timeout 5 --max-time 15 --tlsv1.2 --tls-max 1.2 -o /dev/null "$SITE$CONTENT" 2>/dev/null; then
-        ok "TLS 1.2 handshake succeeds"
+        ok edge-tls12-available "TLS 1.2 handshake succeeds"
       else
-        bad "TLS 1.2 handshake failed"
+        bad edge-tls12-available "TLS 1.2 handshake failed"
       fi
       if hcurl -skS --connect-timeout 5 --max-time 15 --tlsv1.1 --tls-max 1.1 -o /dev/null "$SITE$CONTENT" 2>/dev/null; then
-        bad "TLS 1.1 handshake succeeds; disable TLS 1.1"
+        bad edge-tls11-rejected "TLS 1.1 handshake succeeds; disable TLS 1.1"
       else
-        ok "TLS 1.1 handshake rejected"
+        ok edge-tls11-rejected "TLS 1.1 handshake rejected"
       fi
       if hcurl -skS --connect-timeout 5 --max-time 15 --tlsv1.0 --tls-max 1.0 -o /dev/null "$SITE$CONTENT" 2>/dev/null; then
-        bad "TLS 1.0 handshake succeeds; disable TLS 1.0"
+        bad edge-tls10-rejected "TLS 1.0 handshake succeeds; disable TLS 1.0"
       else
-        ok "TLS 1.0 handshake rejected"
+        ok edge-tls10-rejected "TLS 1.0 handshake rejected"
       fi
     else
-      unknown "curl lacks --tls-max; minimum TLS version was not verified"
+      unknown edge-tls-max-capability "curl lacks --tls-max; TLS versions were not verified"
+      unknown edge-tls12-available "TLS 1.2 availability was not verified"
+      unknown edge-tls11-rejected "TLS 1.1 rejection was not verified"
+      unknown edge-tls10-rejected "TLS 1.0 rejection was not verified"
     fi
 
     if [ -z "$HOST" ]; then
-      if curl -sS --connect-timeout 5 --max-time 15 -o /dev/null "$SITE$CONTENT"; then
-        ok "TLS certificate chain and hostname validate"
+      if "$CURL_BIN" -sS --connect-timeout 5 --max-time 15 -o /dev/null "$SITE$CONTENT"; then
+        ok edge-certificate-validation "TLS certificate chain and hostname validate"
       else
-        bad "TLS certificate chain or hostname validation failed"
+        bad edge-certificate-validation "TLS certificate chain or hostname validation failed"
       fi
     else
-      unknown "certificate validation skipped for --host origin/IP mode"
+      unknown edge-certificate-validation "certificate validation skipped for --host origin/IP mode"
     fi
     ;;
-  *) note "site is not https://; TLS checks skipped";;
+  *)
+    note "site is not https://; TLS checks skipped"
+    n_a edge-http-redirect "site is not HTTPS"
+    n_a edge-tls-max-capability "site is not HTTPS"
+    n_a edge-tls12-available "site is not HTTPS"
+    n_a edge-tls11-rejected "site is not HTTPS"
+    n_a edge-tls10-rejected "site is not HTTPS"
+    n_a edge-certificate-validation "site is not HTTPS"
+    ;;
 esac
 
 echo "== $pass passed · $warn failed · $unknown unknown =="
-[ "$warn" -eq 0 ] && [ "$unknown" -eq 0 ]
+emit
+exit $?

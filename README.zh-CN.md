@@ -27,7 +27,7 @@
 > 把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。
 
 <p align="center">
-  <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="自有本地 fixture：审计发现 13 个 high 和 6 个 medium 问题，展示可审查补丁，再走同一路径复测为 0 high 和 0 medium"></a>
+  <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="自有本地 fixture：审计发现 2 个 security HIGH、11 个 discoverability HIGH 加 5 个 MEDIUM，以及 1 个 reliability MEDIUM；展示可审查补丁后，同一路径复测没有 active HIGH 或 MEDIUM finding"></a>
 </p>
 
 <p align="center"><a href="docs/demo-evidence.md">查看该演示对应的生成报告与补丁证据。</a></p>
@@ -37,9 +37,9 @@
 命令会启动一个故意配置错误的本地 Web 应用，执行审计，切换到加固后的 fixture，再走同一条真实
 CLI 路径复测。全程不访问外网。
 
-| 输入 | 加固前确认 | 可审查变更 | 复测 |
-|---|---|---|---|
-| 自有本地 fixture | 13 high, 6 medium | 爬取策略、暴露产物、未知路由状态 | 0 high, 0 medium |
+| 输入 | Security | Discoverability | Reliability | 可审查变更 | 复测 |
+|---|---:|---:|---:|---|---|
+| 自有本地 fixture | 2 HIGH | 11 HIGH + 5 MEDIUM | 1 MEDIUM | 爬取策略、暴露产物、未知路由状态 | 0 active HIGH / MEDIUM |
 
 ```bash
 git clone https://github.com/parousia8888/web-app-security-skill.git
@@ -177,8 +177,9 @@ webapp-security aws --profile default --region us-east-1 --out ./security-report
 主动限流复测同样要求 `--acknowledge-authorization`。网络或证据源失败会得到 `unknown` 和非零退出，
 不会被描述成安全。
 
-当前 v2 runtime 只覆盖确定性源码 audit。Crawl、demo、crawler identity、edge 与 AWS surface
-在统一 runtime milestone 前仍保留现有格式；不能因为源码路径已使用 v2 就把它们描述成 v2。
+Source、crawl、demo、crawler identity、edge 与 AWS 结论现在共用同一套 v2 finding、coverage、
+policy 和退出码 runtime；各工具的原始 observation 与结论分开写出。历史 v1 报告只用于展示、
+release 校验与显式的不可比较迁移，不能作为可比较 baseline。
 
 ## GitHub Action
 

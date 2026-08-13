@@ -1,8 +1,14 @@
 # Report v2 migration contract
 
-Report v2 is the v0.4.0 evidence contract. The current source `audit` and `retest` commands write v2
-reports and implement the M1 identity/comparison subset. Crawl, demo, crawler identity, edge and AWS
-surfaces still use their existing contracts until the shared-runtime milestone.
+Report v2 is the v0.4.0 evidence contract. Source `audit` and `retest`, crawl, demo, crawler identity,
+edge and AWS conclusions use the same v2 finding, coverage, policy, renderer and exit semantics.
+Tool-specific HTTP, DNS, TLS and AWS collection records may use a narrow observation schema, but
+they are stored separately and cannot override the v2 conclusion report.
+
+Only source `audit` and `retest` currently implement persisted subject identity and comparable
+baseline semantics. Network and AWS helpers use ephemeral subject bindings unless their CLI
+explicitly supports a compatible baseline; an ephemeral report is valid evidence for one run but
+cannot establish `fixed` in an independent run.
 
 ## Identity model
 
