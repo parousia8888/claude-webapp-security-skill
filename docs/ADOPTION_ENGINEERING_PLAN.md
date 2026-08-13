@@ -102,8 +102,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | Phase | Deliverable | Status | Evidence |
 |---|---|---|---|
 | G0 | Adoption contract, baseline, phase acceptance and anti-metric rules | completed | `0599f46` + checks below |
-| G1 | Fixture-generated animated terminal demo and README placement | in progress | `f1f9728`, `3fe3cc1` + checks below |
-| G2 | Verified low-friction install channel and clean-room lifecycle | pending | pending |
+| G1 | Fixture-generated animated terminal demo and README placement | completed | `f1f9728`, `3fe3cc1` + checks below |
+| G2 | Verified low-friction install channel and clean-room lifecycle | in progress | pending |
 | G3 | Privacy-minimal five-session usability kit and deterministic aggregation | pending | pending |
 | G4 | Reusable English/Chinese publication and upstream case-study kit | pending | pending |
 | G5 | Priority fail-closed correctness fixes and release-candidate evidence | pending | pending |
@@ -171,7 +171,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: implementation complete; post-remediation CI pending 2026-08-13
+- Status: completed 2026-08-13
 - Implementation: `scripts/generate-demo-gif.mjs` runs the real owned fixture, derives its five
   scenes from `before.json`, `hardening.patch`, `after.json` and baseline evidence, then renders an
   840x472 animated GIF with a repository-owned pixel font and pure Node GIF encoder. The committed
@@ -191,7 +191,11 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   decoder failure. `3fe3cc1` sets a bounded 64 MB archive buffer and requires `demo.gif` plus
   `demo.json` in release verification. The same tree's
   [CodeQL run 31652732614](https://github.com/parousia8888/web-app-security-skill/actions/runs/31652732614)
-  passed. Post-remediation matrix CI and CodeQL are pending push and must pass before G1 is closed.
+  passed. After remediation,
+  [CI run 31652969125](https://github.com/parousia8888/web-app-security-skill/actions/runs/31652969125)
+  passed Ubuntu/macOS on Node 20/22 and
+  [CodeQL run 31652969191](https://github.com/parousia8888/web-app-security-skill/actions/runs/31652969191)
+  passed.
 - Remaining risks: the 2,742,052-byte GIF is optimized for deterministic cross-platform generation,
   not minimum transfer size. It remains below the 5 MB repository gate; future compression must
   preserve byte reproducibility and legibility. The demo proves the owned crawl-boundary fixture,
