@@ -22,7 +22,12 @@ function take(name, fallback = null) {
 }
 
 function run(program, commandArgs, options = {}) {
-  const result = spawnSync(program, commandArgs, { cwd: ROOT, encoding: null, ...options });
+  const result = spawnSync(program, commandArgs, {
+    cwd: ROOT,
+    encoding: null,
+    maxBuffer: 64 * 1024 * 1024,
+    ...options,
+  });
   if (result.status !== 0) {
     throw new Error(result.stderr?.toString().trim() || `${program} ${commandArgs.join(' ')} failed`);
   }
