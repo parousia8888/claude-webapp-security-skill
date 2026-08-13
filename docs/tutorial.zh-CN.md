@@ -8,8 +8,8 @@
 
 ## 环境要求
 
-- macOS 或 Linux；Windows 通过 WSL2；
-- Node.js 20 或 22；
+- macOS 或 Linux；
+- Node.js 22 或 24；
 - Git；
 - 你有权检查和修改的项目。
 
@@ -19,20 +19,20 @@
 
 ### 稳定 release
 
-下载 v0.3.0 的全部产物，验证 checksum，解包并从已验证的 payload 安装：
+下载 v0.4.0 的全部产物，验证 checksum，解包并从已验证的 payload 安装：
 
 ```bash
 mkdir web-app-security-release && cd web-app-security-release
-gh release download v0.3.0 --repo parousia8888/web-app-security-skill
+gh release download v0.4.0 --repo parousia8888/web-app-security-skill
 sha256sum -c SHA256SUMS
-tar -xzf web-app-security-skill-0.3.0.tar.gz
-node web-app-security-skill-0.3.0/scripts/webapp-security.mjs install
+tar -xzf web-app-security-skill-0.4.0.tar.gz
+node web-app-security-skill-0.4.0/scripts/webapp-security.mjs install
 webapp-security version
 ```
 
 macOS 没有 GNU `sha256sum` 时，使用 `shasum -a 256 -c SHA256SUMS`。Release 还提供 SPDX SBOM、
 源码 manifest、build provenance attestation 和签名 tag：
-[v0.3.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0)。
+[v0.4.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.4.0)。
 
 ### 当前 checkout
 

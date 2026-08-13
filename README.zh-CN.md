@@ -61,7 +61,7 @@ bootstrap 并在执行前验证 SHA-256，然后验证选定 release 的 manifes
 归档，再进入安装。
 
 ```bash
-( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/55c3de22cb373581b9723467c0d2663917c6df84/scripts/bootstrap-install.sh?immutable=55c3de2'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" 'bdb3951d6085d24c83b7590c0295702cdce8b6c15b0247747bf93b67649e78bd'; sh "$p" )
+( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/2698482ae3215a9296409a72491fff7c8496413b/scripts/bootstrap-install.sh?immutable=2698482ae3215a9296409a72491fff7c8496413b'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" '9b0661d4e3db47e8451b6b4ad92c69889032aa17f5159a3230e3cd7faf91cc77'; sh "$p" )
 ```
 
 也可以只装单一入口：
@@ -218,7 +218,7 @@ Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被�
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/web-app-security-skill@d7df9fa6efd466c3eb13768c3b9ad259d2636e04
+  uses: parousia8888/web-app-security-skill@ace0e8a5ed983f553000270f709d70b5de484e28
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -226,7 +226,8 @@ Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被�
     fail-on: high
 ```
 
-需要可重复 CI 时使用上面的不可变 commit。稳定大版本别名是：
+需要可重复 CI 时使用上面的 v0.4.0 不可变 commit。稳定大版本别名会在独立 promotion gate
+完成前继续指向上一份已验证 release：
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
@@ -236,7 +237,7 @@ Source mode 默认只用内置 adapter。外部二进制必须由调用方固定
 
 ```yaml
 - name: Audit source
-  uses: parousia8888/web-app-security-skill@v1
+  uses: parousia8888/web-app-security-skill@ace0e8a5ed983f553000270f709d70b5de484e28
   with:
     mode: source
     project: .
@@ -262,7 +263,7 @@ Source mode 默认只用内置 adapter。外部二进制必须由调用方固定
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
-git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.3.0
+git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.4.0
 ```
 
 ## 5 个普通项目旅程
