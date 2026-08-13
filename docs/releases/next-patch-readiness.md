@@ -96,3 +96,19 @@ remain `external_validation_pending`.
 actually published release, the stable Action target and the versions accepted by the verified
 installer. Generated launch/publication assets and the live GitHub checker use the published-release
 record, so a candidate `VERSION` cannot become an "already published" claim before the release exists.
+
+`scripts/prepare-release-promotion.mjs` removes manual digest transcription from step 6. During the
+release workflow it validates the four local assets and writes `release-promotion.json` as a separate
+workflow artifact with state `local_candidate`; that file is not uploaded as a fifth public release
+asset. After publication, rerun the tool with the downloaded public assets and `--live`. The live gate
+requires a non-draft/non-prerelease GitHub Release, the exact four-asset set and GitHub-recorded
+digests, the SSH-signed tag at the manifest source commit, and GitHub provenance. It then emits state
+`live_verified` plus the exact verifier trust entry and published-release record. For an older release,
+the live path executes that signed release commit's artifact verifier, so later archive requirements
+cannot retroactively invalidate an earlier valid format; the tag is verified before historical code
+is executed.
+
+The tool does not modify the verifier, bootstrap, READMEs, release state, tags or GitHub Release. Those
+remain reviewed follow-up changes. Its live path was exercised read-only against public `v0.3.0`: all
+four GitHub asset digests, the signed tag, source commit and provenance matched the existing trust
+anchors.

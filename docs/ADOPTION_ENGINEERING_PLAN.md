@@ -437,6 +437,13 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   `d7df9fa6efd466c3eb13768c3b9ad259d2636e04`. Existing public `@v1` consumer run
   [31657177101](https://github.com/parousia8888/web-app-security-skill/actions/runs/31657177101)
   passed. No new version, tag, release or `v1` move is claimed.
+- Post-release promotion preparation: `scripts/prepare-release-promotion.mjs` validates the exact
+  four-asset set and emits a verifier trust entry without changing repository or GitHub state. Its
+  `--live` gate additionally requires GitHub-recorded asset digests, a published non-prerelease,
+  signed tag/source-commit agreement and provenance. A local tamper regression passes, and a
+  read-only run against `v0.3.0` reproduced all existing asset digests and trust anchors. The release
+  workflow stores `local_candidate` promotion evidence separately from the four public assets;
+  implementation commit and CI evidence remain pending this phase commit.
 - Remaining risks: `VERSION` is still the already-published `0.3.0`; rebuilding HEAD under that
   identity is mechanism evidence, not a valid new release candidate. Selecting the next version,
   aligning its exact tree/evidence, publishing it, recording the resulting asset digests in a later

@@ -44,6 +44,7 @@ for (const [path, markers] of [
     'scripts/build-release-artifacts.mjs',
     'scripts/verify-release-artifacts.mjs',
     'scripts/test-release-artifact.mjs',
+    'scripts/prepare-release-promotion.mjs',
     'diff -u dist/SHA256SUMS dist-rebuild/SHA256SUMS',
     'actions/attest-build-provenance@',
   ]],

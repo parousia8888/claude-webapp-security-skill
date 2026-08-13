@@ -38,6 +38,8 @@ jobs:
           for artifact in dist/*; do
             cmp "$artifact" "dist-rebuild/$(basename "$artifact")"
           done
+          node scripts/prepare-release-promotion.mjs \
+            --version "$version" --assets dist --out release-promotion.json
       - name: "Attest release artifacts"
         uses: "actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a" # v3
         with:
@@ -56,5 +58,7 @@ jobs:
         uses: "actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f" # v6
         with:
           name: "release-evidence-${{ github.ref_name }}"
-          path: "dist/"
+          path: |
+            dist/
+            release-promotion.json
           if-no-files-found: "error"
