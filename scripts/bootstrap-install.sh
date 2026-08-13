@@ -26,7 +26,7 @@ if test "${#installer_sha256}" -ne 64; then
 fi
 
 case "$installer_url" in
-  https://*) curl_security_args='--proto =https --tlsv1.2' ;;
+  https://*) curl_security_args='--proto =https --proto-redir =https --tlsv1.2' ;;
   http://127.0.0.1:*|http://localhost:*|http://\[::1\]:*)
     if test "${WEB_APP_SECURITY_ALLOW_TEST_HTTP:-}" != '1'; then
       echo 'error: loopback HTTP requires WEB_APP_SECURITY_ALLOW_TEST_HTTP=1' >&2
