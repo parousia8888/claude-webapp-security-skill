@@ -1,0 +1,404 @@
+export const JS_TS_SOURCE_RULE_IDS = [
+  'js-dynamic-code-execution',
+  'node-child-process-shell-execution',
+  'react-dangerous-html-sink',
+  'browser-html-injection-sink',
+  'cors-wildcard-with-credentials',
+  'node-tls-verification-disabled',
+  'jwt-unsafe-verification-options',
+  'hardcoded-auth-secret',
+];
+
+export const JS_TS_DEFERRED_CANDIDATES = [
+  { id: 'generic-sql-string-construction', reason: 'requires_source_to_query_data_flow' },
+  { id: 'generic-path-construction', reason: 'requires_trust_boundary_data_flow' },
+  { id: 'logging-sensitive_named_variables', reason: 'name_does_not_prove_sensitive_runtime_value' },
+  { id: 'weak_hash_or_randomness', reason: 'requires_security_purpose_context' },
+  { id: 'missing_cookie_flags', reason: 'requires_framework_and_cookie_purpose_context' },
+  { id: 'upload_policy_missing', reason: 'policy_may_exist_at_another_enforcement_layer' },
+  { id: 'reflected_dynamic_cors_origin', reason: 'requires_callback_and_allowlist_data_flow' },
+];
+
+const SOURCE_EXTENSION = /\.(?:[cm]?[jt]sx?)$/i;
+const GENERATED_FILE = /(?:^|\/)(?:generated|vendor)(?:\/|$)|(?:\.min|\.bundle|\.generated)\.[cm]?[jt]sx?$/i;
+const TEST_FILE = /(?:^|\/)(?:__tests__|test|tests|fixtures)(?:\/|$)|\.(?:test|spec|stories)\.[cm]?[jt]sx?$/i;
+const PLACEHOLDER = /^(?:change[-_ ]?me|replace[-_ ]?me|example|placeholder|test|development|dev|secret|your[-_ ].*|<.*>|\$\{.*\})$/i;
+
+export function classifyJsTsSource(path) {
+  if (!SOURCE_EXTENSION.test(path)) return { eligible: false, reason: 'unsupported_js_ts_extension' };
+  if (GENERATED_FILE.test(path)) return { eligible: false, reason: 'generated_or_minified_source' };
+  if (TEST_FILE.test(path)) return { eligible: false, reason: 'test_or_fixture_source' };
+  return { eligible: true, reason: null };
+}
+
+function regexMayStart(previous) {
+  if (!previous) return true;
+  if (previous.type === 'punct') {
+    return ['(', '[', '{', '=', ':', ',', ';', '!', '?', '&&', '||', '??', '=>', '+', '-', '*', '/',
+      '%', '&', '|', '^', '~', '<', '>', '==', '===', '!=', '!==', '<=', '>='].includes(previous.value);
+  }
+  return previous.type === 'identifier'
+    && ['return', 'throw', 'case', 'default', 'delete', 'void', 'typeof', 'instanceof', 'in', 'of',
+      'yield', 'await', 'from'].includes(previous.value);
+}
+
+export function tokenizeJsTs(text) {
+  const tokens = [];
+  let index = 0;
+  let line = 1;
+  const push = (type, value, start, startLine) => tokens.push({ type, value, start, line: startLine });
+  while (index < text.length) {
+    const character = text[index];
+    if (/\s/.test(character)) {
+      if (character === '\n') line += 1;
+      index += 1;
+      continue;
+    }
+    if (character === '/' && text[index + 1] === '/') {
+      index += 2;
+      while (index < text.length && text[index] !== '\n') index += 1;
+      continue;
+    }
+    if (character === '/' && text[index + 1] === '*') {
+      const startLine = line;
+      index += 2;
+      let closed = false;
+      while (index < text.length) {
+        if (text[index] === '\n') line += 1;
+        if (text[index] === '*' && text[index + 1] === '/') {
+          index += 2;
+          closed = true;
+          break;
+        }
+        index += 1;
+      }
+      if (!closed) return { tokens, error: { code: 'unterminated_block_comment', line: startLine } };
+      continue;
+    }
+    if ((character === "'" || character === '"' || character === '`')
+        && (character === '`' || regexMayStart(tokens.at(-1)))) {
+      const quote = character;
+      const start = index;
+      const startLine = line;
+      index += 1;
+      let value = '';
+      let closed = false;
+      while (index < text.length) {
+        const current = text[index];
+        if (current === '\n') line += 1;
+        if (current === '\\') {
+          value += current;
+          if (index + 1 < text.length) {
+            value += text[index + 1];
+            if (text[index + 1] === '\n') line += 1;
+            index += 2;
+          } else index += 1;
+          continue;
+        }
+        if (current === quote) {
+          index += 1;
+          closed = true;
+          break;
+        }
+        value += current;
+        index += 1;
+      }
+      if (!closed) return { tokens, error: { code: 'unterminated_string_literal', line: startLine } };
+      push(quote === '`' ? 'template' : 'string', value, start, startLine);
+      continue;
+    }
+    if (character === '/' && regexMayStart(tokens.at(-1))) {
+      const start = index;
+      const startLine = line;
+      index += 1;
+      let inClass = false;
+      let closed = false;
+      while (index < text.length) {
+        const current = text[index];
+        if (current === '\n') break;
+        if (current === '\\') {
+          index += 2;
+          continue;
+        }
+        if (current === '[') inClass = true;
+        if (current === ']') inClass = false;
+        if (current === '/' && !inClass) {
+          index += 1;
+          while (/[a-z]/i.test(text[index] || '')) index += 1;
+          closed = true;
+          break;
+        }
+        index += 1;
+      }
+      if (closed) {
+        push('regex', '<regular-expression>', start, startLine);
+        continue;
+      }
+      index = start;
+    }
+    const identifier = /^[A-Za-z_$][\w$]*/.exec(text.slice(index));
+    if (identifier) {
+      push('identifier', identifier[0], index, line);
+      index += identifier[0].length;
+      continue;
+    }
+    const number = /^(?:0[xob][0-9a-f]+|\d+(?:\.\d+)?)/i.exec(text.slice(index));
+    if (number) {
+      push('number', number[0], index, line);
+      index += number[0].length;
+      continue;
+    }
+    const operator = ['===', '!==', '>>>', '=>', '==', '!=', '>=', '<=', '&&', '||', '?.', '??', '**']
+      .find((candidate) => text.startsWith(candidate, index));
+    push('punct', operator || character, index, line);
+    index += (operator || character).length;
+  }
+  return { tokens, error: null };
+}
+
+const valueAt = (tokens, index) => tokens[index]?.value;
+
+function matchingToken(tokens, start, open = '(', close = ')') {
+  let depth = 0;
+  for (let index = start; index < tokens.length; index += 1) {
+    if (tokens[index].value === open) depth += 1;
+    if (tokens[index].value === close) {
+      depth -= 1;
+      if (depth === 0) return index;
+    }
+  }
+  return -1;
+}
+
+function moduleBindings(tokens, moduleNames) {
+  const namespaces = new Set();
+  const named = new Map();
+  for (let index = 0; index < tokens.length; index += 1) {
+    if (tokens[index].type !== 'string' || !moduleNames.has(tokens[index].value)) continue;
+    if (valueAt(tokens, index - 1) === '(' && valueAt(tokens, index - 2) === 'require') {
+      if (valueAt(tokens, index + 1) !== ')') continue;
+      if (valueAt(tokens, index - 3) === '=') namespaces.add(valueAt(tokens, index - 4));
+      if (valueAt(tokens, index - 3) === '=' && valueAt(tokens, index - 4) === '}') {
+        let cursor = index - 5;
+        while (cursor >= 0 && valueAt(tokens, cursor) !== '{') cursor -= 1;
+        for (let item = cursor + 1; item < index - 4; item += 1) {
+          const imported = valueAt(tokens, item);
+          if (tokens[item]?.type !== 'identifier') continue;
+          if (valueAt(tokens, item + 1) === ':') {
+            named.set(imported, valueAt(tokens, item + 2));
+            item += 2;
+          } else if (valueAt(tokens, item - 1) !== ':') named.set(imported, imported);
+        }
+      }
+      continue;
+    }
+    if (valueAt(tokens, index - 1) !== 'from') continue;
+    let cursor = index - 2;
+    while (cursor >= 0 && valueAt(tokens, cursor) !== 'import' && index - cursor < 40) cursor -= 1;
+    if (cursor < 0 || valueAt(tokens, cursor) !== 'import') continue;
+    if (valueAt(tokens, cursor + 1) === '*') namespaces.add(valueAt(tokens, cursor + 3));
+    else if (valueAt(tokens, cursor + 1) === '{') {
+      for (let item = cursor + 2; item < index - 1; item += 1) {
+        const imported = valueAt(tokens, item);
+        if (tokens[item]?.type !== 'identifier') continue;
+        if (valueAt(tokens, item + 1) === 'as') {
+          named.set(imported, valueAt(tokens, item + 2));
+          item += 2;
+        } else if (valueAt(tokens, item - 1) !== 'as') named.set(imported, imported);
+      }
+    } else if (tokens[cursor + 1]?.type === 'identifier') namespaces.add(valueAt(tokens, cursor + 1));
+  }
+  return { namespaces, named };
+}
+
+function callOperation(tokens, index, bindings) {
+  if (valueAt(tokens, index + 1) === '(') {
+    for (const [operation, local] of bindings.named) if (tokens[index].value === local) return operation;
+  }
+  if (valueAt(tokens, index + 1) === '.' && valueAt(tokens, index + 3) === '('
+      && bindings.namespaces.has(tokens[index].value)) return valueAt(tokens, index + 2);
+  return null;
+}
+
+function objectBounds(tokens, propertyIndex) {
+  let depth = 0;
+  for (let start = propertyIndex - 1; start >= 0; start -= 1) {
+    if (valueAt(tokens, start) === '}') depth += 1;
+    if (valueAt(tokens, start) === '{') {
+      if (depth === 0) {
+        const end = matchingToken(tokens, start, '{', '}');
+        return end >= propertyIndex ? [start, end] : null;
+      }
+      depth -= 1;
+    }
+  }
+  return null;
+}
+
+function propertyHas(tokens, start, end, name, expected, type = null, targetDepth = 0) {
+  let depth = 0;
+  for (let index = start + 1; index < end - 1; index += 1) {
+    if (['{', '[', '('].includes(valueAt(tokens, index))) depth += 1;
+    if (['}', ']', ')'].includes(valueAt(tokens, index))) depth -= 1;
+    if (depth === targetDepth && valueAt(tokens, index) === name && valueAt(tokens, index + 1) === ':'
+        && valueAt(tokens, index + 2) === expected
+        && (!type || tokens[index + 2]?.type === type)) return true;
+  }
+  return false;
+}
+
+function finding(ruleId, path, token, kind, summary, evidence, remediation, retest) {
+  return {
+    ruleId,
+    title: summary.title,
+    severity: summary.severity,
+    state: 'suspected',
+    discriminator: `${path}:${token.line}:${kind}`,
+    summary: summary.text,
+    location: { path, line: token.line },
+    evidence: { subject: path, line: token.line, construct: kind, ...evidence },
+    remediation,
+    retest,
+  };
+}
+
+const OUTPUT = {
+  'js-dynamic-code-execution': {
+    title: 'JavaScript dynamic code execution requires review', severity: 'high',
+    text: 'Executable code is constructed at runtime. Input influence and reachability are not established by this source lead.',
+  },
+  'node-child-process-shell-execution': {
+    title: 'Node.js shell execution requires input-flow review', severity: 'high',
+    text: 'A Node child-process API invokes a command interpreter. The audit has not proved that untrusted input reaches it.',
+  },
+  'react-dangerous-html-sink': {
+    title: 'React raw HTML rendering requires trust review', severity: 'medium',
+    text: 'React raw HTML rendering is present. Whether the rendered value is attacker-controlled or sanitized remains unknown.',
+  },
+  'browser-html-injection-sink': {
+    title: 'Browser HTML injection sink requires trust review', severity: 'medium',
+    text: 'Code writes or parses HTML through a browser sink. The source of that HTML and any sanitization remain unknown.',
+  },
+  'cors-wildcard-with-credentials': {
+    title: 'Credentialed wildcard CORS configuration requires review', severity: 'medium',
+    text: 'One configuration object combines wildcard origin access with credentials. Runtime middleware behavior still requires confirmation.',
+  },
+  'node-tls-verification-disabled': {
+    title: 'TLS certificate verification is explicitly disabled', severity: 'high',
+    text: 'Source code explicitly disables a Node.js TLS certificate check. The affected client path and environment remain to be confirmed.',
+  },
+  'jwt-unsafe-verification-options': {
+    title: 'JWT verification uses an unsafe explicit option', severity: 'high',
+    text: 'A jsonwebtoken verification call explicitly accepts an unsafe algorithm or ignores token expiry. Runtime use remains to be confirmed.',
+  },
+  'hardcoded-auth-secret': {
+    title: 'Authentication secret is hard-coded in source', severity: 'high',
+    text: 'A security-named variable is assigned a non-placeholder string. The value is redacted and whether it is deployed remains unknown.',
+  },
+};
+
+export function inspectJsTsSource(path, text) {
+  const parsed = tokenizeJsTs(text);
+  if (parsed.error) return { findings: [], error: parsed.error };
+  const { tokens } = parsed;
+  const findings = [];
+  const emitted = new Set();
+  const add = (ruleId, token, kind, evidence = {}) => {
+    const key = `${ruleId}:${token.line}:${kind}`;
+    if (emitted.has(key)) return;
+    emitted.add(key);
+    findings.push(finding(
+      ruleId, path, token, kind, OUTPUT[ruleId], evidence,
+      'Review the named construct, remove the unsafe option or keep untrusted data away from the sink using the framework-supported safe API.',
+      'Rerun the source audit, then exercise the affected security case and the normal product journey.',
+    ));
+  };
+
+  const childProcess = moduleBindings(tokens, new Set(['child_process', 'node:child_process']));
+  const jsonwebtoken = moduleBindings(tokens, new Set(['jsonwebtoken']));
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if ((token.value === 'eval' && valueAt(tokens, index + 1) === '(')
+        || (token.value === 'Function' && valueAt(tokens, index + 1) === '('
+          && valueAt(tokens, index - 1) === 'new')) {
+      add('js-dynamic-code-execution', token, token.value === 'eval' ? 'eval_call' : 'function_constructor');
+    }
+
+    const operation = callOperation(tokens, index, childProcess);
+    if (['exec', 'execSync'].includes(operation)) {
+      add('node-child-process-shell-execution', token, `child_process_${operation}`);
+    } else if (['spawn', 'spawnSync', 'execFile', 'execFileSync'].includes(operation)) {
+      const open = valueAt(tokens, index + 1) === '(' ? index + 1 : index + 3;
+      const close = matchingToken(tokens, open);
+      if (close > open && propertyHas(tokens, open, close, 'shell', 'true', null, 1)) {
+        add('node-child-process-shell-execution', token, `child_process_${operation}_shell_true`);
+      }
+    }
+
+    if (token.value === 'dangerouslySetInnerHTML'
+        && tokens.slice(index + 1, index + 14).some((item) => item.value === '__html')) {
+      add('react-dangerous-html-sink', token, 'dangerously_set_inner_html');
+    }
+    if (valueAt(tokens, index - 1) === '.' && ['innerHTML', 'outerHTML'].includes(token.value)
+        && valueAt(tokens, index + 1) === '=') {
+      add('browser-html-injection-sink', token, `${token.value}_assignment`);
+    }
+    if (valueAt(tokens, index - 1) === '.' && token.value === 'insertAdjacentHTML'
+        && valueAt(tokens, index + 1) === '(') {
+      add('browser-html-injection-sink', token, 'insert_adjacent_html_call');
+    }
+    if (token.value === 'document' && valueAt(tokens, index + 1) === '.'
+        && valueAt(tokens, index + 2) === 'write' && valueAt(tokens, index + 3) === '(') {
+      add('browser-html-injection-sink', token, 'document_write_call');
+    }
+    if (token.value === 'origin' && valueAt(tokens, index + 1) === ':'
+        && tokens[index + 2]?.type === 'string' && valueAt(tokens, index + 2) === '*') {
+      const bounds = objectBounds(tokens, index);
+      if (bounds && propertyHas(tokens, bounds[0], bounds[1], 'credentials', 'true')) {
+        add('cors-wildcard-with-credentials', token, 'cors_origin_wildcard_credentials_true');
+      }
+    }
+    if (token.value === 'rejectUnauthorized' && valueAt(tokens, index + 1) === ':'
+        && valueAt(tokens, index + 2) === 'false') {
+      add('node-tls-verification-disabled', token, 'reject_unauthorized_false');
+    }
+    if (token.value === 'NODE_TLS_REJECT_UNAUTHORIZED' && valueAt(tokens, index + 1) === '='
+        && tokens[index + 2]?.type === 'string' && valueAt(tokens, index + 2) === '0') {
+      add('node-tls-verification-disabled', token, 'node_tls_reject_unauthorized_zero');
+    }
+
+    const jwtOperation = callOperation(tokens, index, jsonwebtoken);
+    if (jwtOperation === 'verify') {
+      const open = valueAt(tokens, index + 1) === '(' ? index + 1 : index + 3;
+      const close = matchingToken(tokens, open);
+      if (close > open) {
+        const unsafeExpiry = propertyHas(tokens, open, close, 'ignoreExpiration', 'true', null, 1);
+        let unsafeNone = false;
+        for (let cursor = open; cursor < close - 3; cursor += 1) {
+          if (valueAt(tokens, cursor) !== 'algorithms' || valueAt(tokens, cursor + 1) !== ':') continue;
+          const arrayStart = cursor + 2;
+          const arrayEnd = valueAt(tokens, arrayStart) === '[' ? matchingToken(tokens, arrayStart, '[', ']') : -1;
+          unsafeNone ||= arrayEnd > arrayStart && tokens.slice(arrayStart + 1, arrayEnd)
+            .some((item) => item.type === 'string' && item.value.toLowerCase() === 'none');
+        }
+        if (unsafeExpiry || unsafeNone) add('jwt-unsafe-verification-options', token,
+          unsafeNone ? 'jwt_none_algorithm' : 'jwt_ignore_expiration');
+      }
+    }
+
+    const normalizedName = token.value.replace(/[_$-]/g, '').toLowerCase();
+    const secretName = /^(?:jwt|session|auth|cookie)(?:secret|key)$/.test(normalizedName)
+      || /^(?:secret|key)(?:jwt|session|auth|cookie)$/.test(normalizedName);
+    if (secretName && ['=', ':'].includes(valueAt(tokens, index + 1))
+        && tokens[index + 2]?.type === 'string') {
+      const literal = valueAt(tokens, index + 2);
+      if (literal.length >= 12 && !PLACEHOLDER.test(literal)) {
+        add('hardcoded-auth-secret', token, 'security_named_literal_assignment', {
+          literalRedacted: true,
+          literalLengthBand: literal.length < 24 ? '12-23' : literal.length < 48 ? '24-47' : '48+',
+        });
+      }
+    }
+  }
+  return { findings, error: null };
+}

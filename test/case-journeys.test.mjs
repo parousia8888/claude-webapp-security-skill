@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { GITLEAKS_RULES, OSV_RULES } from '../scripts/lib/adapter-definitions.mjs';
+import { SOURCE_RULES, sourceRuleset } from '../scripts/lib/source-rules.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const CLI = join(ROOT, 'scripts', 'webapp-security.mjs');
@@ -29,6 +31,20 @@ function git(directory, args) {
 }
 
 const emptyFindingDigest = createHash('sha256').update('[]').digest('hex');
+const currentRuleset = sourceRuleset(['builtin', 'gitleaks', 'osv']);
+const adapter = (id, status, findingDigests = false) => {
+  const identity = currentRuleset.adapters.find((item) => item.id === id);
+  return {
+    id, version: identity.version, status, rulesetDigest: identity.rulesetDigest,
+    ...(findingDigests ? {
+      deterministicFindingIdsDigest: emptyFindingDigest,
+      deterministicFindingContentDigest: emptyFindingDigest,
+    } : {}),
+  };
+};
+const currentCoverage = Object.fromEntries([
+  ...SOURCE_RULES, ...GITLEAKS_RULES, ...OSV_RULES,
+].map((rule) => [rule.id, 'completed']));
 
 try {
   let result = spawnSync(process.execPath, [CHECK], { encoding: 'utf8' });
@@ -100,23 +116,13 @@ else console.log('{"results":[]}');
       },
       corpus: {
         runDate: '1970-01-01T00:00:00.000Z',
-        rulesetDigest: '17e89541f7080fd0f2a09296ca257be515dae43feead8a9f0c620690e6168def',
+        rulesetDigest: currentRuleset.digest,
         adapters: [
-          { id: 'builtin-source', version: '1.1.0', status: 'built_in', rulesetDigest: 'e27dc95907ab5cd1f2809078f8f05e5356b9808b5b42da2c7ba3bd480fc0f7b6', deterministicFindingIdsDigest: emptyFindingDigest, deterministicFindingContentDigest: emptyFindingDigest },
-          { id: 'gitleaks', version: '8.30.1', status: 'available', rulesetDigest: '47225f84fc2d1eac9899a182d700e4713a13accd561c7da91250dca94b52c0d6', deterministicFindingIdsDigest: emptyFindingDigest, deterministicFindingContentDigest: emptyFindingDigest },
-          { id: 'osv', version: '2.5.0', status: 'available', rulesetDigest: '0e0d7d61d9a883eef12ffceb296d1fe706c38f1139efb76dea67b82b259dbbe2' },
+          adapter('builtin-source', 'built_in', true),
+          adapter('gitleaks', 'available', true),
+          adapter('osv', 'available'),
         ],
-        coverage: {
-          'dependency-lockfile-missing': 'completed',
-          'sensitive-env-file-present': 'completed',
-          'node-inspector-public-bind': 'completed',
-          'production-source-map-enabled': 'completed',
-          'source-stack-unsupported': 'completed',
-          'source-evidence-incomplete': 'completed',
-          'gitleaks-committed-secret': 'completed',
-          'gitleaks-working-tree-secret': 'completed',
-          'osv-known-vulnerability': 'completed',
-        },
+        coverage: currentCoverage,
         snapshot: { summary: { confirmed: 0 }, byRule: {} },
         confirmedFindingIds: [],
       },

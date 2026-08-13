@@ -146,8 +146,11 @@ webapp-security crawl --site https://example.com --out ./security-report \
 可以组合多个 `--fail-on-domain <domain=threshold>`。有效 threshold 会写入 report。
 [生成的 rule taxonomy](docs/rule-taxonomy.md)把 source rule 的 kind、family、language、domain、
 severity、默认证据状态与标准引用分开记录。精确 stable source 数量和完整解释元数据来自机器可读的
-[`stable-source-rules.json`](docs/stable-source-rules.json)：当前版本是 4 条 built-in 风险规则、
-2 条 built-in 证据完整性规则和 3 条外部适配器风险规则。
+[`stable-source-rules.json`](docs/stable-source-rules.json)：`main` 当前是 12 条 built-in 风险规则、
+2 条 built-in 证据完整性规则和 3 条外部适配器风险规则。其中 8 条 built-in 风险规则是
+有边界的 JavaScript/TypeScript 词法线索，覆盖动态执行、shell 执行、HTML sink、带凭据的
+通配 CORS、关闭 TLS 验证、不安全 JWT 验证和硬编码认证密钥。它们不能证明输入流或运行时
+可达性，未经独立复现一律保持 `suspected`。
 
 ## 能力边界
 

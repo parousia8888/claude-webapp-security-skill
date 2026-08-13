@@ -15,7 +15,7 @@ const clone = () => structuredClone(SOURCE_RULE_REGISTRY);
 assert.deepEqual(validateSourceRuleRegistry(SOURCE_RULE_REGISTRY, { root: ROOT }), []);
 const manifest = stableSourceRuleManifest();
 assert.deepEqual(manifest.counts, {
-  stableTotal: 9, builtInRisk: 4, builtInIntegrity: 2, externalRisk: 3,
+  stableTotal: 17, builtInRisk: 12, builtInIntegrity: 2, externalRisk: 3,
 });
 assert.deepEqual(manifest.rules.map((rule) => rule.id),
   [...manifest.rules.map((rule) => rule.id)].sort());
@@ -28,7 +28,7 @@ assert.deepEqual(GITLEAKS_RULES,
 assert.deepEqual(OSV_RULES,
   SOURCE_RULE_REGISTRY.filter((rule) => rule.adapter.id === 'osv').map(runtimeRule));
 assert.equal(sourceRuleset(['builtin', 'gitleaks', 'osv']).digest,
-  '17e89541f7080fd0f2a09296ca257be515dae43feead8a9f0c620690e6168def');
+  'e195af94396b222d964c575cbc6042880fd5125180a5e3be2b5bf446dee5b37b');
 
 const docsOnly = clone();
 docsOnly[0].plainLanguage = 'Documentation-only wording changed.';
@@ -43,7 +43,7 @@ experimental.push({
   fixtures: structuredClone(experimental[0].fixtures),
 });
 assert.equal(validateSourceRuleRegistry(experimental, { root: ROOT }).length, 0);
-assert.equal(stableSourceRuleManifest(experimental).counts.stableTotal, 9);
+assert.equal(stableSourceRuleManifest(experimental).counts.stableTotal, 17);
 
 for (const mutate of [
   (registry) => { registry[1].id = registry[0].id; },

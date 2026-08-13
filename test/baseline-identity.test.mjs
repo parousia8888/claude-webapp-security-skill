@@ -163,6 +163,9 @@ try {
   }];
   compared = compareFindingsV2([...current, added], addedCoverage, baseReport, ruleset);
   assert.equal(compared.find((finding) => finding.rule.id === 'new-compatible-rule').baseline.state, 'new');
+  assert.ok(compared.filter((finding) => finding.rule.id !== 'new-compatible-rule')
+    .every((finding) => ['unchanged', 'fixed'].includes(finding.baseline.state)),
+  'adding stable rule IDs under the same adapter version must preserve unchanged rule comparability');
 
   const legacy = {
     schemaVersion: 1, tool: { name: 'Web App Security Skill', version: '0.3.0' },

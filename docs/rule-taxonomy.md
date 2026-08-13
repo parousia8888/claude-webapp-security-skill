@@ -7,7 +7,7 @@ Severity is interpreted inside the named risk domain. In particular, a HIGH
 `evidence_integrity` severity describes the importance of missing evidence rather than a
 confirmed product vulnerability.
 
-Stable source inventory: 4 built-in risk rules,
+Stable source inventory: 12 built-in risk rules,
 2 built-in evidence-integrity rules and
 3 external adapter risk rules.
 
@@ -19,6 +19,14 @@ Stable source inventory: 4 built-in risk rules,
 | [`sensitive-env-file-present`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `secret_management` | `javascript`, `typescript`, `python` | `security_exposure` | `medium` / `suspected` | `CWE-798` |
 | [`node-inspector-public-bind`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `framework_exposure` | `javascript`, `typescript` | `security_exposure` | `high` / `suspected` | `CWE-489` |
 | [`production-source-map-enabled`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `browser_output` | `javascript`, `typescript` | `security_exposure` | `medium` / `suspected` | `CWE-540` |
+| [`js-dynamic-code-execution`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `injection_execution` | `javascript`, `typescript` | `security_exposure` | `high` / `suspected` | `CWE-95`, `OWASP-TOP10-2025-A05` |
+| [`node-child-process-shell-execution`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `injection_execution` | `javascript`, `typescript` | `security_exposure` | `high` / `suspected` | `CWE-78`, `OWASP-TOP10-2025-A05` |
+| [`react-dangerous-html-sink`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `browser_output` | `javascript`, `typescript` | `security_exposure` | `medium` / `suspected` | `CWE-79`, `OWASP-TOP10-2025-A05` |
+| [`browser-html-injection-sink`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `browser_output` | `javascript`, `typescript` | `security_exposure` | `medium` / `suspected` | `CWE-79`, `OWASP-TOP10-2025-A05` |
+| [`cors-wildcard-with-credentials`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `authentication_session` | `javascript`, `typescript` | `security_exposure` | `medium` / `suspected` | `CWE-942`, `OWASP-API-2023-API8` |
+| [`node-tls-verification-disabled`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `transport` | `javascript`, `typescript` | `security_exposure` | `high` / `suspected` | `CWE-295`, `OWASP-TOP10-2025-A02` |
+| [`jwt-unsafe-verification-options`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `authentication_session` | `javascript`, `typescript` | `security_exposure` | `high` / `suspected` | `CWE-347`, `OWASP-API-2023-API2` |
+| [`hardcoded-auth-secret`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `secret_management` | `javascript`, `typescript` | `security_exposure` | `high` / `suspected` | `CWE-798`, `OWASP-TOP10-2025-A07` |
 | [`source-stack-unsupported`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `evidence_integrity` | `deployment_configuration` | `javascript`, `typescript`, `python` | `evidence_integrity` | `info` / `unknown` | None |
 | [`source-evidence-incomplete`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `evidence_integrity` | `deployment_configuration` | `javascript`, `typescript`, `python` | `evidence_integrity` | `high` / `unknown` | None |
 | [`gitleaks-committed-secret`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `gitleaks@8.30.1` | `risk_detection` | `secret_management` | `any` | `supply_chain` | `high` / `suspected` | `CWE-798` |

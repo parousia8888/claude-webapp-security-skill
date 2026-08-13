@@ -2,7 +2,8 @@ import { createRulesetV2 } from './ruleset-v2.mjs';
 import { adapterDefinitions } from './adapter-definitions.mjs';
 import { SOURCE_RULE_REGISTRY, runtimeRule } from './source-rule-registry.mjs';
 
-const builtinRegistry = SOURCE_RULE_REGISTRY.filter((rule) => rule.adapter.type === 'built_in');
+const builtinRegistry = SOURCE_RULE_REGISTRY.filter((rule) =>
+  rule.adapter.type === 'built_in' && rule.maturity === 'stable');
 export const BUILTIN_SOURCE_ADAPTER = {
   id: builtinRegistry[0].adapter.id,
   version: builtinRegistry[0].adapter.version,

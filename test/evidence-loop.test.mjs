@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { validateRuntimeReportV3 } from '../scripts/lib/evidence-v3.mjs';
+import { SOURCE_RULES } from '../scripts/lib/source-rules.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const CLI = join(ROOT, 'scripts', 'webapp-security.mjs');
@@ -58,7 +59,7 @@ try {
   assert.equal(baseline.summary.byBaseline.new, 4);
   assert.equal(baseline.summary.byState.confirmed, 1);
   assert.equal(baseline.summary.byState.suspected, 3);
-  assert.equal(baseline.coverage.length, 6);
+  assert.equal(baseline.coverage.length, SOURCE_RULES.length);
   assert.ok(baseline.coverage.every((entry) => entry.status === 'completed'));
   assert.ok(baseline.findings.every((finding) => finding.baseline.coverageRef));
   assert.equal(baseline.policy.thresholds.find((entry) => entry.domain === 'security_exposure').failOn, 'high');
