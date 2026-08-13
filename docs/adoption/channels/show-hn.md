@@ -12,7 +12,7 @@ I built Web App Security Skill, an open-source skill and CLI for recording scope
 
 The local demo is generated from a repository-owned source fixture: OS command injection lead (CWE-78), SUSPECTED HIGH, then a reviewable patch, then security fixed; functional passed. The repository records 20 built-in risk, 2 evidence-integrity and 8 external-adapter stable rules, and a fully classified 5-project review.
 
-The installer verifies pinned bootstrap bytes and release assets; v0.4.0 includes a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
+The installer verifies pinned bootstrap bytes and release assets; v0.5.0 includes a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
 
 Demo evidence: https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md
 

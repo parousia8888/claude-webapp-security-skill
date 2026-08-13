@@ -266,6 +266,7 @@ try {
   assert.equal(printed.repository, 'parousia8888/web-app-security-skill');
   assert.ok(printed.releases['0.3.0']);
   assert.ok(printed.releases['0.4.0']);
+  assert.ok(printed.releases['0.5.0']);
   console.log('verified install ok: pinned assets, clean lifecycle, offline path, tamper and redirect rejection');
 } finally {
   server.close();

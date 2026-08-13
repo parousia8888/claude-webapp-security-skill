@@ -12,7 +12,7 @@ I am working on [Web App Security Skill](https://github.com/parousia8888/web-app
 
 The reproducible owned-source demo shows OS command injection lead (CWE-78), SUSPECTED HIGH -> security fixed; functional passed and keeps the evidence boundary, side effect, reports and patch in the repository. The rule corpus identifies 30 stable source/deployment rules by category, while agent-guided methods remain separate.
 
-I kept the 5 ordinary-project source journeys at immutable commits and included zero-finding, false-positive and unknown results. No hosted instance was probed. Release v0.4.0 adds a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
+I kept the 5 ordinary-project source journeys at immutable commits and included zero-finding, false-positive and unknown results. No hosted instance was probed. Release v0.5.0 adds a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
 
 Evidence inventory: https://github.com/parousia8888/web-app-security-skill/blob/main/docs/launch-evidence.md
 

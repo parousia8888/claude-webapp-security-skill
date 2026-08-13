@@ -16,7 +16,7 @@ The current contract names 9 stable narrow detection families and keeps 6 eviden
 
 I also ran the v0.5.0 built-in path over 5 ordinary projects at immutable commits. No hosted project was contacted, no dependency executed and no network request made. All 43 findings were reviewed as 11 useful leads, 27 expected benign matches, 1 unknown and 4 confirmed facts. A separate 5-study corpus exercises broader source review. [Classification and reproduction](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/v0.5.0-review.md).
 
-Distribution is part of the threat model. [v0.4.0](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.4.0) includes a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. The recommended installer verifies an immutable bootstrap before execution, then verifies the release it installs.
+Distribution is part of the threat model. [v0.5.0](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.5.0) includes a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. The recommended installer verifies an immutable bootstrap before execution, then verifies the release it installs.
 
 The useful review question is not whether this replaces an AppSec team or a general scanner; it does not. The question is whether the evidence states, patch boundary, retest contract and installation chain are strict enough to make an agent-assisted first pass safer and easier to review.
 
