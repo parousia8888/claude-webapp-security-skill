@@ -1,22 +1,15 @@
 import { createRulesetV2 } from './ruleset-v2.mjs';
 import { adapterDefinitions } from './adapter-definitions.mjs';
+import { SOURCE_RULE_REGISTRY, runtimeRule } from './source-rule-registry.mjs';
 
+const builtinRegistry = SOURCE_RULE_REGISTRY.filter((rule) => rule.adapter.type === 'built_in');
 export const BUILTIN_SOURCE_ADAPTER = {
-  id: 'builtin-source',
-  version: '1.1.0',
-  maturity: 'stable',
+  id: builtinRegistry[0].adapter.id,
+  version: builtinRegistry[0].adapter.version,
+  maturity: builtinRegistry[0].adapter.maturity,
 };
 
-export const SOURCE_RULES = [
-  ['dependency-lockfile-missing', 'supply_chain', 'low', 'dependency_reproducibility'],
-  ['sensitive-env-file-present', 'security_exposure', 'medium', 'sensitive_material_review'],
-  ['node-inspector-public-bind', 'security_exposure', 'high', 'remote_debug_exposure'],
-  ['production-source-map-enabled', 'security_exposure', 'medium', 'source_disclosure_lead'],
-  ['source-stack-unsupported', 'evidence_integrity', 'info', 'unsupported_scope'],
-  ['source-evidence-incomplete', 'evidence_integrity', 'high', 'required_evidence_missing'],
-].map(([id, domain, severity, rationale]) => ({
-  id, revision: '1', domain, severity, rationale,
-}));
+export const SOURCE_RULES = builtinRegistry.map(runtimeRule);
 
 export function sourceRuleset(selected = ['builtin']) {
   return createRulesetV2([

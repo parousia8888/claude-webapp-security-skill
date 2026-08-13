@@ -7,6 +7,7 @@ import {
 } from './evidence-v2.mjs';
 import { sanitizeEvidence, sanitizedJson, writeAtomicEvidenceBundle } from './evidence-writer.mjs';
 import { BUILTIN_SOURCE_ADAPTER, sourceRule } from './source-rules.mjs';
+import { sourceRuleExplanation, sourceRuleHelpUri } from './source-rule-registry.mjs';
 import {
   downgradeFindingV3, downgradeReportV3, validateExplanationV3, validateReportV3,
 } from './report-v3-contract.mjs';
@@ -72,7 +73,9 @@ export function upgradeFindingV2(finding, explanation = null) {
 
 export function sourceFindingV3(legacyFinding, ruleset, explanation = null) {
   const v2 = sourceFindingV2(legacyFinding, ruleset);
-  return upgradeFindingV2(v2, explanation);
+  return upgradeFindingV2(v2, explanation || sourceRuleExplanation(
+    BUILTIN_SOURCE_ADAPTER.id, legacyFinding.ruleId, v2,
+  ));
 }
 
 function upgradeReportFindings(report, explanationProvider = null) {
@@ -263,6 +266,8 @@ export function renderSarifV3(report) {
     shortDescription: { text: finding.title },
     fullDescription: { text: finding.explanation.plainLanguage },
     help: { text: `${finding.explanation.consequence}\n\nProposal: ${finding.explanation.proposal.summary}\n\nPossible side effects: ${finding.explanation.sideEffects.join('; ')}\n\nSecurity retest: ${finding.explanation.securityRetest}\n\nFunctional retest: ${finding.explanation.functionalRetest}\n\nRollback: ${finding.explanation.rollback}` },
+    ...(sourceRuleHelpUri(finding.adapter.id, finding.rule.id)
+      ? { helpUri: sourceRuleHelpUri(finding.adapter.id, finding.rule.id) } : {}),
     properties: { standards: finding.explanation.standards.map((item) => item.id) },
   }])).values()];
   const level = { critical: 'error', high: 'error', medium: 'warning', low: 'note', info: 'note' };

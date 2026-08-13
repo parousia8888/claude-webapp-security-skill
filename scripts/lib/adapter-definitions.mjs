@@ -1,33 +1,25 @@
+import { SOURCE_RULE_REGISTRY, runtimeRule } from './source-rule-registry.mjs';
+
 export const EXTERNAL_ADAPTER_TIMEOUT_SECONDS = 120;
 export const SUPPORTED_EXTERNAL_ADAPTERS = ['gitleaks', 'osv'];
 
+const gitleaksRegistry = SOURCE_RULE_REGISTRY.filter((rule) => rule.adapter.id === 'gitleaks');
+const osvRegistry = SOURCE_RULE_REGISTRY.filter((rule) => rule.adapter.id === 'osv');
 export const GITLEAKS_ADAPTER = {
-  id: 'gitleaks',
-  version: '8.30.1',
-  maturity: 'stable',
+  id: gitleaksRegistry[0].adapter.id,
+  version: gitleaksRegistry[0].adapter.version,
+  maturity: gitleaksRegistry[0].adapter.maturity,
 };
 
-export const GITLEAKS_RULES = [
-  {
-    id: 'gitleaks-committed-secret', revision: '1', domain: 'supply_chain', severity: 'high',
-    rationale: 'committed_secret_material',
-  },
-  {
-    id: 'gitleaks-working-tree-secret', revision: '1', domain: 'supply_chain', severity: 'high',
-    rationale: 'working_tree_secret_material',
-  },
-];
+export const GITLEAKS_RULES = gitleaksRegistry.map(runtimeRule);
 
 export const OSV_ADAPTER = {
-  id: 'osv',
-  version: '2.5.0',
-  maturity: 'stable',
+  id: osvRegistry[0].adapter.id,
+  version: osvRegistry[0].adapter.version,
+  maturity: osvRegistry[0].adapter.maturity,
 };
 
-export const OSV_RULES = [{
-  id: 'osv-known-vulnerability', revision: '1', domain: 'supply_chain', severity: 'info',
-  rationale: 'known_vulnerable_dependency',
-}];
+export const OSV_RULES = osvRegistry.map(runtimeRule);
 
 export function adapterDefinitions(selected = ['builtin']) {
   const definitions = [];

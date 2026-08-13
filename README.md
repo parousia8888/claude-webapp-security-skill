@@ -151,8 +151,11 @@ webapp-security crawl --site https://example.com --out ./security-report \
 ```
 
 Multiple `--fail-on-domain <domain=threshold>` options may be combined. Effective thresholds are
-recorded in the report. The [generated rule taxonomy](docs/rule-taxonomy.md) records each built-in
-source/crawl rule's domain, severity and rationale.
+recorded in the report. The [generated rule taxonomy](docs/rule-taxonomy.md) separates source rule
+kind, family, language, domain, severity, default evidence state and standards. Exact stable source
+counts and complete explanation metadata come from the machine-readable
+[`stable-source-rules.json`](docs/stable-source-rules.json): 4 built-in risk rules, 2 built-in
+evidence-integrity rules and 3 external adapter risk rules in the current release.
 
 ## Capability boundary
 

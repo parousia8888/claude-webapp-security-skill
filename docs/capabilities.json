@@ -49,7 +49,7 @@
       "category": "detection",
       "maturity": "stable",
       "scope": "Checks four narrow source rule families: lockfile absence, environment-named files, public Node inspector bindings and common production source-map settings. It is not general SAST.",
-      "evidence": ["scripts/lib/source-audit.mjs", "test/evidence-loop.test.mjs", "docs/compatibility.md"]
+      "evidence": ["scripts/lib/source-audit.mjs", "scripts/lib/source-rule-registry.mjs", "docs/stable-source-rules.json", "test/source-rule-registry.test.mjs", "test/evidence-loop.test.mjs"]
     },
     {
       "id": "aws-exposure-inventory",

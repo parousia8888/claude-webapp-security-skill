@@ -68,6 +68,10 @@ try {
     'docs/assets/demo.gif', 'docs/assets/demo.json',
     `docs/releases/v${manifest.version}.md`,
   ]) assert.ok(entries.includes(`${root}${required}`), `archive is missing ${required}`);
+  if (entries.includes(`${root}scripts/lib/source-rule-registry.mjs`)) {
+    assert.ok(entries.includes(`${root}docs/stable-source-rules.json`),
+      'archive with the source rule registry is missing its stable manifest');
+  }
   assert.equal(entries.some((entry) => entry.includes('/.git/')), false);
   assert.equal(tarOutput(archivePath, `${root}VERSION`).trim(), manifest.version);
   const sbom = JSON.parse(readFileSync(join(directory, sbomName), 'utf8'));

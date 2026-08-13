@@ -3,8 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CRAWL_RULES } from './lib/crawl-rules.mjs';
-import { SOURCE_RULES } from './lib/source-rules.mjs';
-import { GITLEAKS_RULES, OSV_RULES } from './lib/adapter-definitions.mjs';
+import { SOURCE_RULE_REGISTRY, stableSourceRuleManifest } from './lib/source-rule-registry.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const OUTPUT = join(ROOT, 'docs', 'rule-taxonomy.md');
@@ -14,12 +13,7 @@ if (process.argv.slice(2).some((argument) => argument !== '--check')) {
   process.exit(2);
 }
 
-const rationale = {
-  dependency_reproducibility: 'Dependency resolution cannot be reproduced or reviewed from a committed lock.',
-  sensitive_material_review: 'A sensitive-named local file is present and requires repository/artifact review; presence alone is not public exposure.',
-  remote_debug_exposure: 'A debugger is configured for a public bind address and can expose process control if reachable.',
-  source_disclosure_lead: 'Configuration enables source-map output; public delivery still requires artifact or deployment evidence.',
-  unsupported_scope: 'The built-in source adapter cannot identify a supported manifest.',
+const crawlRationale = {
   required_evidence_missing: 'A required input could not be obtained or interpreted; severity describes the importance of the evidence gap, not a confirmed vulnerability.',
   optional_evidence_missing: 'An optional evidence source was unavailable.',
   sample_evidence_missing: 'A bounded content sample could not be evaluated.',
@@ -43,32 +37,37 @@ const rationale = {
   bounded_probe_inventory: 'An informational count records the bounded probe result.',
   source_material_public: 'Original source and comments are publicly reconstructable from a served source map.',
   internal_metadata_disclosed: 'Asset naming reveals internal release or feature labels.',
-  committed_secret_material: 'A secret pattern was reproduced in Git history; persisted evidence is redacted and fingerprinted.',
-  working_tree_secret_material: 'A secret pattern was reproduced in the working tree; persisted evidence is redacted and fingerprinted.',
-  known_vulnerable_dependency: 'A recorded dependency version matched an OSV advisory; reachability and remediation priority still require project context.',
 };
+
+const sourceRules = SOURCE_RULE_REGISTRY.filter((rule) => rule.maturity === 'stable');
+const sourceCounts = stableSourceRuleManifest().counts;
 
 const lines = [
   '# Rule taxonomy', '',
-  '<!-- Generated from scripts/lib/source-rules.mjs and scripts/lib/crawl-rules.mjs. -->', '',
+  '<!-- Generated from scripts/lib/source-rule-registry.mjs and scripts/lib/crawl-rules.mjs. -->', '',
   'Severity is interpreted inside the named risk domain. In particular, a HIGH',
   '`search_discoverability` impact is not a HIGH `security_exposure`, and an',
   '`evidence_integrity` severity describes the importance of missing evidence rather than a',
   'confirmed product vulnerability.', '',
+  `Stable source inventory: ${sourceCounts.builtInRisk} built-in risk rules,`,
+  `${sourceCounts.builtInIntegrity} built-in evidence-integrity rules and`,
+  `${sourceCounts.externalRisk} external adapter risk rules.`, '',
+  '## Stable source rules', '',
+  '| Rule | Adapter | Kind | Family | Languages | Domain | Severity / state | Standards |',
+  '|---|---|---|---|---|---|---|---|',
 ];
 
-for (const [title, rules] of [
-  ['Built-in source rules', SOURCE_RULES],
-  ['External source adapter rules', [...GITLEAKS_RULES, ...OSV_RULES]],
-  ['Crawl rules', CRAWL_RULES],
-]) {
-  lines.push(`## ${title}`, '', '| Rule | Domain | Severity | Rationale |', '|---|---|---|---|');
-  for (const rule of rules) {
-    if (!rationale[rule.rationale]) throw new Error(`missing rationale text for ${rule.id}`);
-    lines.push(`| \`${rule.id}\` | \`${rule.domain}\` | \`${rule.severity}\` | ${rationale[rule.rationale]} |`);
-  }
-  lines.push('');
+for (const rule of sourceRules) {
+  const standards = rule.standards.length ? rule.standards.map((item) => `\`${item.id}\``).join(', ') : 'None';
+  lines.push(`| [\`${rule.id}\`](${rule.helpUri}) | \`${rule.adapter.id}@${rule.adapter.version}\` | \`${rule.kind}\` | \`${rule.family}\` | ${rule.languages.map((item) => `\`${item}\``).join(', ')} | \`${rule.domain}\` | \`${rule.severity}\` / \`${rule.defaultState}\` | ${standards} |`);
 }
+lines.push('', 'The machine-readable source contract is [`stable-source-rules.json`](stable-source-rules.json).', '',
+  '## Crawl rules', '', '| Rule | Domain | Severity | Rationale |', '|---|---|---|---|');
+for (const rule of CRAWL_RULES) {
+  if (!crawlRationale[rule.rationale]) throw new Error(`missing rationale text for ${rule.id}`);
+  lines.push(`| \`${rule.id}\` | \`${rule.domain}\` | \`${rule.severity}\` | ${crawlRationale[rule.rationale]} |`);
+}
+lines.push('');
 
 const rendered = `${lines.join('\n')}\n`;
 if (check) {
@@ -76,7 +75,7 @@ if (check) {
     console.error('rule taxonomy is stale; run node scripts/generate-rule-taxonomy.mjs');
     process.exit(1);
   }
-  console.log(`rule taxonomy current: ${SOURCE_RULES.length} built-in source, ${GITLEAKS_RULES.length + OSV_RULES.length} external source, ${CRAWL_RULES.length} crawl`);
+  console.log(`rule taxonomy current: ${sourceCounts.builtInRisk} built-in risk, ${sourceCounts.builtInIntegrity} integrity, ${sourceCounts.externalRisk} external risk, ${CRAWL_RULES.length} crawl`);
 } else {
   writeFileSync(OUTPUT, rendered);
   console.log(OUTPUT);

@@ -1,0 +1,708 @@
+{
+  "schemaVersion": 1,
+  "semanticDigest": "458e3be58cd9ddfe7ca2f539737dfd540c2c537ae9989dd99ee7748bc1e28448",
+  "counts": {
+    "stableTotal": 9,
+    "builtInRisk": 4,
+    "builtInIntegrity": 2,
+    "externalRisk": 3
+  },
+  "rules": [
+    {
+      "adapter": {
+        "id": "builtin-source",
+        "version": "1.1.0",
+        "maturity": "stable",
+        "type": "built_in"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [],
+      "alternatives": [
+        "Record and verify an equivalent immutable dependency resolution artifact in CI."
+      ],
+      "userDecisions": [
+        "Confirm which package manager and lockfile CI and production must use."
+      ],
+      "id": "dependency-lockfile-missing",
+      "kind": "risk_detection",
+      "family": "dependency_configuration",
+      "languages": [
+        "javascript",
+        "typescript",
+        "python"
+      ],
+      "domain": "supply_chain",
+      "severity": "low",
+      "defaultState": "confirmed",
+      "rationale": "dependency_reproducibility",
+      "technicalTerm": "Missing dependency lockfile",
+      "plainLanguage": "The project names its dependencies but does not record the exact versions used to build it.",
+      "consequence": "A later install can select different package versions, making security review and repeatable deployment less reliable.",
+      "confidenceBoundary": "The rule confirms that a supported manifest has no adjacent or applicable workspace lockfile. It does not prove a malicious dependency or exploitable vulnerability.",
+      "applicability": "Supported package.json or pyproject.toml project roots, including declared JavaScript workspaces.",
+      "detection": {
+        "type": "manifest_lockfile_adjacency",
+        "manifests": [
+          "package.json",
+          "pyproject.toml"
+        ],
+        "workspaceAware": true
+      },
+      "standards": [
+        {
+          "id": "NIST-SSDF-1.1-PS.3.2",
+          "url": "https://csrc.nist.gov/pubs/sp/800/218/final"
+        }
+      ],
+      "falsePositiveCauses": [
+        "A lockfile is generated only in a deployment system outside the audited source.",
+        "An unsupported package manager records resolution in another file."
+      ],
+      "proposal": {
+        "status": "ready_for_review",
+        "summary": "Generate and commit the lockfile used by CI and deployment."
+      },
+      "proposalRisks": [
+        "A newly generated lockfile can select versions that differ from the current deployment."
+      ],
+      "sideEffects": [
+        "Dependency versions or transitive packages may change when the first lockfile is generated."
+      ],
+      "securityRetest": "Rerun the source audit and confirm the manifest is covered by a supported lockfile.",
+      "functionalRetest": "Run the normal install, build and project test commands using the committed lockfile.",
+      "rollback": "Revert the lockfile if the locked install or application tests regress, then reconcile the deployed dependency set before regenerating it.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "manifest-without-lock",
+            "path": "test/fixtures/audit-app/package.json"
+          }
+        ],
+        "negative": [
+          {
+            "id": "manifest-with-lock",
+            "path": "test/fixtures/next-app/pnpm-lock.yaml"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "gitleaks",
+        "version": "8.30.1",
+        "maturity": "stable",
+        "type": "external"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [],
+      "alternatives": [
+        "Use an approved narrow Gitleaks suppression for a proven non-secret fixture."
+      ],
+      "userDecisions": [
+        "Confirm whether the match is a live credential and whether repository history may be rewritten."
+      ],
+      "id": "gitleaks-committed-secret",
+      "kind": "risk_detection",
+      "family": "secret_management",
+      "languages": [
+        "any"
+      ],
+      "domain": "supply_chain",
+      "severity": "high",
+      "defaultState": "suspected",
+      "rationale": "committed_secret_material",
+      "technicalTerm": "Committed secret-pattern lead",
+      "plainLanguage": "A pinned Gitleaks rule matched secret-shaped material in Git history.",
+      "consequence": "If the value is a live credential, anyone with repository history access may be able to use it.",
+      "confidenceBoundary": "The match and redacted fingerprint are recorded. Credential validity, exposure and authorization are not tested.",
+      "applicability": "A Git worktree with the caller-installed tested Gitleaks version.",
+      "detection": {
+        "type": "external_adapter",
+        "command": "gitleaks git --report-format json",
+        "matchState": "suspected"
+      },
+      "standards": [
+        {
+          "id": "CWE-798",
+          "url": "https://cwe.mitre.org/data/definitions/798.html"
+        }
+      ],
+      "falsePositiveCauses": [
+        "A test or revoked value matches a secret pattern.",
+        "A generated example intentionally resembles a credential."
+      ],
+      "proposal": {
+        "status": "review_required",
+        "summary": "Validate privately, revoke any live credential and remove it from current and historical source where appropriate."
+      },
+      "proposalRisks": [
+        "History rewriting disrupts existing clones and references."
+      ],
+      "sideEffects": [
+        "Credential rotation can interrupt services; history rewriting requires repository coordination."
+      ],
+      "securityRetest": "Rerun the pinned Gitleaks history scan and confirm the fingerprint is absent or covered by an approved suppression.",
+      "functionalRetest": "Verify every service using a rotated credential can authenticate and complete its normal health check.",
+      "rollback": "Do not reactivate a leaked credential; roll back application configuration to a separately issued valid credential if rotation breaks service.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "gitleaks-redacted-lead",
+            "path": "test/external-adapters.test.mjs"
+          }
+        ],
+        "negative": [
+          {
+            "id": "gitleaks-clean-output",
+            "path": "test/real-adapters.test.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "gitleaks",
+        "version": "8.30.1",
+        "maturity": "stable",
+        "type": "external"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [],
+      "alternatives": [
+        "Use an approved narrow suppression for a proven non-secret fixture."
+      ],
+      "userDecisions": [
+        "Confirm whether the match is live and which secret store should replace it."
+      ],
+      "id": "gitleaks-working-tree-secret",
+      "kind": "risk_detection",
+      "family": "secret_management",
+      "languages": [
+        "any"
+      ],
+      "domain": "supply_chain",
+      "severity": "high",
+      "defaultState": "suspected",
+      "rationale": "working_tree_secret_material",
+      "technicalTerm": "Working-tree secret-pattern lead",
+      "plainLanguage": "A pinned Gitleaks rule matched secret-shaped material in the current files.",
+      "consequence": "If the value is live and later committed, built or shared, it may grant unauthorized access.",
+      "confidenceBoundary": "The match and redacted fingerprint are recorded. Credential validity and distribution are not tested.",
+      "applicability": "A readable project directory with the caller-installed tested Gitleaks version.",
+      "detection": {
+        "type": "external_adapter",
+        "command": "gitleaks dir --report-format json",
+        "matchState": "suspected"
+      },
+      "standards": [
+        {
+          "id": "CWE-798",
+          "url": "https://cwe.mitre.org/data/definitions/798.html"
+        }
+      ],
+      "falsePositiveCauses": [
+        "A placeholder or test value matches a secret pattern.",
+        "A local ignored file contains intentionally non-production data."
+      ],
+      "proposal": {
+        "status": "review_required",
+        "summary": "Validate privately, revoke any live credential and remove it from source and build inputs."
+      },
+      "proposalRisks": [
+        "Credential rotation can interrupt dependent services."
+      ],
+      "sideEffects": [
+        "Local development and CI need a replacement secret-injection path."
+      ],
+      "securityRetest": "Rerun the pinned Gitleaks directory scan and confirm the fingerprint is absent or approved.",
+      "functionalRetest": "Run dependent service authentication and the project tests with replacement credentials.",
+      "rollback": "Do not restore a leaked value; use a separately issued credential if the replacement fails.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "gitleaks-working-tree-lead",
+            "path": "test/external-adapters.test.mjs"
+          }
+        ],
+        "negative": [
+          {
+            "id": "gitleaks-clean-directory",
+            "path": "test/real-adapters.test.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "builtin-source",
+        "version": "1.1.0",
+        "maturity": "stable",
+        "type": "built_in"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [
+        "node.js"
+      ],
+      "alternatives": [
+        "Use an authenticated, access-controlled remote debugging tunnel for an explicitly approved incident window."
+      ],
+      "userDecisions": [
+        "Confirm whether the script is used outside local development and whether remote debugging is required."
+      ],
+      "id": "node-inspector-public-bind",
+      "kind": "risk_detection",
+      "family": "framework_exposure",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "domain": "security_exposure",
+      "severity": "high",
+      "defaultState": "suspected",
+      "rationale": "remote_debug_exposure",
+      "technicalTerm": "Public Node.js inspector binding",
+      "plainLanguage": "A package script asks the Node debugger to listen on every network interface.",
+      "consequence": "If that script runs on a reachable host, someone who reaches the debugger may inspect secrets or control the process.",
+      "confidenceBoundary": "The package command is present. The audit does not prove the script runs in production or that the debug port is reachable.",
+      "applicability": "String-valued package.json scripts using --inspect or --inspect-brk with 0.0.0.0 or [::].",
+      "detection": {
+        "type": "json_script_argument",
+        "command": "node-inspector",
+        "publicAddresses": [
+          "0.0.0.0",
+          "[::]"
+        ]
+      },
+      "standards": [
+        {
+          "id": "CWE-489",
+          "url": "https://cwe.mitre.org/data/definitions/489.html"
+        }
+      ],
+      "falsePositiveCauses": [
+        "The script is limited to an isolated local container.",
+        "Network policy makes the listener unreachable."
+      ],
+      "proposal": {
+        "status": "review_required",
+        "summary": "Bind the inspector to loopback and keep debug scripts out of reachable production processes."
+      },
+      "proposalRisks": [
+        "Remote debugging workflows can stop working after the bind address changes."
+      ],
+      "sideEffects": [
+        "Container or remote development debugging may require an explicit secure tunnel."
+      ],
+      "securityRetest": "Rerun the source audit and verify the deployed process exposes no public inspector listener.",
+      "functionalRetest": "Run normal start and approved debugging workflows in their intended environments.",
+      "rollback": "Restore the debug workflow only behind verified network isolation if approved debugging becomes impossible.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "public-inspector-script",
+            "path": "test/fixtures/audit-app/package.json"
+          }
+        ],
+        "negative": [
+          {
+            "id": "loopback-inspector-script",
+            "path": "test/evidence-loop.test.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "osv",
+        "version": "2.5.0",
+        "maturity": "stable",
+        "type": "external"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [],
+      "alternatives": [
+        "Apply an upstream-supported backport or isolate the affected feature until an upgrade is available."
+      ],
+      "userDecisions": [
+        "Confirm whether the affected feature is used and whether update, isolation or time-bounded acceptance is appropriate."
+      ],
+      "id": "osv-known-vulnerability",
+      "kind": "risk_detection",
+      "family": "dependency_configuration",
+      "languages": [
+        "any"
+      ],
+      "domain": "supply_chain",
+      "severity": "info",
+      "defaultState": "suspected",
+      "rationale": "known_vulnerable_dependency",
+      "technicalTerm": "Known dependency advisory match",
+      "plainLanguage": "OSV-Scanner linked a recorded dependency version to one or more public vulnerability advisories.",
+      "consequence": "If the application uses the affected code path, an attacker may be able to trigger the behavior described by the advisory.",
+      "confidenceBoundary": "Package identity, version and advisory IDs matched. Reachability, exploitability and local severity are not inferred.",
+      "applicability": "Supported lockfiles or dependency manifests accepted by the caller-installed tested OSV-Scanner version.",
+      "detection": {
+        "type": "external_adapter",
+        "command": "osv-scanner scan source --format json",
+        "matchState": "suspected"
+      },
+      "standards": [
+        {
+          "id": "CWE-1104",
+          "url": "https://cwe.mitre.org/data/definitions/1104.html"
+        }
+      ],
+      "falsePositiveCauses": [
+        "The vulnerable code path is not reachable in this product.",
+        "The advisory does not affect the product configuration or platform."
+      ],
+      "proposal": {
+        "status": "review_required",
+        "summary": "Review advisory applicability, then update, replace or time-bound an explicitly owned suppression."
+      },
+      "proposalRisks": [
+        "Dependency upgrades can introduce API, behavior or transitive-dependency changes."
+      ],
+      "sideEffects": [
+        "Build output, runtime behavior or compatibility can change after the dependency update."
+      ],
+      "securityRetest": "Rerun OSV-Scanner and confirm the advisory identity is absent or explicitly accepted with an owner and expiry.",
+      "functionalRetest": "Run the project test suite and the user journeys that depend on the upgraded package.",
+      "rollback": "Revert the dependency change if functional tests regress, then choose a supported mitigation without marking the advisory fixed.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "osv-advisory-match",
+            "path": "test/external-adapters.test.mjs"
+          }
+        ],
+        "negative": [
+          {
+            "id": "osv-clean-output",
+            "path": "test/real-adapters.test.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "builtin-source",
+        "version": "1.1.0",
+        "maturity": "stable",
+        "type": "built_in"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [
+        "next.js",
+        "vite",
+        "nuxt",
+        "svelte",
+        "astro"
+      ],
+      "alternatives": [
+        "Generate hidden maps in a private build step and prevent them from entering public artifacts."
+      ],
+      "userDecisions": [
+        "Confirm whether production error monitoring requires source maps and where private maps may be stored."
+      ],
+      "id": "production-source-map-enabled",
+      "kind": "risk_detection",
+      "family": "browser_output",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "domain": "security_exposure",
+      "severity": "medium",
+      "defaultState": "suspected",
+      "rationale": "source_disclosure_lead",
+      "technicalTerm": "Production browser source-map exposure lead",
+      "plainLanguage": "The build configuration asks for browser source maps that can reveal original source structure if they are published.",
+      "consequence": "Public maps can expose source code, comments and internal names that make later attacks easier.",
+      "confidenceBoundary": "The configuration enables map output. The audit does not prove a map was built or served publicly.",
+      "applicability": "Recognized Next.js, Vite, Nuxt, Svelte and Astro JavaScript/TypeScript configuration files.",
+      "detection": {
+        "type": "build_config_literal",
+        "properties": [
+          "productionBrowserSourceMaps",
+          "sourcemap",
+          "sourceMap"
+        ],
+        "enabledValues": [
+          true,
+          "inline",
+          "hidden"
+        ]
+      },
+      "standards": [
+        {
+          "id": "CWE-540",
+          "url": "https://cwe.mitre.org/data/definitions/540.html"
+        }
+      ],
+      "falsePositiveCauses": [
+        "Maps are uploaded only to an access-controlled monitoring service.",
+        "The production artifact pipeline removes maps before publication."
+      ],
+      "proposal": {
+        "status": "ready_for_review",
+        "summary": "Disable public production source maps or keep them only in an access-controlled monitoring service."
+      },
+      "proposalRisks": [
+        "Browser production debugging and readable error stack traces may become less useful."
+      ],
+      "sideEffects": [
+        "Error monitoring needs a private source-map upload step to preserve symbolication."
+      ],
+      "securityRetest": "Rebuild and verify no public .map response or embedded source map is available, then rerun the source audit.",
+      "functionalRetest": "Run the production build, load the application and confirm error monitoring still symbolicates as intended.",
+      "rollback": "Restore private map generation if observability regresses, while keeping public artifact delivery blocked.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "source-map-enabled",
+            "path": "test/fixtures/audit-app/next.config.mjs"
+          }
+        ],
+        "negative": [
+          {
+            "id": "source-map-default",
+            "path": "test/fixtures/next-app/next.config.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "builtin-source",
+        "version": "1.1.0",
+        "maturity": "stable",
+        "type": "built_in"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [],
+      "alternatives": [
+        "Keep a placeholder-only .env.example and inject real values through the deployment secret store."
+      ],
+      "userDecisions": [
+        "Confirm whether the file contains live values and where each environment should obtain replacements."
+      ],
+      "id": "sensitive-env-file-present",
+      "kind": "risk_detection",
+      "family": "secret_management",
+      "languages": [
+        "javascript",
+        "typescript",
+        "python"
+      ],
+      "domain": "security_exposure",
+      "severity": "medium",
+      "defaultState": "suspected",
+      "rationale": "sensitive_material_review",
+      "technicalTerm": "Sensitive environment-file presence lead",
+      "plainLanguage": "A file named like a real environment configuration is present. The audit does not read its contents.",
+      "consequence": "If the file contains live credentials and is committed or published in a build artifact, an attacker may gain access to services or data.",
+      "confidenceBoundary": "Filename presence is a lead only. Repository tracking, contents, credential validity and public delivery are not established.",
+      "applicability": "Files named .env or .env.<environment>; documented example, sample, template, dist and defaults files are excluded.",
+      "detection": {
+        "type": "filename_policy",
+        "pattern": ".env[.<environment>]",
+        "contentRead": false,
+        "templateExclusions": true
+      },
+      "standards": [
+        {
+          "id": "CWE-798",
+          "url": "https://cwe.mitre.org/data/definitions/798.html"
+        }
+      ],
+      "falsePositiveCauses": [
+        "The file contains only non-sensitive local settings.",
+        "The file is ignored and never copied into an artifact."
+      ],
+      "proposal": {
+        "status": "review_required",
+        "summary": "Verify tracking and artifacts without printing values, then move live secrets outside source and builds."
+      },
+      "proposalRisks": [
+        "Changing environment injection can break local development, CI or deployment startup."
+      ],
+      "sideEffects": [
+        "Developers and deployment jobs may need a new documented secret-injection path."
+      ],
+      "securityRetest": "Verify the file is absent from Git history and built artifacts, without exposing its contents, then rerun the audit.",
+      "functionalRetest": "Start the application in development and its deployment-like test environment with the replacement configuration path.",
+      "rollback": "Restore the prior configuration source only in a private environment if startup fails; do not recommit a live secret.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "real-env-name",
+            "path": "test/fixtures/audit-app/.env.production"
+          }
+        ],
+        "negative": [
+          {
+            "id": "template-env-exclusion",
+            "path": "test/evidence-loop.test.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "builtin-source",
+        "version": "1.1.0",
+        "maturity": "stable",
+        "type": "built_in"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [],
+      "alternatives": [],
+      "userDecisions": [],
+      "id": "source-evidence-incomplete",
+      "kind": "evidence_integrity",
+      "family": "deployment_configuration",
+      "languages": [
+        "javascript",
+        "typescript",
+        "python"
+      ],
+      "domain": "evidence_integrity",
+      "severity": "high",
+      "defaultState": "unknown",
+      "rationale": "required_evidence_missing",
+      "technicalTerm": "Incomplete source coverage",
+      "plainLanguage": "Some eligible files could not be read or the bounded scan stopped early, so missing findings cannot be treated as a clean result.",
+      "consequence": "A security issue may exist in files the audit did not inspect.",
+      "confidenceBoundary": "The coverage ledger proves an input was skipped, truncated or unreadable. It does not prove a vulnerability in that input.",
+      "applicability": "Every built-in source audit.",
+      "detection": {
+        "type": "coverage_ledger_incomplete",
+        "outcomes": [
+          "skipped",
+          "truncated",
+          "errors"
+        ]
+      },
+      "standards": [],
+      "falsePositiveCauses": [
+        "A deliberately excluded large or unreadable file is irrelevant to the application.",
+        "A conservative traversal limit stopped after all relevant files were already scanned."
+      ],
+      "proposal": {
+        "status": "review_required",
+        "summary": "Review coverage reasons, restore readable inputs or raise an allowed bound, then rerun."
+      },
+      "proposalRisks": [
+        "Higher traversal limits consume more time and memory and may include unrelated files."
+      ],
+      "sideEffects": [
+        "The next audit can take longer and produce additional findings."
+      ],
+      "securityRetest": "Rerun with the same subject and scope until all required source rules have completed coverage.",
+      "functionalRetest": "No product code change is required; confirm the audit still targets the intended project root.",
+      "rollback": "Restore prior traversal limits if resource use becomes unacceptable, and record the remaining evidence as unknown.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "bounded-traversal",
+            "path": "test/source-coverage-ledger.test.mjs"
+          }
+        ],
+        "negative": [
+          {
+            "id": "complete-small-project",
+            "path": "test/fixtures/next-app/package.json"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "builtin-source",
+        "version": "1.1.0",
+        "maturity": "stable",
+        "type": "built_in"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [],
+      "alternatives": [],
+      "userDecisions": [],
+      "id": "source-stack-unsupported",
+      "kind": "evidence_integrity",
+      "family": "deployment_configuration",
+      "languages": [
+        "javascript",
+        "typescript",
+        "python"
+      ],
+      "domain": "evidence_integrity",
+      "severity": "info",
+      "defaultState": "unknown",
+      "rationale": "unsupported_scope",
+      "technicalTerm": "Unsupported source-stack evidence gap",
+      "plainLanguage": "The built-in audit could not find a supported project manifest, so it could not establish which source checks apply.",
+      "consequence": "Relevant source risks may remain unchecked until the stack is identified.",
+      "confidenceBoundary": "This proves only that supported Node or Python manifests were not found inside the bounded traversal.",
+      "applicability": "Every built-in source audit.",
+      "detection": {
+        "type": "supported_manifest_absence",
+        "manifests": [
+          "package.json",
+          "pyproject.toml",
+          "requirements*.txt"
+        ]
+      },
+      "standards": [],
+      "falsePositiveCauses": [
+        "The project uses an unsupported language or non-standard manifest.",
+        "Traversal limits excluded the manifest."
+      ],
+      "proposal": {
+        "status": "review_required",
+        "summary": "Record the stack manually or add a reviewed adapter before drawing source conclusions."
+      },
+      "proposalRisks": [
+        "Expanding source scope can increase review time and expose additional local paths in sanitized evidence."
+      ],
+      "sideEffects": [
+        "A new adapter or wider scope may add findings that were previously outside coverage."
+      ],
+      "securityRetest": "Provide a supported manifest or adapter and rerun until applicable source checks report coverage.",
+      "functionalRetest": "No product change is proposed; verify only that project discovery still identifies the intended root.",
+      "rollback": "Remove an incorrect stack override if it causes the wrong files or framework rules to be selected.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "unsupported-stack",
+            "path": "test/source-coverage-ledger.test.mjs"
+          }
+        ],
+        "negative": [
+          {
+            "id": "supported-node-stack",
+            "path": "test/fixtures/next-app/package.json"
+          }
+        ]
+      }
+    }
+  ]
+}

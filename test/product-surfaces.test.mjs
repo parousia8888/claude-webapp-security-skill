@@ -187,6 +187,7 @@ try {
     assert.ok(existsSync(join(installed, 'docs', 'adapter-protocol.md')));
     assert.ok(existsSync(join(installed, 'docs', 'alert-policy.md')));
     assert.ok(existsSync(join(installed, 'docs', 'rule-taxonomy.md')));
+    assert.ok(existsSync(join(installed, 'docs', 'stable-source-rules.json')));
     assert.match(readFileSync(join(installed, 'SKILL.md'), 'utf8'), /^name: web-app-security$/m);
   }
   const codexSkills = join(fakeHome, '.codex', 'skills');

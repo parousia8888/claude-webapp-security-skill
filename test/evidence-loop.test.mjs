@@ -69,6 +69,9 @@ try {
   assert.equal(sourceMapFinding.state, 'suspected');
   assert.equal(inspectorFinding.state, 'suspected');
   assert.equal(lockFinding.state, 'confirmed');
+  const sarifRules = JSON.parse(readFileSync(join(baselineDir, 'baseline.sarif'), 'utf8'))
+    .runs[0].tool.driver.rules;
+  assert.ok(sarifRules.every((rule) => rule.helpUri === 'https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json'));
 
   const patch = readFileSync(join(baselineDir, 'proposed.patch'), 'utf8');
   assert.match(patch, /Proposed changes only/);

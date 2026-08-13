@@ -16,6 +16,7 @@ import {
   sourceTraversalLimits,
 } from './lib/project-identity.mjs';
 import { sourceCoverage, sourceRuleForAdapter, sourceRuleset } from './lib/source-rules.mjs';
+import { sourceRuleExplanation } from './lib/source-rule-registry.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
@@ -198,6 +199,7 @@ try {
         evidence: finding.evidence,
         remediation: finding.remediation,
         retest: finding.retest,
+        explanation: sourceRuleExplanation(finding.adapterId, finding.ruleId, finding),
       });
     }),
   ];

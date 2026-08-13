@@ -142,6 +142,7 @@ const include = [
   'docs/report-v2.schema.json', 'docs/report-v2-migration.md', 'docs/finding-v3.schema.json',
   'docs/report-v3.schema.json', 'docs/report-v3-migration.md',
   'docs/adapter-protocol.md', 'docs/alert-policy.md', 'docs/rule-taxonomy.md',
+  'docs/stable-source-rules.json',
 ];
 
 function stagePayload(spec) {

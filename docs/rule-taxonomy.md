@@ -1,30 +1,31 @@
 # Rule taxonomy
 
-<!-- Generated from scripts/lib/source-rules.mjs and scripts/lib/crawl-rules.mjs. -->
+<!-- Generated from scripts/lib/source-rule-registry.mjs and scripts/lib/crawl-rules.mjs. -->
 
 Severity is interpreted inside the named risk domain. In particular, a HIGH
 `search_discoverability` impact is not a HIGH `security_exposure`, and an
 `evidence_integrity` severity describes the importance of missing evidence rather than a
 confirmed product vulnerability.
 
-## Built-in source rules
+Stable source inventory: 4 built-in risk rules,
+2 built-in evidence-integrity rules and
+3 external adapter risk rules.
 
-| Rule | Domain | Severity | Rationale |
-|---|---|---|---|
-| `dependency-lockfile-missing` | `supply_chain` | `low` | Dependency resolution cannot be reproduced or reviewed from a committed lock. |
-| `sensitive-env-file-present` | `security_exposure` | `medium` | A sensitive-named local file is present and requires repository/artifact review; presence alone is not public exposure. |
-| `node-inspector-public-bind` | `security_exposure` | `high` | A debugger is configured for a public bind address and can expose process control if reachable. |
-| `production-source-map-enabled` | `security_exposure` | `medium` | Configuration enables source-map output; public delivery still requires artifact or deployment evidence. |
-| `source-stack-unsupported` | `evidence_integrity` | `info` | The built-in source adapter cannot identify a supported manifest. |
-| `source-evidence-incomplete` | `evidence_integrity` | `high` | A required input could not be obtained or interpreted; severity describes the importance of the evidence gap, not a confirmed vulnerability. |
+## Stable source rules
 
-## External source adapter rules
+| Rule | Adapter | Kind | Family | Languages | Domain | Severity / state | Standards |
+|---|---|---|---|---|---|---|---|
+| [`dependency-lockfile-missing`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `dependency_configuration` | `javascript`, `typescript`, `python` | `supply_chain` | `low` / `confirmed` | `NIST-SSDF-1.1-PS.3.2` |
+| [`sensitive-env-file-present`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `secret_management` | `javascript`, `typescript`, `python` | `security_exposure` | `medium` / `suspected` | `CWE-798` |
+| [`node-inspector-public-bind`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `framework_exposure` | `javascript`, `typescript` | `security_exposure` | `high` / `suspected` | `CWE-489` |
+| [`production-source-map-enabled`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `browser_output` | `javascript`, `typescript` | `security_exposure` | `medium` / `suspected` | `CWE-540` |
+| [`source-stack-unsupported`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `evidence_integrity` | `deployment_configuration` | `javascript`, `typescript`, `python` | `evidence_integrity` | `info` / `unknown` | None |
+| [`source-evidence-incomplete`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `evidence_integrity` | `deployment_configuration` | `javascript`, `typescript`, `python` | `evidence_integrity` | `high` / `unknown` | None |
+| [`gitleaks-committed-secret`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `gitleaks@8.30.1` | `risk_detection` | `secret_management` | `any` | `supply_chain` | `high` / `suspected` | `CWE-798` |
+| [`gitleaks-working-tree-secret`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `gitleaks@8.30.1` | `risk_detection` | `secret_management` | `any` | `supply_chain` | `high` / `suspected` | `CWE-798` |
+| [`osv-known-vulnerability`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `osv@2.5.0` | `risk_detection` | `dependency_configuration` | `any` | `supply_chain` | `info` / `suspected` | `CWE-1104` |
 
-| Rule | Domain | Severity | Rationale |
-|---|---|---|---|
-| `gitleaks-committed-secret` | `supply_chain` | `high` | A secret pattern was reproduced in Git history; persisted evidence is redacted and fingerprinted. |
-| `gitleaks-working-tree-secret` | `supply_chain` | `high` | A secret pattern was reproduced in the working tree; persisted evidence is redacted and fingerprinted. |
-| `osv-known-vulnerability` | `supply_chain` | `info` | A recorded dependency version matched an OSV advisory; reachability and remediation priority still require project context. |
+The machine-readable source contract is [`stable-source-rules.json`](stable-source-rules.json).
 
 ## Crawl rules
 
