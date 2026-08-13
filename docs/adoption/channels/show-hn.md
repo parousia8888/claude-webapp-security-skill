@@ -10,7 +10,7 @@ Show HN: Web App Security Skill - inspect, patch, and retest with coding agents
 
 I built Web App Security Skill, an open-source skill and CLI for recording scope, running narrow deterministic checks, proposing reviewable hardening patches, and retesting applied changes.
 
-The local demo is generated from a repository-owned fixture: 13 high / 6 medium, then a patch, then 0 high / 0 medium on the same path. The repository also separates 8 regression-tested capabilities from 6 agent-guided methods and publishes 3 fixed-commit ordinary-project journeys, including zero-finding and unknown outcomes.
+The local demo is generated from a repository-owned fixture: 13 high / 6 medium, then a patch, then 0 high / 0 medium on the same path. The repository names 5 stable narrow detection families, keeps supporting automation outside that count, and publishes 3 fixed-commit ordinary-project journeys including zero-finding and unknown outcomes.
 
 The installer verifies pinned bootstrap bytes and release assets; v0.3.0 includes a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
 

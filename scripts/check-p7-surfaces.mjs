@@ -72,7 +72,9 @@ for (const state of Object.keys(capabilities.resultStates)) {
   }
 }
 for (const marker of [
-  `${capabilities.capabilities.length} capabilities`,
+  'stable narrow detection families',
+  'planned detection adapters',
+  'none are counted as detection coverage',
   `${journeys.journeys.length} fixed-commit source journeys`,
   `${contract.methodStudies.length} fixed-commit studies`,
   '13 high / 6 medium -> 0 high / 0 medium',

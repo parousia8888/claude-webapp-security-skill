@@ -16,7 +16,7 @@
 
 ## 已实现范围
 
-版本化能力合同包含 **14 项能力**：**8 项 automated/regression-tested**、**6 项 agent-guided**、**0 项 planned**。自动化范围包括项目发现、有限源码规则、稳定报告、补丁/复测证据、爬虫边界、爬虫身份、边缘验证、安装器和 GitHub Action；前端、API、LLM/OAuth、服务端、数据库、供应链、检测与 AWS 等强上下文工作仍由 agent 引导。
+版本化合同当前列出 **5 个 stable 窄检测家族**和 **2 个 planned 检测 adapter**；另行记录 **4 项证据/报告**、**1 项生命周期/分发**与 **6 项 agent-guided** 能力。Demo、报告、安装器和 Action 不计入漏洞检测覆盖。
 
 [逐项查看能力与证据](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md)。
 

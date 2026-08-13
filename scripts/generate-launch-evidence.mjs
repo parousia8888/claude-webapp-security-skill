@@ -30,9 +30,13 @@ try {
   const before = JSON.parse(readFileSync(join(temp, 'before.json'), 'utf8'));
   const after = JSON.parse(readFileSync(join(temp, 'after.json'), 'utf8'));
   const severity = (report, name) => report.findings.filter((item) => item.severity === name).length;
-  const grouped = Object.fromEntries(Object.keys(capabilities.labels).map((label) => [
-    label, capabilities.capabilities.filter((item) => item.label === label).length,
-  ]));
+  const count = (category, maturity) => capabilities.capabilities.filter((item) =>
+    item.category === category && (!maturity || item.maturity === maturity)).length;
+  const stableDetection = count('detection', 'stable');
+  const plannedDetection = count('detection', 'planned');
+  const evidenceReporting = count('evidence_reporting');
+  const lifecycleDistribution = count('lifecycle_distribution');
+  const agentGuided = count('agent_guided_methodology');
   if (journeys.journeys.length !== publicContract.projectJourneys.length) {
     throw new Error('project-journey structured sources disagree');
   }
@@ -49,7 +53,8 @@ try {
     '',
     '| Surface | Reproduced evidence | Source |',
     '|---|---|---|',
-    `| Capability contract | ${capabilities.capabilities.length} capabilities: ${grouped.automated_regression_tested} automated/regression-tested, ${grouped.agent_guided} agent-guided, ${grouped.planned} planned | [Generated matrix](capabilities.md) |`,
+    `| Detection contract | ${stableDetection} stable narrow detection families; ${plannedDetection} planned detection adapters | [Generated matrix](capabilities.md) |`,
+    `| Supporting contract | ${evidenceReporting} evidence/reporting, ${lifecycleDistribution} lifecycle/distribution and ${agentGuided} agent-guided capabilities; none are counted as detection coverage | [Generated matrix](capabilities.md) |`,
     `| Local before/after demo | ${severity(before, 'high')} high / ${severity(before, 'medium')} medium -> ${severity(after, 'high')} high / ${severity(after, 'medium')} medium | [Generated demo evidence](demo-evidence.md) |`,
     `| Ordinary project journeys | ${journeys.journeys.length} fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |`,
     `| Source methodology studies | ${publicContract.methodStudies.length} fixed-commit studies, kept separate from CLI precision claims | [Study method](case-studies/README.md) |`,
@@ -82,7 +87,7 @@ try {
       console.error('launch evidence is stale; run node scripts/generate-launch-evidence.mjs');
       process.exit(1);
     }
-    console.log(`launch evidence current: ${capabilities.capabilities.length} capabilities, ${journeys.journeys.length} journeys, ${publicContract.methodStudies.length} studies`);
+    console.log(`launch evidence current: ${stableDetection} stable detection, ${plannedDetection} planned detection, ${journeys.journeys.length} journeys, ${publicContract.methodStudies.length} studies`);
   } else {
     writeFileSync(OUTPUT, rendered);
     console.log(OUTPUT);

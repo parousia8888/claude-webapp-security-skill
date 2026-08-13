@@ -11,14 +11,11 @@ A phased program for auditing and hardening a production web app. Phases are ord
 
 ## Capability boundary
 
-Read [`docs/capabilities.md`](docs/capabilities.md) before describing product coverage. Keep these
-categories separate in every plan and deliverable:
-
-- **Automated and regression-tested** paths may be described as tool behavior.
-- **Agent-guided methodology** requires project context and agent judgment; do not describe it as
-  an automatic scan.
-- **Planned** behavior is unavailable until its phase is implemented and the capability source is
-  updated with regression evidence.
+Read [`docs/capabilities.md`](docs/capabilities.md) before describing product coverage. Keep
+capability category separate from maturity: detection, evidence/reporting, lifecycle/distribution,
+and agent-guided methodology are different categories; `stable`, `experimental`, `agent_guided`,
+and `planned` are maturity states. Never count demos, renderers, installers, or Actions as detector
+coverage. Planned behavior is unavailable until its implementation and regression evidence ship.
 
 Classify results as `confirmed`, `suspected`, `unknown`, or `not_applicable`. Never convert a source
 match or scanner lead directly to `confirmed`, and never convert unavailable evidence to a pass.

@@ -60,13 +60,15 @@ for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
   }
 }
 
-const labels = Object.keys(capabilities.labels);
+const categories = Object.keys(capabilities.categories);
+const maturities = Object.keys(capabilities.maturities);
 const states = Object.keys(capabilities.resultStates);
 for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
   for (const state of states) if (!text.includes(`\`${state}\``)) fail(`${path} is missing ${state}`);
-  if (!text.includes(`${labels.length} capability levels`)) {
-    const localized = `${labels.length} 层能力`;
-    if (!text.includes(localized)) fail(`${path} does not expose the generated capability-level count`);
+  for (const marker of path === 'README.md'
+    ? ['Detection', 'Evidence and reporting', 'Lifecycle and distribution', 'Agent-guided methodology', 'stable', 'planned']
+    : ['检测', '证据与报告', '生命周期与分发', 'Agent 方法论', 'stable', 'planned']) {
+    if (!text.includes(marker)) fail(`${path} is missing capability taxonomy marker ${marker}`);
   }
 }
 
@@ -82,4 +84,4 @@ if (result) {
 }
 
 if (/Replace the placeholder|替换占位符/.test(`${en}\n${zh}`)) fail('stale Action placeholder copy remains');
-if (!process.exitCode) console.log(`public surfaces ok: ${journeyCount} journeys, ${studyCount} methodology studies, ${labels.length} capability levels, ${states.length} result states`);
+if (!process.exitCode) console.log(`public surfaces ok: ${journeyCount} journeys, ${studyCount} methodology studies, ${categories.length} categories, ${maturities.length} maturities, ${states.length} result states`);

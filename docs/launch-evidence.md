@@ -9,7 +9,8 @@ artifacts and reproduced local behavior; they do not claim universal scanner cov
 
 | Surface | Reproduced evidence | Source |
 |---|---|---|
-| Capability contract | 14 capabilities: 8 automated/regression-tested, 6 agent-guided, 0 planned | [Generated matrix](capabilities.md) |
+| Detection contract | 5 stable narrow detection families; 2 planned detection adapters | [Generated matrix](capabilities.md) |
+| Supporting contract | 4 evidence/reporting, 1 lifecycle/distribution and 6 agent-guided capabilities; none are counted as detection coverage | [Generated matrix](capabilities.md) |
 | Local before/after demo | 13 high / 6 medium -> 0 high / 0 medium | [Generated demo evidence](demo-evidence.md) |
 | Ordinary project journeys | 3 fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |
 | Source methodology studies | 5 fixed-commit studies, kept separate from CLI precision claims | [Study method](case-studies/README.md) |

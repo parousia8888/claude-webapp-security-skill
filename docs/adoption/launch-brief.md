@@ -16,7 +16,7 @@ The repository-owned local demo begins with **13 high / 6 medium**, produces a r
 
 ## What is implemented
 
-The versioned capability contract contains **14 capabilities**: **8 automated and regression-tested**, **6 agent-guided**, and **0 planned**. Automated surfaces include project discovery, narrow source rules, stable reports, patch/retest evidence, crawl-boundary checks, crawler identity, edge verification, installation and the GitHub Action. Context-heavy frontend, API, LLM/OAuth, server, database, supply-chain, detection and AWS work remains agent-guided.
+The versioned contract currently lists **5 stable narrow detection families** and **2 planned detection adapters**. Separately, it records **4 evidence/reporting**, **1 lifecycle/distribution**, and **6 agent-guided** capabilities. Demo, report, installer and Action behavior are not counted as vulnerability detection.
 
 [Review every capability and its evidence](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md).
 

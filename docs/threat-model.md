@@ -2,10 +2,11 @@
 
 ## Assets and trust boundaries
 
-The project protects four assets: the target application's availability, confidential evidence,
-the correctness of audit verdicts, and crawler/search availability. Trust boundaries exist between
-the user and agent, the local skill and target, vendor-published crawler data, cloud APIs, CI, and
-release consumers.
+The project protects five assets: the target application's availability, confidential evidence,
+the correctness of audit verdicts, baseline identity and lineage, and crawler/search availability.
+Trust boundaries exist between the user and agent, the local skill and target, prior and current
+audit runs, external tool output, vendor-published crawler data, cloud APIs, CI, and release
+consumers.
 
 ## In-scope threats
 
@@ -15,7 +16,11 @@ release consumers.
 | False `verified` crawler | Attacker gains a rate-limit exemption | Product-specific published ranges or FCrDNS |
 | False `spoofed` crawler | Legitimate search/AI traffic is blocked | Fail open on unavailable evidence; exact source matching |
 | Network failure reported as safe | Missing control is trusted | Explicit `unknown`; non-zero exit |
+| Cross-project or tampered baseline accepted | Unrelated findings are reported as fixed | Persisted subject/scope identity, report digest, ruleset compatibility, reject-before-write |
+| Incomplete traversal reported clean | Unscanned source is interpreted as no findings | Coverage ledger; relevant skip/truncation becomes `unknown` and non-zero |
+| Parser or external tool failure reported clean | Missing detection is trusted | Structured adapters; unavailable/malformed evidence becomes `unknown` |
 | Secret leakage in reports | Credential or user-data exposure | Sanitized evidence contract; private reporting |
+| Partial or permissive report write | Sensitive or misleading evidence remains on disk | Private modes, exclusive staging, validation and atomic bundle commit |
 | CI/release substitution | Consumers run modified code | Full-SHA actions, checksums, SPDX SBOM, artifact attestation |
 | Agent overreach | Destructive or out-of-scope actions | Read-only default; minimum proof; explicit phase routing |
 | Denial of service by verification | Target availability impact | Bounded concurrency; active rate test opt-in; `--n` cap |
@@ -33,3 +38,10 @@ identity never grants access to private routes.
 3. Active traffic beyond ordinary page retrieval requires an authorization anchor and explicit flag.
 4. A confirmed bug fix must have a regression that fails when the bug is restored.
 5. Reports must state what was not reached and keep suspected findings separate from confirmed ones.
+6. A prior finding is `fixed` only when subject, scope and rule evidence are compatible and the same
+   current check completed; absence from output alone is insufficient.
+7. Detection coverage must not include demo, reporting, installation or distribution capabilities.
+
+The v0.4.0 design details and v1 migration boundary are recorded in
+[`report-v2-migration.md`](report-v2-migration.md). The current v0.3.0 runtime does not yet satisfy
+that planned contract.

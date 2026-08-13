@@ -13,16 +13,23 @@ const lines = [
   '',
   '<!-- Generated from docs/capabilities.json. Run `node scripts/generate-capability-matrix.mjs`. -->',
   '',
-  'This matrix separates deterministic product behavior from work an AI agent performs using the',
-  'Skill methodology. Installing the Skill does not prove that a web project is secure.',
+  'This matrix separates what detects project risk from the infrastructure that records evidence,',
+  'distributes the product, or guides an AI agent. A capability count is not vulnerability coverage,',
+  'and installing the Skill does not prove that a web project is secure.',
+  '',
+  'Maturity is independent of category: `stable` behavior is implemented and regression-tested,',
+  '`experimental` behavior has an explicit unstable boundary, `agent_guided` requires project',
+  'context and judgment, and `planned` behavior is unavailable.',
   '',
 ];
 
-for (const [label, title] of Object.entries(source.labels)) {
-  lines.push(`## ${title}`, '', '| Capability | Current boundary | Evidence |', '|---|---|---|');
-  for (const capability of source.capabilities.filter((item) => item.label === label)) {
-    const evidence = capability.evidence.map((path) => `[\`${path}\`](../${path})`).join(', ');
-    lines.push(`| ${capability.name} | ${capability.scope} | ${evidence} |`);
+for (const [category, title] of Object.entries(source.categories)) {
+  lines.push(`## ${title}`, '', '| Capability | Maturity | Current boundary | Evidence |', '|---|---|---|---|');
+  for (const capability of source.capabilities.filter((item) => item.category === category)) {
+    const evidence = capability.maturity === 'planned'
+      ? `Not shipped; planned for \`v${capability.plannedFor}\``
+      : capability.evidence.map((path) => '[`' + path + '`](../' + path + ')').join(', ');
+    lines.push(`| ${capability.name} | \`${capability.maturity}\` | ${capability.scope} | ${evidence} |`);
   }
   lines.push('');
 }

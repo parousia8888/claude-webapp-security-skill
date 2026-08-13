@@ -123,17 +123,22 @@ remaining/unreached risks. None of these commands grants permission to probe a d
 
 ## Capability boundary
 
-The project has 3 capability levels:
+Capabilities use two independent dimensions so support tooling is not counted as vulnerability
+coverage:
 
-- **Automated and regression-tested:** project discovery/scoping, narrow source rules, stable
-  multi-format reports and baseline retest, the local demo, crawl-boundary audit, crawler identity,
-  edge verification, installer and GitHub Action run through deterministic product paths.
-- **Agent-guided methodology:** frontend, API, LLM/OAuth, server, database, supply-chain, detection
-  and AWS reviews require project context and agent judgment. They are not one automatic scan.
-- **Planned:** new framework/rule adapters and deeper deterministic checks remain planned until
-  planted regressions prove them.
+- **Category:** Detection; Evidence and reporting; Lifecycle and distribution; or Agent-guided
+  methodology.
+- **Maturity:** `stable`, `experimental`, `agent_guided`, or `planned`.
 
-The [generated capability matrix](docs/capabilities.md) links every statement to evidence. Results
+The current stable Detection families are the narrow source audit, crawl-boundary audit, crawler
+identity verification, edge verification, and the read-only AWS inventory helper. Project discovery,
+the demo, report renderers, retest infrastructure, installer, and GitHub Action are tested product
+capabilities, but are not additional detector families. Gitleaks and OSV-Scanner adapters are
+`planned`; API authorization, business logic, LLM/OAuth, data-layer, supply-chain and broader AWS
+reviews remain Agent-guided methodology until a named adapter earns regression evidence.
+
+The [generated capability matrix](docs/capabilities.md) links every category and maturity statement
+to evidence. Results
 are `confirmed`, `suspected`, `unknown`, or `not_applicable`; a check that could not run is never a
 pass. Installing the Skill does not prove a project secure.
 

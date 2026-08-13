@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/finding-v2.schema.json",
+  "title": "Web App Security Skill finding v2 design contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "fingerprint", "fingerprintVersion", "rule", "adapter", "domain", "title", "severity", "state", "summary", "location", "evidence", "remediation", "retest", "baseline"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+    "fingerprint": { "$ref": "#/$defs/sha256" },
+    "fingerprintVersion": { "const": 2 },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "revision"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+        "revision": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$" }
+      }
+    },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "rulesetDigest"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+        "version": { "type": "string", "minLength": 1 },
+        "rulesetDigest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "domain": { "enum": ["security_exposure", "supply_chain", "search_discoverability", "reliability", "evidence_integrity"] },
+    "title": { "type": "string", "minLength": 1 },
+    "severity": { "enum": ["critical", "high", "medium", "low", "info"] },
+    "state": { "enum": ["confirmed", "suspected", "unknown", "not_applicable"] },
+    "summary": { "type": "string", "minLength": 1 },
+    "location": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "line"],
+          "properties": {
+            "path": { "type": "string", "minLength": 1 },
+            "line": { "type": ["integer", "null"], "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "evidence": { "type": "object" },
+    "remediation": { "type": "string", "minLength": 1 },
+    "retest": { "type": "string", "minLength": 1 },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "priorFingerprint", "compatibility", "currentCheck", "coverageRef", "reasonCode"],
+      "properties": {
+        "state": { "enum": ["new", "unchanged", "regressed", "fixed", "unretested", "not_comparable", null] },
+        "priorFingerprint": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "compatibility": { "enum": ["compatible", "not_comparable", "not_attempted"] },
+        "currentCheck": { "enum": ["completed", "incomplete", "not_run"] },
+        "coverageRef": { "type": ["string", "null"], "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+        "reasonCode": { "type": ["string", "null"], "pattern": "^[a-z0-9][a-z0-9._-]+$" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "fixed" } }, "required": ["state"] },
+          "then": {
+            "properties": {
+              "priorFingerprint": { "$ref": "#/$defs/sha256" },
+              "compatibility": { "const": "compatible" },
+              "currentCheck": { "const": "completed" },
+              "coverageRef": { "type": "string" },
+              "reasonCode": { "const": "condition_absent_after_completed_check" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "state": { "const": "unretested" } }, "required": ["state"] },
+          "then": {
+            "properties": {
+              "priorFingerprint": { "$ref": "#/$defs/sha256" },
+              "compatibility": { "const": "compatible" },
+              "currentCheck": { "enum": ["incomplete", "not_run"] },
+              "reasonCode": { "type": "string" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "state": { "const": "not_comparable" } }, "required": ["state"] },
+          "then": {
+            "properties": {
+              "compatibility": { "const": "not_comparable" },
+              "reasonCode": { "type": "string" }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

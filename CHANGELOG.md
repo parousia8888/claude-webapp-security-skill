@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Report/finding v2 design schemas and migration contract define privacy-preserving subject identity,
+  scope/ruleset compatibility, risk domains, coverage accounting, affirmative `fixed` evidence and
+  explicit non-comparable migration from v1. The current v0.3 runtime still writes v1 until the v2
+  implementation milestones land.
+- Regression contracts reject fixed results without a completed compatible check, silent v1
+  comparison, unreconciled coverage, and capability metadata that counts demos, renderers or
+  distribution as vulnerability detection.
+
+### Changed
+- Capability claims now use independent category and maturity fields. The public matrix identifies
+  five stable narrow detection families and two planned detection adapters separately from evidence,
+  reporting, lifecycle, distribution and agent-guided capabilities.
+- The threat model now covers cross-project baseline substitution, incomplete traversal,
+  parser/external-tool failure and partial report disclosure.
+
 ### Fixed
 - Crawler range evidence now rejects missing, non-array, empty, invalid-CIDR, future and stale
   vendor data. The claimed product's own validated list is still authoritative; a sibling product

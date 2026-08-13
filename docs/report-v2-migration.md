@@ -1,0 +1,85 @@
+# Report v2 migration contract
+
+Report v2 is the planned v0.4.0 evidence contract. The current v0.3.0 CLI still writes v1 reports;
+the presence of the v2 design schemas does not make those reports comparable under v2.
+
+## Identity model
+
+A v2 report identifies its audit subject without publishing a local absolute path:
+
+- `subject.id` is created once by `webapp-security start` and persisted with the project scope.
+- `subject.scopeDigest` covers the normalized, security-relevant scope fields.
+- `subject.binding=persisted` means the ID came from that reviewed scope.
+- A direct audit without a persisted scope uses `binding=ephemeral`; it can be read and rendered, but
+  cannot establish compatibility with a later independent run.
+- Moving or cloning the project preserves identity only when the reviewed scope record moves with it.
+  Rebinding is an explicit operation with lineage, not a path-name inference.
+
+Absolute project paths may be used locally to execute an audit but are not part of the public
+subject identity and must not appear in a v2 report's `subject` object.
+
+## Comparable retest
+
+A retest baseline is comparable only when all of these are true:
+
+1. both reports are schema v2;
+2. `subject.id` and `subject.scopeDigest` match;
+3. the baseline bytes match the recorded `sourceDigest`;
+4. the relevant adapter and rule revisions are compatible;
+5. the current coverage record proves the same check completed.
+
+Rules added after the baseline may produce `new`. A removed, disabled, unavailable or incomplete
+check produces `unretested`. An incompatible rule revision produces `not_comparable`.
+
+`fixed` has one narrow meaning: the same compatible check completed against the same subject and
+scope, and the prior condition was absent. Missing fingerprints alone are never evidence of a fix.
+
+## Version 1 reports
+
+Version 1 remains readable for historical display and release verification. It lacks a trustworthy
+subject ID, scope digest, ruleset digest, adapter coverage and rule revision, so it must never be
+silently accepted as a comparable v2 baseline.
+
+The planned migration command requires the user to review and explicitly bind the v1 report to a
+persisted v2 scope. It writes a new v2 document containing:
+
+- the SHA-256 digest of the original v1 bytes;
+- `subject.binding=migrated`;
+- `migration.boundBy=explicit_user_binding` and a timestamp;
+- the original v1 file unchanged;
+- baseline compatibility `not_comparable` until a new v2 audit establishes the first trusted
+  baseline.
+
+Malformed v1 input is rejected. Missing identity is not inferred from `scope.projectRoot`, report
+filename, current working directory, repository name or finding overlap.
+
+## Domain policy
+
+Every v2 report records the effective CI thresholds instead of relying on an undocumented CLI
+default. The default policy is:
+
+| Domain | Default threshold |
+|---|---|
+| `security_exposure` | confirmed `high` or `critical` |
+| `supply_chain` | confirmed `high` or `critical` |
+| `search_discoverability` | `never` |
+| `reliability` | `never` |
+| `evidence_integrity` | handled by incomplete-evidence exit `3`, not severity inflation |
+
+Users may explicitly configure discoverability or reliability thresholds. Severity remains scoped
+to its domain; a HIGH discoverability impact is not relabelled as a HIGH security vulnerability.
+
+When a run contains both a confirmed configured threshold breach and unrelated incomplete evidence,
+exit `1` takes precedence and the report retains both. When there is no confirmed threshold breach
+but required evidence is incomplete, exit `3` applies.
+
+## Failure behavior
+
+- Subject/scope mismatch, tampered baseline, malformed schema or impossible migration metadata:
+  exit `2`; commit no retest bundle.
+- Compatible subject with a required check unavailable or incomplete: emit explicit `unretested` or
+  `unknown` evidence and exit `3` when no confirmed configured threshold is crossed.
+- Confirmed threshold breach: exit `1`, while retaining unrelated incomplete evidence in the report.
+
+The implementation and CLI migration path land in later v0.4.0 milestones. Until then, use v1 only
+with the current v0.3.0 behavior and do not describe it as satisfying this contract.

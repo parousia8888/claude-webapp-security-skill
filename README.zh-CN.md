@@ -119,15 +119,18 @@ webapp-security retest . --baseline .webapp-security/runs/<run-id>/report.json
 
 ## 能力边界
 
-项目公开能力严格分成 3 层能力：
+能力使用两个互相独立的维度，避免把支撑工具计入漏洞检测覆盖：
 
-- **已自动化并有回归测试：** 项目识别/scope、窄范围源码规则、稳定多格式报告与 baseline 复测、
-  本地 demo、crawl boundary、crawler 身份、edge 复测、安装器和 GitHub Action 通过确定性路径运行。
-- **Agent 按方法论执行：** 前端、API、LLM/OAuth、服务端、数据库、供应链、检测和 AWS 审查
-  依赖项目上下文与 Agent 判断，不是一条自动扫描命令。
-- **计划中：** 新框架/rule adapter 与更深的确定性检查，只有经过 planted regression 后才会加入。
+- **类别：** 检测；证据与报告；生命周期与分发；或 Agent 方法论。
+- **成熟度：** `stable`、`experimental`、`agent_guided` 或 `planned`。
 
-[生成的能力矩阵](docs/capabilities.md)为每项声明链接证据。结果只使用 `confirmed`、
+当前 stable 检测家族包括窄范围源码 audit、crawl boundary、crawler 身份验证、edge 验证和
+只读 AWS inventory helper。项目识别、demo、报告 renderer、复测基础设施、安装器与 GitHub
+Action 虽然都有测试，但不构成更多 detector 家族。Gitleaks 与 OSV-Scanner adapter 仍是
+`planned`；API 授权、业务逻辑、LLM/OAuth、数据层、供应链和更广的 AWS 审查仍属于 Agent
+方法论，直到具体 adapter 获得回归证据。
+
+[生成的能力矩阵](docs/capabilities.md)为每项类别与成熟度声明链接证据。结果只使用 `confirmed`、
 `suspected`、`unknown`、`not_applicable`；无法执行的检查不是通过。安装 Skill 不代表项目已经安全。
 
 ## 确定性工具

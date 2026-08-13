@@ -2,10 +2,15 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { BASELINE_STATES, RESULT_STATES, SEVERITIES } from './lib/evidence.mjs';
+import {
+  V2_BASELINE_STATES, V2_COVERAGE_STATES, V2_DOMAINS, V2_RESULT_STATES,
+} from './lib/report-v2-contract.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const findingSchema = JSON.parse(readFileSync(`${ROOT}/docs/finding.schema.json`, 'utf8'));
 const reportSchema = JSON.parse(readFileSync(`${ROOT}/docs/report.schema.json`, 'utf8'));
+const findingV2Schema = JSON.parse(readFileSync(`${ROOT}/docs/finding-v2.schema.json`, 'utf8'));
+const reportV2Schema = JSON.parse(readFileSync(`${ROOT}/docs/report-v2.schema.json`, 'utf8'));
 
 function equal(label, actual, expected) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -22,4 +27,12 @@ if (reportSchema.properties.findings.items.$ref !== './finding.schema.json') {
   console.error('evidence contract: report findings must reference finding.schema.json');
   process.exitCode = 1;
 }
-if (!process.exitCode) console.log(`evidence contract ok: ${SEVERITIES.length} severities, ${RESULT_STATES.length} states, ${BASELINE_STATES.length} baseline states`);
+equal('v2 finding domains', findingV2Schema.properties.domain.enum, V2_DOMAINS);
+equal('v2 finding states', findingV2Schema.properties.state.enum, V2_RESULT_STATES);
+equal('v2 baseline states', findingV2Schema.properties.baseline.properties.state.enum, [...V2_BASELINE_STATES, null]);
+equal('v2 coverage states', reportV2Schema.properties.coverage.items.properties.status.enum, V2_COVERAGE_STATES);
+if (reportV2Schema.properties.findings.items.$ref !== './finding-v2.schema.json') {
+  console.error('evidence contract: v2 report findings must reference finding-v2.schema.json');
+  process.exitCode = 1;
+}
+if (!process.exitCode) console.log(`evidence contract ok: v1 ${SEVERITIES.length}/${RESULT_STATES.length}/${BASELINE_STATES.length}; v2 ${V2_DOMAINS.length} domains, ${V2_RESULT_STATES.length} states, ${V2_BASELINE_STATES.length} baseline states`);

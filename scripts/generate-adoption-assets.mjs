@@ -42,12 +42,11 @@ requireFact(journeys.journeys.every((journey) => /^[a-f0-9]{40}$/.test(journey.c
 requireFact(journeys.method?.hostedInstancesProbed === false && journeys.method?.networkDeniedDuringAudit === true,
   'journey source/network boundary drifted');
 
-const capabilityCounts = Object.fromEntries(Object.keys(capabilities.labels).map((label) => [
-  label,
-  capabilities.capabilities.filter((item) => item.label === label).length,
-]));
-requireFact(Object.values(capabilityCounts).reduce((sum, value) => sum + value, 0) === capabilities.capabilities.length,
-  'capability labels are incomplete');
+const capabilityCount = (category, maturity) => capabilities.capabilities.filter((item) =>
+  item.category === category && (!maturity || item.maturity === maturity)).length;
+const categorizedCount = Object.keys(capabilities.categories).reduce((sum, category) =>
+  sum + capabilityCount(category), 0);
+requireFact(categorizedCount === capabilities.capabilities.length, 'capability categories are incomplete');
 const facts = {
   product: publication.product,
   repo: publication.repositoryUrl,
@@ -58,9 +57,11 @@ const facts = {
   publishedVersion: published.version,
   release: published.url,
   capabilities: capabilities.capabilities.length,
-  automated: capabilityCounts.automated_regression_tested,
-  guided: capabilityCounts.agent_guided,
-  planned: capabilityCounts.planned,
+  stableDetection: capabilityCount('detection', 'stable'),
+  plannedDetection: capabilityCount('detection', 'planned'),
+  evidenceReporting: capabilityCount('evidence_reporting'),
+  lifecycleDistribution: capabilityCount('lifecycle_distribution'),
+  guided: capabilityCount('agent_guided_methodology'),
   beforeHigh: demo.result.before.high,
   beforeMedium: demo.result.before.medium,
   afterHigh: demo.result.after.high,
@@ -104,7 +105,7 @@ add('docs/adoption/launch-brief.md', [
   '',
   '## What is implemented',
   '',
-  `The versioned capability contract contains **${facts.capabilities} capabilities**: **${facts.automated} automated and regression-tested**, **${facts.guided} agent-guided**, and **${facts.planned} planned**. Automated surfaces include project discovery, narrow source rules, stable reports, patch/retest evidence, crawl-boundary checks, crawler identity, edge verification, installation and the GitHub Action. Context-heavy frontend, API, LLM/OAuth, server, database, supply-chain, detection and AWS work remains agent-guided.`,
+  `The versioned contract currently lists **${facts.stableDetection} stable narrow detection families** and **${facts.plannedDetection} planned detection adapters**. Separately, it records **${facts.evidenceReporting} evidence/reporting**, **${facts.lifecycleDistribution} lifecycle/distribution**, and **${facts.guided} agent-guided** capabilities. Demo, report, installer and Action behavior are not counted as vulnerability detection.`,
   '',
   `[Review every capability and its evidence](${capabilityLink}).`,
   '',
@@ -146,7 +147,7 @@ add('docs/adoption/launch-brief.zh-CN.md', [
   '',
   '## 已实现范围',
   '',
-  `版本化能力合同包含 **${facts.capabilities} 项能力**：**${facts.automated} 项 automated/regression-tested**、**${facts.guided} 项 agent-guided**、**${facts.planned} 项 planned**。自动化范围包括项目发现、有限源码规则、稳定报告、补丁/复测证据、爬虫边界、爬虫身份、边缘验证、安装器和 GitHub Action；前端、API、LLM/OAuth、服务端、数据库、供应链、检测与 AWS 等强上下文工作仍由 agent 引导。`,
+  `版本化合同当前列出 **${facts.stableDetection} 个 stable 窄检测家族**和 **${facts.plannedDetection} 个 planned 检测 adapter**；另行记录 **${facts.evidenceReporting} 项证据/报告**、**${facts.lifecycleDistribution} 项生命周期/分发**与 **${facts.guided} 项 agent-guided** 能力。Demo、报告、安装器和 Action 不计入漏洞检测覆盖。`,
   '',
   `[逐项查看能力与证据](${capabilityLink})。`,
   '',
@@ -184,7 +185,7 @@ add('docs/adoption/channels/technical-long-form.md', [
   '',
   `The repository-owned demo deliberately starts with ${facts.beforeHigh} high and ${facts.beforeMedium} medium findings. It shows the patch and reruns the same path at ${facts.afterHigh} high and ${facts.afterMedium} medium, with ${facts.fixed} findings recorded as fixed. [The generated reports and patch are public](${demoLink}).`,
   '',
-  `The current contract separates ${facts.automated} automated/regression-tested capabilities from ${facts.guided} agent-guided capabilities. That distinction matters: the CLI has deterministic project discovery, narrow rules, reports and retest semantics, while context-heavy API, identity, data and cloud review still depends on an agent and human review. [The full ${facts.capabilities}-capability matrix links each claim to tests or reference material](${capabilityLink}).`,
+  `The current contract names ${facts.stableDetection} stable narrow detection families and keeps ${facts.evidenceReporting} evidence/reporting plus ${facts.lifecycleDistribution} lifecycle/distribution capabilities outside that detection count. Context-heavy API, identity, data and cloud review still depends on ${facts.guided} agent-guided methods and human review. [The full category-by-maturity matrix links each claim to evidence](${capabilityLink}).`,
   '',
   `I also ran ${facts.journeys} ordinary projects at immutable commits with network denied. Those journeys retain zero findings, false-positive closures, suspected and unknown results rather than presenting only successful detections. A separate ${facts.studies}-project corpus exercises the broader source-review method. [Method and reproduction commands](${journeysLink}).`,
   '',
@@ -214,7 +215,7 @@ add('docs/adoption/channels/show-hn.md', [
   '',
   `I built ${facts.product}, an open-source skill and CLI for recording scope, running narrow deterministic checks, proposing reviewable hardening patches, and retesting applied changes.`,
   '',
-  `The local demo is generated from a repository-owned fixture: ${facts.beforeHigh} high / ${facts.beforeMedium} medium, then a patch, then ${facts.afterHigh} high / ${facts.afterMedium} medium on the same path. The repository also separates ${facts.automated} regression-tested capabilities from ${facts.guided} agent-guided methods and publishes ${facts.journeys} fixed-commit ordinary-project journeys, including zero-finding and unknown outcomes.`,
+  `The local demo is generated from a repository-owned fixture: ${facts.beforeHigh} high / ${facts.beforeMedium} medium, then a patch, then ${facts.afterHigh} high / ${facts.afterMedium} medium on the same path. The repository names ${facts.stableDetection} stable narrow detection families, keeps supporting automation outside that count, and publishes ${facts.journeys} fixed-commit ordinary-project journeys including zero-finding and unknown outcomes.`,
   '',
   `The installer verifies pinned bootstrap bytes and release assets; v${facts.publishedVersion} includes a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.`,
   '',
@@ -240,7 +241,7 @@ add('docs/adoption/channels/reddit.md', [
   '',
   `I am working on [${facts.product}](${facts.repo}). It combines an agent workflow with deterministic local tooling: record scope, classify results as confirmed/suspected/unknown/not_applicable, produce a patch for review, then require baseline retest evidence before marking anything fixed.`,
   '',
-  `The reproducible owned-fixture demo currently shows ${facts.beforeHigh} high / ${facts.beforeMedium} medium -> ${facts.afterHigh} high / ${facts.afterMedium} medium and keeps the reports and patch in the repository. The public capability contract labels ${facts.automated} items automated/regression-tested and ${facts.guided} agent-guided.`,
+  `The reproducible owned-fixture demo currently shows ${facts.beforeHigh} high / ${facts.beforeMedium} medium -> ${facts.afterHigh} high / ${facts.afterMedium} medium and keeps the reports and patch in the repository. The public contract identifies ${facts.stableDetection} stable narrow detection families and ${facts.guided} agent-guided methods without counting reports or distribution as detection.`,
   '',
   `I kept the ${facts.journeys} ordinary-project source journeys at immutable commits and included zero-finding, false-positive and unknown results. No hosted instance was probed. Release v${facts.publishedVersion} adds a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.`,
   '',
@@ -257,7 +258,7 @@ add('docs/adoption/channels/reddit.md', [
   '> Publication status: draft; subreddit selection and posting require a rule check at posting time.',
 ]);
 
-const shortPost = `${facts.product}: open-source inspect -> patch -> retest for AI coding agents. Owned-fixture demo; ${facts.automated} regression-tested + ${facts.guided} agent-guided capabilities; fixed-commit cases; verified releases. Not a general scanner. ${facts.repo}`;
+const shortPost = `${facts.product}: inspect -> patch -> retest for AI coding agents. ${facts.stableDetection} stable narrow detection families; evidence and distribution are counted separately; fixed-commit cases; verified releases. Not a general scanner. ${facts.repo}`;
 requireFact(shortPost.length <= 280, `short post exceeds 280 characters (${shortPost.length})`);
 add('docs/adoption/channels/x-short-post.md', [
   '# X / short-post draft',
@@ -286,7 +287,7 @@ add('docs/adoption/channels/v2ex.md', [
   '',
   `这个项目把 Web 安全加固拆成范围确认、证据分类、最小补丁和强制复测。自有本地 fixture 的生成式 demo 为 ${facts.beforeHigh} high / ${facts.beforeMedium} medium，应用可审查补丁后沿同一路径复测为 ${facts.afterHigh} high / ${facts.afterMedium} medium；报告、补丁和生成方式都可以检查。`,
   '',
-  `目前能力合同共 ${facts.capabilities} 项，其中 ${facts.automated} 项 automated/regression-tested，${facts.guided} 项 agent-guided。后者需要项目上下文和人工复核，不包装成全自动扫描器。另有 ${facts.journeys} 个固定 commit 的普通开源项目旅程，保留零 finding、误报关闭和 unknown 结果，未探测线上实例。`,
+  `目前能力合同明确列出 ${facts.stableDetection} 个 stable 窄检测家族、${facts.plannedDetection} 个 planned 检测 adapter 和 ${facts.guided} 项 agent-guided 方法；证据/报告与分发能力不计入检测覆盖。另有 ${facts.journeys} 个固定 commit 的普通开源项目旅程，保留零 finding、误报关闭和 unknown 结果，未探测线上实例。`,
   '',
   `v${facts.publishedVersion} release 提供签名 tag、可复现归档、SPDX SBOM、校验和、manifest 与 provenance。安装路径会先固定并校验 bootstrap，再校验 release 资产。`,
   '',
@@ -320,7 +321,7 @@ add('docs/adoption/channels/chinese-developer-community.md', [
   '',
   `可复现 demo 使用仓库自有本地 fixture，初始结果是 ${facts.beforeHigh} high / ${facts.beforeMedium} medium，展示补丁后复测为 ${facts.afterHigh} high / ${facts.afterMedium} medium，并记录 ${facts.fixed} 项 fixed。它不请求第三方目标，生成脚本、JSON/Markdown 报告和 patch 都在仓库中。`,
   '',
-  `当前 ${facts.capabilities} 项能力被明确分成 ${facts.automated} 项自动化回归能力、${facts.guided} 项 agent-guided 方法和 ${facts.planned} 项 planned。这个分层避免把强上下文的 API、身份、数据库、LLM 和云审查描述成通用自动扫描。`,
+  `当前能力合同按 category 与 maturity 分开记录：${facts.stableDetection} 个 stable 窄检测家族、${facts.plannedDetection} 个 planned 检测 adapter、${facts.evidenceReporting} 项证据/报告能力、${facts.lifecycleDistribution} 项生命周期/分发能力和 ${facts.guided} 项 agent-guided 方法。这个分层避免把 demo、报告、安装器或强上下文审查描述成检测覆盖。`,
   '',
   `案例证据包括 ${facts.journeys} 个固定 commit 的普通项目旅程和独立的 ${facts.studies} 个源码方法论案例。普通项目旅程在 deny-network 边界内工作，不探测托管实例，并公开零 finding、误报关闭、suspected 与 unknown。`,
   '',
@@ -350,7 +351,7 @@ add('docs/adoption/citations.md', [
   '|---|---|---|---|',
   `| \`product.workflow\` | ${facts.promiseEn} | [README](${facts.repo}#readme) | Agent-guided work still requires project context and review. |`,
   `| \`demo.before-after\` | The repository-owned local fixture records ${facts.beforeHigh} high / ${facts.beforeMedium} medium before, ${facts.afterHigh} high / ${facts.afterMedium} medium after, and ${facts.fixed} fixed findings. | [Generated demo evidence](${demoLink}) | Owned fixture only; no third-party target or general coverage claim. |`,
-  `| \`capabilities.contract\` | The v${facts.version} contract lists ${facts.capabilities} capabilities: ${facts.automated} automated/regression-tested, ${facts.guided} agent-guided and ${facts.planned} planned. | [Generated capability matrix](${capabilityLink}) | A capability count is not vulnerability coverage or precision. |`,
+  `| \`capabilities.contract\` | The v${facts.version} contract lists ${facts.stableDetection} stable narrow detection families and ${facts.plannedDetection} planned detection adapters, separately from ${facts.evidenceReporting} evidence/reporting, ${facts.lifecycleDistribution} lifecycle/distribution and ${facts.guided} agent-guided capabilities. | [Generated capability matrix](${capabilityLink}) | Supporting or guided capability counts are not vulnerability coverage or precision. |`,
   `| \`cases.ordinary\` | ${facts.journeys} ordinary project journeys use immutable source commits with no hosted instance probed. | [Journey evidence](${journeysLink}) | Source-only scope; zero, false-positive and unknown outcomes remain visible; no upstream validation claimed. |`,
   `| \`cases.method\` | ${facts.studies} separate fixed-commit studies exercise the source-review methodology. | [Case-study method](${facts.repo}/blob/main/docs/case-studies/README.md) | Not a CLI precision benchmark. |`,
   `| \`release.integrity\` | v${facts.publishedVersion} records a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. | [Release evidence](${facts.repo}/blob/main/${releaseEvidencePath}) | Artifact identity/origin does not prove every security conclusion. |`,
@@ -373,9 +374,11 @@ const share = {
   promise: { en: facts.promiseEn, 'zh-CN': facts.promiseZh },
   capabilityContract: {
     total: facts.capabilities,
-    automatedRegressionTested: facts.automated,
+    stableDetection: facts.stableDetection,
+    plannedDetection: facts.plannedDetection,
+    evidenceReporting: facts.evidenceReporting,
+    lifecycleDistribution: facts.lifecycleDistribution,
     agentGuided: facts.guided,
-    planned: facts.planned,
     evidence: capabilityLink,
   },
   ownedLocalDemo: {

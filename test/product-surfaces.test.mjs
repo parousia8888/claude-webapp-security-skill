@@ -147,6 +147,9 @@ try {
     assert.ok(existsSync(join(installed, 'docs', 'security-scope.schema.json')));
     assert.ok(existsSync(join(installed, 'docs', 'finding.schema.json')));
     assert.ok(existsSync(join(installed, 'docs', 'report.schema.json')));
+    assert.ok(existsSync(join(installed, 'docs', 'finding-v2.schema.json')));
+    assert.ok(existsSync(join(installed, 'docs', 'report-v2.schema.json')));
+    assert.ok(existsSync(join(installed, 'docs', 'report-v2-migration.md')));
     assert.match(readFileSync(join(installed, 'SKILL.md'), 'utf8'), /^name: web-app-security$/m);
   }
   const codexSkills = join(fakeHome, '.codex', 'skills');
