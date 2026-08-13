@@ -106,7 +106,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G2 | Verified low-friction install channel and clean-room lifecycle | completed | `11eee87`, `55c3de2`, `02277e8`, `37d822a` + checks below |
 | G3 | Privacy-minimal five-session usability kit and deterministic aggregation | completed | `a51640a` + checks below |
 | G4 | Reusable English/Chinese publication and upstream case-study kit | completed | `2618447` + checks below |
-| G5 | Priority fail-closed correctness fixes and release-candidate evidence | in progress | pending |
+| G5 | Priority fail-closed correctness fixes and release-candidate evidence | in progress | `f227c3d`, `49cf60f` + readiness record |
 
 ## G0 - Adoption contract and measurable baseline
 
@@ -398,12 +398,38 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Commit / CI / release: pending
-- Remaining risks: release publication and movement of `v1` are external state changes that require
-  the final reviewed release tree and explicit owner confirmation at action time.
+- Status: in progress; repository correctness complete, version/release gate pending owner decision.
+- Implementation: `scripts/verify-crawler-ip.mjs` validates non-empty product-specific CIDRs and
+  `creationTime`, preserves custom product/vendor identity and returns exit `3` for unavailable
+  evidence. `scripts/aws-exposure-audit.sh` routes nested reads through the counted `UNCHECKED`
+  path, withholds captured error payloads and returns exit `3` when unknown checks remain without a
+  confirmed HIGH. `scripts/crawl-surface-audit.mjs` performs bounded XML structure/entity parsing,
+  rejects declarations and constrains every sitemap/index/sample URL to the audited origin.
+  Roadmap source metadata now records explicit open/closed Issue state and the live checker validates
+  both, so completed work does not make the public contract fail. The complete version gate and
+  evidence inventory are in `docs/releases/next-patch-readiness.md`.
+- Tests: planted local regressions first reproduced all three pre-fix gaps. The new crawler, AWS and
+  sitemap tests then passed alongside existing crawler unit/CLI tests and product-surface coverage.
+  Two full `npm run check` runs, Skill Creator validation and `git diff --check` passed. CI
+  [31656913265](https://github.com/parousia8888/web-app-security-skill/actions/runs/31656913265)
+  passed Ubuntu/macOS on Node 20/22 and CodeQL
+  [31656913266](https://github.com/parousia8888/web-app-security-skill/actions/runs/31656913266)
+  passed. State-contract CI
+  [31657298727](https://github.com/parousia8888/web-app-security-skill/actions/runs/31657298727)
+  and CodeQL
+  [31657298751](https://github.com/parousia8888/web-app-security-skill/actions/runs/31657298751)
+  also passed. Live GitHub metadata validation passed after #1/#2/#5 closed.
+- Commit / CI / release: correctness implementation `f227c3d`; issue-state contract `49cf60f`.
+  Issues #1, #2 and #5 are closed with commit/test/CI evidence. The Marketplace listing is live and
+  still reports `v0.3.0`; the signed `v0.3.0` and `v1` tags both resolve to
+  `d7df9fa6efd466c3eb13768c3b9ad259d2636e04`. Existing public `@v1` consumer run
+  [31657177101](https://github.com/parousia8888/web-app-security-skill/actions/runs/31657177101)
+  passed. No new version, tag, release or `v1` move is claimed.
+- Remaining risks: `VERSION` is still the already-published `0.3.0`; rebuilding HEAD under that
+  identity is mechanism evidence, not a valid new release candidate. Selecting the next version,
+  aligning its exact tree/evidence, publishing it and moving `v1` remain
+  `external_validation_pending` owner-gated actions. Five real user sessions, public channel posts
+  and upstream validation also remain external and are not implied by G5 correctness completion.
 
 ## External handoff register
 
