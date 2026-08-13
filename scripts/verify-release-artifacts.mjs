@@ -64,6 +64,7 @@ try {
   }
   for (const required of [
     'VERSION', 'SKILL.md', 'action.yml', 'scripts/webapp-security.mjs',
+    'scripts/install-verified.mjs',
     'docs/assets/demo.gif', 'docs/assets/demo.json',
     `docs/releases/v${manifest.version}.md`,
   ]) assert.ok(entries.includes(`${root}${required}`), `archive is missing ${required}`);
