@@ -447,7 +447,11 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   [31658906142](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658906142)
   passed Ubuntu/macOS on Node 20/22 and CodeQL
   [31658906192](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658906192)
-  passed.
+  passed. The phase-evidence record was committed separately as `112d16c`; its own
+  [CI run 31659018151](https://github.com/parousia8888/web-app-security-skill/actions/runs/31659018151)
+  passed Ubuntu/macOS on Node 20/22 and its
+  [CodeQL run 31659018213](https://github.com/parousia8888/web-app-security-skill/actions/runs/31659018213)
+  passed, so the recorded evidence is present in the exact remotely verified tree.
 - Remaining risks: `VERSION` is still the already-published `0.3.0`; rebuilding HEAD under that
   identity is mechanism evidence, not a valid new release candidate. Selecting the next version,
   aligning its exact tree/evidence, publishing it, recording the resulting asset digests in a later
