@@ -22,21 +22,21 @@ See the [compatibility matrix](compatibility.md) for the tested environment boun
 
 ### Stable release
 
-Download every v0.4.0 asset, verify the checksums, extract the archive and install from that verified
+Download every v0.5.0 asset, verify the checksums, extract the archive and install from that verified
 payload:
 
 ```bash
 mkdir web-app-security-release && cd web-app-security-release
-gh release download v0.4.0 --repo parousia8888/web-app-security-skill
+gh release download v0.5.0 --repo parousia8888/web-app-security-skill
 sha256sum -c SHA256SUMS
-tar -xzf web-app-security-skill-0.4.0.tar.gz
-node web-app-security-skill-0.4.0/scripts/webapp-security.mjs install
+tar -xzf web-app-security-skill-0.5.0.tar.gz
+node web-app-security-skill-0.5.0/scripts/webapp-security.mjs install
 webapp-security version
 ```
 
 On macOS, use `shasum -a 256 -c SHA256SUMS` when GNU `sha256sum` is unavailable. The release page
 also publishes an SPDX SBOM, source manifest, build-provenance attestation and signed tag. See the
-[v0.4.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.4.0).
+[v0.5.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.5.0).
 
 ### Current checkout
 

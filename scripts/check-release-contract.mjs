@@ -13,9 +13,9 @@ const workflows = [
   '.github/workflows/release.yml',
   '.github/workflows/action-v1-consumer.yml',
 ];
-const RELEASE_ACTION_COMMIT = 'ace0e8a5ed983f553000270f709d70b5de484e28';
-const BOOTSTRAP_COMMIT = '2698482ae3215a9296409a72491fff7c8496413b';
-const BOOTSTRAP_SHA256 = '9b0661d4e3db47e8451b6b4ad92c69889032aa17f5159a3230e3cd7faf91cc77';
+const RELEASE_ACTION_COMMIT = '778a7ba73588cdab1d9df281ab362f4fe0925189';
+const BOOTSTRAP_COMMIT = 'd9239deeb20d708948e80bcb3c09bd986a2b400c';
+const BOOTSTRAP_SHA256 = '4dd81d1c49596e7a1c54b8ca009802bcd46da976cb02e9cdc576f0d3e5617fc5';
 const VERIFIER_COMMIT = '366e3871286dda6bb90f56ff1e5622888f4b9f6d';
 const VERIFIER_SHA256 = 'ba9b8e22832027696f1185f4a901cbbc0785498fc49470ee5083a9027d9be528';
 let failed = false;

@@ -33,7 +33,7 @@
 
 ## What's new in v0.5.0
 
-The current `main` candidate is the source-detection and understandable-remediation release:
+The published v0.5.0 release is the source-detection and understandable-remediation release:
 
 - **More automatic source rules:** 20 stable built-in risk rules, 2 evidence-integrity rules and 8
   opt-in external-adapter rules. Built-in depth targets JavaScript/TypeScript and Python Web code.
@@ -49,8 +49,8 @@ The current `main` candidate is the source-detection and understandable-remediat
 
 Exact support and limits are in the [compatibility matrix](docs/compatibility.md), [stable rule
 corpus](docs/stable-rule-corpus.json) and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md).
-The verified installer below continues to select the published v0.4.0 release until v0.5.0 passes
-the signed release gates.
+The verified installer below selects the published v0.5.0 release by default while retaining the
+trusted v0.3.0 and v0.4.0 paths for explicit installs.
 
 ## See the result
 
@@ -85,7 +85,7 @@ before execution, then verifies the selected release manifest, checksums, SBOM, 
 archive before installation.
 
 ```bash
-( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/2698482ae3215a9296409a72491fff7c8496413b/scripts/bootstrap-install.sh?immutable=2698482ae3215a9296409a72491fff7c8496413b'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" '9b0661d4e3db47e8451b6b4ad92c69889032aa17f5159a3230e3cd7faf91cc77'; sh "$p" )
+( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/d9239deeb20d708948e80bcb3c09bd986a2b400c/scripts/bootstrap-install.sh?immutable=d9239deeb20d708948e80bcb3c09bd986a2b400c'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" '4dd81d1c49596e7a1c54b8ca009802bcd46da976cb02e9cdc576f0d3e5617fc5'; sh "$p" )
 ```
 
 Select a surface when needed:
@@ -276,7 +276,7 @@ requires deployment authorization acknowledgement:
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/web-app-security-skill@ace0e8a5ed983f553000270f709d70b5de484e28
+  uses: parousia8888/web-app-security-skill@778a7ba73588cdab1d9df281ab362f4fe0925189
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -284,21 +284,20 @@ requires deployment authorization acknowledgement:
     fail-on: high
 ```
 
-For repeatable CI, use the immutable v0.4.0 commit above. The stable major-version alias currently
-resolves to that same verified release:
+For repeatable CI, use the immutable v0.5.0 commit above. The stable major-version alias remains on
+v0.4.0 until the separate v0.5.0 consumer and promotion gates complete:
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-Source mode defaults to the bundled adapter. On the current v0.4.0 immutable Action it runs the
-v0.4.0 source contract; the v0.5.0 source rules become available only after the v0.5.0 Action source
-is published. External binaries must be installed and pinned by the
+Source mode defaults to the bundled adapter. The immutable v0.5.0 Action runs the v3 source
+contract and the stable v0.5.0 rule corpus. External binaries must be installed and pinned by the
 caller; the Action never downloads them:
 
 ```yaml
 - name: Audit source
-  uses: parousia8888/web-app-security-skill@ace0e8a5ed983f553000270f709d70b5de484e28
+  uses: parousia8888/web-app-security-skill@778a7ba73588cdab1d9df281ab362f4fe0925189
   with:
     mode: source
     project: .
@@ -328,7 +327,7 @@ Verify downloaded release assets:
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
-git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.4.0
+git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.0
 ```
 
 ## 5 ordinary project journeys

@@ -35,7 +35,7 @@
 
 ## v0.5.0 新增内容
 
-当前 `main` 候选版本的重点是“更多源码检测 + 看得懂的修复提案”：
+已发布的 v0.5.0 重点是“更多源码检测 + 看得懂的修复提案”：
 
 - **自动源码规则增加：**20 条 stable built-in risk、2 条证据完整性规则、8 条 opt-in 外部 adapter
   规则。内置深度明确集中在 JavaScript/TypeScript 与 Python Web 代码。
@@ -48,8 +48,8 @@
   漏洞，也不构成 precision/recall 指标。
 
 准确支持范围见[兼容矩阵](docs/compatibility.md)、[稳定规则语料](docs/stable-rule-corpus.json)和
-[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。在 v0.5.0 通过签名发布门禁前，下面的可信
-安装器仍选择已经发布的 v0.4.0。
+[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。下面的可信安装器默认选择已发布的
+v0.5.0，同时保留可显式安装的 v0.3.0 与 v0.4.0 信任路径。
 
 ## 查看结果
 
@@ -81,7 +81,7 @@ bootstrap 并在执行前验证 SHA-256，然后验证选定 release 的 manifes
 归档，再进入安装。
 
 ```bash
-( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/2698482ae3215a9296409a72491fff7c8496413b/scripts/bootstrap-install.sh?immutable=2698482ae3215a9296409a72491fff7c8496413b'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" '9b0661d4e3db47e8451b6b4ad92c69889032aa17f5159a3230e3cd7faf91cc77'; sh "$p" )
+( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/d9239deeb20d708948e80bcb3c09bd986a2b400c/scripts/bootstrap-install.sh?immutable=d9239deeb20d708948e80bcb3c09bd986a2b400c'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" '4dd81d1c49596e7a1c54b8ca009802bcd46da976cb02e9cdc576f0d3e5617fc5'; sh "$p" )
 ```
 
 也可以只装单一入口：
@@ -250,7 +250,7 @@ Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被�
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/web-app-security-skill@ace0e8a5ed983f553000270f709d70b5de484e28
+  uses: parousia8888/web-app-security-skill@778a7ba73588cdab1d9df281ab362f4fe0925189
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -258,19 +258,19 @@ Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被�
     fail-on: high
 ```
 
-需要可重复 CI 时使用上面的 v0.4.0 不可变 commit。稳定大版本别名当前也指向这份已验证
-release：
+需要可重复 CI 时使用上面的 v0.5.0 不可变 commit。稳定大版本别名会在独立的 v0.5.0 consumer
+与 promotion 门禁完成前继续指向 v0.4.0：
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-Source mode 默认只用内置 adapter。当前 v0.4.0 不可变 Action 仍运行 v0.4.0 源码合同；只有 v0.5.0
-Action source 正式发布后才包含 v0.5.0 规则。外部二进制必须由调用方固定版本并安装，Action 不会下载：
+Source mode 默认只用内置 adapter。v0.5.0 不可变 Action 运行 v3 源码合同和 stable v0.5.0
+规则语料。外部二进制必须由调用方固定版本并安装，Action 不会下载：
 
 ```yaml
 - name: Audit source
-  uses: parousia8888/web-app-security-skill@ace0e8a5ed983f553000270f709d70b5de484e28
+  uses: parousia8888/web-app-security-skill@778a7ba73588cdab1d9df281ab362f4fe0925189
   with:
     mode: source
     project: .
@@ -296,7 +296,7 @@ Action source 正式发布后才包含 v0.5.0 规则。外部二进制必须由�
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
-git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.4.0
+git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.0
 ```
 
 ## 5 个普通项目旅程

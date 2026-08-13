@@ -34,9 +34,9 @@ The complete milestone sequence, tests, stop conditions and Definition of Done l
 verification, verified installer, exact-version external consumer and owner-approved public `v1`
 promotion are complete. Final M8 evidence is recorded in the engineering plan.
 
-## Candidate in v0.5.0
+## Shipped in v0.5.0
 
-v0.5.0 is the source-detection and understandable-remediation program. Implemented on `main`:
+v0.5.0 is the source-detection and understandable-remediation release:
 
 - 20 stable built-in risk rules and 2 evidence-integrity rules, including eight bounded
   JavaScript/TypeScript and eight bounded Python rules;
@@ -48,9 +48,9 @@ v0.5.0 is the source-detection and understandable-remediation program. Implement
   classified five-project ordinary-source review;
 - a source-focused local demo that records both security and normal functional retests.
 
-M0-M8 are complete. The remaining M9 work is the signed tag, reproducible artifacts, installer
-trust anchors, immutable Action consumer and guarded `v1` promotion. Until those gates pass,
-`v0.5.0` is a release candidate rather than a published release.
+The signed release, reproducible artifacts and verified installer are published. The remaining M9
+work is immutable Action consumer verification and guarded `v1` promotion; the stable alias stays
+on v0.4.0 until those gates pass.
 
 The complete audited baseline, milestone sequence, tests, stop conditions and publication gates
 live in the [v0.5.0 engineering plan](docs/V0.5.0_ENGINEERING_PLAN.md). Built-in depth for other
