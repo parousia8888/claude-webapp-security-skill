@@ -34,7 +34,7 @@ The complete milestone sequence, tests, stop conditions and Definition of Done l
 verification, verified installer, exact-version external consumer and owner-approved public `v1`
 promotion are complete. Final M8 evidence is recorded in the engineering plan.
 
-## In release preparation for v0.5.0
+## Candidate in v0.5.0
 
 v0.5.0 is the source-detection and understandable-remediation program. Implemented on `main`:
 
@@ -48,9 +48,9 @@ v0.5.0 is the source-detection and understandable-remediation program. Implement
   classified five-project ordinary-source review;
 - a source-focused local demo that records both security and normal functional retests.
 
-The remaining work is the M8 public-surface evidence gate followed by M9 release freeze, signed tag,
-reproducible artifacts, installer trust anchors, immutable Action consumer and guarded `v1`
-promotion. Until those gates pass, `v0.5.0` is not described as a published release.
+M0-M8 are complete. The remaining M9 work is the signed tag, reproducible artifacts, installer
+trust anchors, immutable Action consumer and guarded `v1` promotion. Until those gates pass,
+`v0.5.0` is a release candidate rather than a published release.
 
 The complete audited baseline, milestone sequence, tests, stop conditions and publication gates
 live in the [v0.5.0 engineering plan](docs/V0.5.0_ENGINEERING_PLAN.md). Built-in depth for other

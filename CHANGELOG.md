@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-08-14
+
 ### Added
 - Finding/report v3 gives every actionable source result a professional term, plain-language
   explanation, realistic consequence, evidence boundary, standards references, reviewable

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import {
-  cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync,
+  cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, posix, resolve } from 'node:path';
@@ -79,11 +79,45 @@ try {
   const startOut = join(temp, 'scope');
   const project = join(temp, 'project');
   cpSync(join(root, 'test', 'fixtures', 'next-app'), project, { recursive: true });
+  mkdirSync(join(project, 'src'));
+  const unsafeSource = join(project, 'src', 'render-template.mjs');
+  writeFileSync(unsafeSource, 'export function renderTemplate(source) { return eval(source); }\n');
   result = run(launcher, [
     'start', project, '--out', startOut, '--run-id', 'release-artifact',
   ], { cwd: root, env });
   assert.match(result.stdout, /network:\s+none/);
-  assert.ok(existsSync(join(startOut, 'release-artifact', 'security-scope.yml')));
+  const baselineRun = join(startOut, 'release-artifact');
+  assert.ok(existsSync(join(baselineRun, 'security-scope.yml')));
+  result = run(launcher, ['audit', baselineRun, '--name', 'report', '--fail-on', 'never'], {
+    cwd: root, env,
+  });
+  assert.match(result.stdout, /network:\s+none/);
+  const baselinePath = join(baselineRun, 'report.json');
+  const baseline = JSON.parse(readFileSync(baselinePath, 'utf8'));
+  const finding = baseline.findings.find((item) => item.rule.id === 'js-dynamic-code-execution');
+  assert.ok(finding, 'release archive audit must exercise a v0.5.0 source finding');
+  assert.equal(finding.state, 'suspected');
+  result = run(launcher, ['explain', finding.id, '--report', baselinePath], { cwd: root, env });
+  assert.match(result.stdout, /Professional term:/);
+  assert.match(result.stdout, /What this means:/);
+  const repairOut = join(temp, 'repair-review');
+  result = run(launcher, [
+    'repair-plan', finding.id, '--report', baselinePath, '--out', repairOut,
+  ], { cwd: root, env });
+  assert.match(result.stdout, /patch:\s+not applied/);
+  assert.equal(existsSync(unsafeSource), true, 'repair-plan must not edit the release fixture');
+
+  rmSync(unsafeSource);
+  result = run(launcher, [
+    'start', project, '--out', startOut, '--run-id', 'release-retest',
+  ], { cwd: root, env });
+  assert.match(result.stdout, /network:\s+none/);
+  const retestRun = join(startOut, 'release-retest');
+  result = run(launcher, [
+    'retest', retestRun, '--name', 'report', '--baseline', baselinePath, '--fail-on', 'never',
+  ], { cwd: root, env });
+  const retest = JSON.parse(readFileSync(join(retestRun, 'report.json'), 'utf8'));
+  assert.equal(retest.findings.find((item) => item.id === finding.id)?.baseline.state, 'fixed');
 
   result = run(launcher, ['upgrade'], { cwd: root, env });
   assert.match(result.stdout, /upgraded:/);
