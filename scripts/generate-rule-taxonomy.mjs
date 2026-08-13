@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CRAWL_RULES } from './lib/crawl-rules.mjs';
 import { SOURCE_RULES } from './lib/source-rules.mjs';
+import { GITLEAKS_RULES, OSV_RULES } from './lib/adapter-definitions.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const OUTPUT = join(ROOT, 'docs', 'rule-taxonomy.md');
@@ -42,6 +43,9 @@ const rationale = {
   bounded_probe_inventory: 'An informational count records the bounded probe result.',
   source_material_public: 'Original source and comments are publicly reconstructable from a served source map.',
   internal_metadata_disclosed: 'Asset naming reveals internal release or feature labels.',
+  committed_secret_material: 'A secret pattern was reproduced in Git history; persisted evidence is redacted and fingerprinted.',
+  working_tree_secret_material: 'A secret pattern was reproduced in the working tree; persisted evidence is redacted and fingerprinted.',
+  known_vulnerable_dependency: 'A recorded dependency version matched an OSV advisory; reachability and remediation priority still require project context.',
 };
 
 const lines = [
@@ -53,7 +57,11 @@ const lines = [
   'confirmed product vulnerability.', '',
 ];
 
-for (const [title, rules] of [['Source rules', SOURCE_RULES], ['Crawl rules', CRAWL_RULES]]) {
+for (const [title, rules] of [
+  ['Built-in source rules', SOURCE_RULES],
+  ['External source adapter rules', [...GITLEAKS_RULES, ...OSV_RULES]],
+  ['Crawl rules', CRAWL_RULES],
+]) {
   lines.push(`## ${title}`, '', '| Rule | Domain | Severity | Rationale |', '|---|---|---|---|');
   for (const rule of rules) {
     if (!rationale[rule.rationale]) throw new Error(`missing rationale text for ${rule.id}`);
@@ -68,7 +76,7 @@ if (check) {
     console.error('rule taxonomy is stale; run node scripts/generate-rule-taxonomy.mjs');
     process.exit(1);
   }
-  console.log(`rule taxonomy current: ${SOURCE_RULES.length} source, ${CRAWL_RULES.length} crawl`);
+  console.log(`rule taxonomy current: ${SOURCE_RULES.length} built-in source, ${GITLEAKS_RULES.length + OSV_RULES.length} external source, ${CRAWL_RULES.length} crawl`);
 } else {
   writeFileSync(OUTPUT, rendered);
   console.log(OUTPUT);

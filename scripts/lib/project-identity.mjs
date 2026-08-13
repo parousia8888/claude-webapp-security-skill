@@ -48,8 +48,10 @@ export function sourceTraversalLimits(overrides = {}) {
   return limits;
 }
 
-export function sourceAuditBoundary(traversalLimits = DEFAULT_SOURCE_TRAVERSAL_LIMITS) {
+export function sourceAuditBoundary(traversalLimits = DEFAULT_SOURCE_TRAVERSAL_LIMITS, adapterConfig = {}) {
   const limits = sourceTraversalLimits(traversalLimits);
+  const adapters = adapterConfig.adapters || ['builtin'];
+  const adapterTimeoutSeconds = adapterConfig.timeoutSeconds || 120;
   return {
     version: 2,
     sourceRoots: ['.'],
@@ -57,8 +59,10 @@ export function sourceAuditBoundary(traversalLimits = DEFAULT_SOURCE_TRAVERSAL_L
       '.git', '.hg', '.svn', '.next', '.nuxt', '.output', '.webapp-security', 'build',
       'coverage', 'dist', 'node_modules', 'target', 'vendor', '__pycache__', '.venv', 'venv',
     ],
-    checkModes: ['source', 'local'],
-    networkAccess: false,
+    checkModes: ['source', 'local', ...adapters.filter((adapter) => adapter !== 'builtin').map((adapter) => `adapter:${adapter}`)],
+    networkAccess: adapters.includes('osv'),
+    adapters,
+    adapterTimeoutSeconds,
     traversalLimits: limits,
   };
 }
@@ -146,6 +150,16 @@ export function validatePersistedScope(scope) {
     throw new Error('scope predates the traversal ledger; create a new run with webapp-security start');
   }
   sourceTraversalLimits(scope.auditBoundary.traversalLimits);
+  if ('adapters' in scope.auditBoundary) {
+    if (!Array.isArray(scope.auditBoundary.adapters) || !scope.auditBoundary.adapters.length
+        || scope.auditBoundary.adapters.some((adapter) => !['builtin', 'gitleaks', 'osv'].includes(adapter))) {
+      throw new Error('scope contains an invalid adapter selection');
+    }
+    if (!Number.isInteger(scope.auditBoundary.adapterTimeoutSeconds)
+        || scope.auditBoundary.adapterTimeoutSeconds < 1 || scope.auditBoundary.adapterTimeoutSeconds > 600) {
+      throw new Error('scope contains an invalid adapter timeout');
+    }
+  }
   const actualDigest = scopeDigest(scope.auditBoundary);
   if (scope.subject.scopeDigest !== actualDigest) throw new Error('scope digest does not match its audit boundary');
   return scope;

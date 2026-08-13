@@ -389,6 +389,8 @@ function domainSummaryLines(report) {
 }
 
 export function renderMarkdownV2(report) {
+  const adapterLines = report.ruleset.adapters.map((adapter) =>
+    `- \`${adapter.id}@${adapter.version}\` (${adapter.maturity}); ruleset \`${adapter.rulesetDigest}\``);
   const coverageLines = report.coverage.flatMap((entry) => {
     const counts = Object.entries(entry.counts).map(([key, value]) => `${key}=${value}`).join(', ');
     const reasons = entry.reasons.length
@@ -409,6 +411,8 @@ export function renderMarkdownV2(report) {
     '', '## Risk summary', '',
     ...domainSummaryLines(report).map((line) => `- ${line}`),
     ...(report.summary.total ? [] : ['No findings were produced by the checks that ran.']),
+    '', '## Adapters', '',
+    ...adapterLines,
     '', '## Coverage', '',
     ...traversal,
     ...coverageLines,
@@ -431,6 +435,8 @@ export function renderMarkdownV2(report) {
 }
 
 export function renderHtmlV2(report) {
+  const adapters = report.ruleset.adapters.map((adapter) =>
+    `<li><code>${escapeHtml(`${adapter.id}@${adapter.version}`)}</code> (${escapeHtml(adapter.maturity)}); ruleset <code>${escapeHtml(adapter.rulesetDigest)}</code></li>`).join('');
   const rows = report.findings.map((finding) => `<article data-finding-id="${escapeHtml(finding.id)}">
 <h2>${escapeHtml(finding.title)}</h2>
 <p><strong>${escapeHtml(`${finding.domain} / ${finding.severity} / ${finding.state} / ${finding.baseline.state || 'none'}`)}</strong></p>
@@ -448,7 +454,7 @@ export function renderHtmlV2(report) {
     ? `<p>Traversal: <code>${escapeHtml(JSON.stringify(report.scope.traversal))}</code></p>`
     : '';
   const summary = domainSummaryLines(report).map((line) => `<li>${escapeHtml(line)}</li>`).join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:8px}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><p>Subject: <code>${escapeHtml(report.subject.id)}</code></p><h2>Risk summary</h2>${summary ? `<ul>${summary}</ul>` : '<p>No findings were produced by the checks that ran.</p>'}<h2>Coverage</h2>${traversal}<ul>${coverage}</ul><h2>Findings</h2>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:8px}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><p>Subject: <code>${escapeHtml(report.subject.id)}</code></p><h2>Risk summary</h2>${summary ? `<ul>${summary}</ul>` : '<p>No findings were produced by the checks that ran.</p>'}<h2>Adapters</h2><ul>${adapters}</ul><h2>Coverage</h2>${traversal}<ul>${coverage}</ul><h2>Findings</h2>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
 }
 
 export function renderSarifV2(report) {
@@ -462,7 +468,18 @@ export function renderSarifV2(report) {
     version: '2.1.0',
     $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
     runs: [{
-      tool: { driver: { name: 'Web App Security Skill', version: report.tool.version, rules } },
+      tool: { driver: { name: 'Web App Security Skill', version: report.tool.version, rules },
+        extensions: report.ruleset.adapters.map((adapter) => ({
+          name: adapter.id, version: adapter.version,
+          semanticVersion: /^\d+\.\d+\.\d+$/.test(adapter.version) ? adapter.version : undefined,
+          properties: { maturity: adapter.maturity, rulesetDigest: adapter.rulesetDigest },
+        })) },
+      properties: {
+        adapterCoverage: report.coverage.map((entry) => ({
+          id: entry.id, adapterId: entry.adapterId, ruleId: entry.ruleId,
+          ruleRevision: entry.ruleRevision, status: entry.status, counts: entry.counts,
+        })),
+      },
       results: report.findings.filter((finding) => finding.baseline.state !== 'fixed').map((finding) => ({
         ruleId: finding.rule.id,
         level: level[finding.severity],
@@ -488,7 +505,11 @@ export function renderJunitV2(report) {
     if (finding.state !== 'confirmed') return `<testcase ${attrs}>${properties}<skipped message="${escapeXml(finding.state)}"/></testcase>`;
     return `<testcase ${attrs}>${properties}<failure message="${escapeXml(`${finding.severity}: ${finding.title}`)}">${escapeXml(finding.summary)}</failure></testcase>`;
   }).join('');
-  return `<?xml version="1.0" encoding="UTF-8"?><testsuite name="Web App Security Skill" tests="${report.findings.length}" failures="${failures}" skipped="${skipped}">${cases}</testsuite>\n`;
+  const adapterProperties = report.ruleset.adapters.map((adapter) =>
+    `<property name="adapter.${escapeXml(adapter.id)}.version" value="${escapeXml(adapter.version)}"/><property name="adapter.${escapeXml(adapter.id)}.rulesetDigest" value="${escapeXml(adapter.rulesetDigest)}"/>`).join('');
+  const coverageProperties = report.coverage.map((entry) =>
+    `<property name="coverage.${escapeXml(entry.id)}.status" value="${escapeXml(entry.status)}"/><property name="coverage.${escapeXml(entry.id)}.counts" value="${escapeXml(JSON.stringify(entry.counts))}"/>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><testsuite name="Web App Security Skill" tests="${report.findings.length}" failures="${failures}" skipped="${skipped}"><properties>${adapterProperties}${coverageProperties}</properties>${cases}</testsuite>\n`;
 }
 
 export function writeReportBundleV2(report, directory, name = 'report', { additionalFiles = [], hooks = {} } = {}) {

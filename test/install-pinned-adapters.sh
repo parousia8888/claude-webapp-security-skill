@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${RUNNER_TEMP:?RUNNER_TEMP is required}"
+: "${GITHUB_ENV:?GITHUB_ENV is required}"
+
+adapter_dir="$RUNNER_TEMP/webapp-security-adapters"
+mkdir -p "$adapter_dir"
+
+gitleaks_archive="$adapter_dir/gitleaks.tar.gz"
+curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz" -o "$gitleaks_archive"
+echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $gitleaks_archive" | sha256sum -c -
+tar -xzf "$gitleaks_archive" -C "$adapter_dir" gitleaks
+
+osv_binary="$adapter_dir/osv-scanner"
+curl -fsSL "https://github.com/google/osv-scanner/releases/download/v2.5.0/osv-scanner_linux_amd64" -o "$osv_binary"
+echo "edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c  $osv_binary" | sha256sum -c -
+chmod 0755 "$adapter_dir/gitleaks" "$osv_binary"
+
+printf 'WEBAPP_SECURITY_GITLEAKS_BIN=%s\n' "$adapter_dir/gitleaks" >> "$GITHUB_ENV"
+printf 'WEBAPP_SECURITY_OSV_SCANNER_BIN=%s\n' "$osv_binary" >> "$GITHUB_ENV"

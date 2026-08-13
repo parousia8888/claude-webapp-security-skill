@@ -68,7 +68,7 @@ for (const capability of source.capabilities || []) {
 for (const category of allowedCategories) {
   if (!(source.capabilities || []).some((item) => item.category === category)) fail(`category ${category} is empty`);
 }
-for (const maturity of ['stable', 'agent_guided', 'planned']) {
+for (const maturity of ['stable', 'agent_guided']) {
   if (!(source.capabilities || []).some((item) => item.maturity === maturity)) fail(`maturity ${maturity} is empty`);
 }
 for (const [file, markers] of Object.entries({

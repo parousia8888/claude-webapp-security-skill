@@ -6,6 +6,7 @@ import { buildScope, discoverProject } from './lib/project-discovery.mjs';
 import {
   ensureProjectIdentity, persistedSubject, sourceAuditBoundary, sourceTraversalLimits,
 } from './lib/project-identity.mjs';
+import { parseAdapterSelection, parseAdapterTimeout } from './lib/adapter-definitions.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
@@ -22,6 +23,8 @@ Options:
   --max-files <n>     Maximum discovered files, 1..200000 (default: 20000)
   --max-entries <n>   Maximum directory entries, 1..500000 (default: 50000)
   --max-file-bytes <n> Maximum candidate bytes, 1024..16777216 (default: 1048576)
+  --adapter <id>      builtin, gitleaks, osv, or all; repeatable (default: builtin)
+  --adapter-timeout <seconds> External adapter timeout, 1..600 (default: 120)
 `);
   process.exit(code);
 }
@@ -43,6 +46,9 @@ const maxDepth = take('--max-depth');
 const maxFiles = take('--max-files');
 const maxEntries = take('--max-entries');
 const maxFileBytes = take('--max-file-bytes');
+const adapterValues = [];
+while (args.includes('--adapter')) adapterValues.push(take('--adapter'));
+const adapterTimeout = take('--adapter-timeout');
 const project = args.shift();
 if (!project) usage(2, 'project is required');
 if (args.length) usage(2, `unknown argument ${args[0]}`);
@@ -59,7 +65,9 @@ try {
     ['maxDepth', maxDepth], ['maxFiles', maxFiles], ['maxEntries', maxEntries],
     ['maxFileBytes', maxFileBytes],
   ].filter(([, value]) => value !== null).map(([name, value]) => [name, Number(value)])));
-  const auditBoundary = sourceAuditBoundary(limits);
+  const adapters = parseAdapterSelection(adapterValues);
+  const timeoutSeconds = parseAdapterTimeout(adapterTimeout === null ? undefined : adapterTimeout);
+  const auditBoundary = sourceAuditBoundary(limits, { adapters, timeoutSeconds });
   const discovery = discoverProject(project, { origin, traversalLimits: limits });
   const runRoot = resolve(outArg || join(discovery.projectRoot, '.webapp-security', 'runs'));
   const runDirectory = join(runRoot, runId);

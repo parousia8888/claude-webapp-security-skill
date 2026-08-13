@@ -86,6 +86,9 @@ node "$S/scripts/webapp-security.mjs" start /path/to/project
 
 # Deterministic source evidence, explanation and baseline retest
 node "$S/scripts/webapp-security.mjs" audit /path/to/project/.webapp-security/runs/<run-id> --fail-on high
+node "$S/scripts/webapp-security.mjs" doctor /path/to/project --adapter all
+node "$S/scripts/webapp-security.mjs" audit /path/to/project \
+  --adapter gitleaks --adapter osv --fail-on never
 node "$S/scripts/webapp-security.mjs" explain <finding-id> --report <report.json>
 node "$S/scripts/webapp-security.mjs" start /path/to/project --run-id <retest-run-id>
 node "$S/scripts/webapp-security.mjs" retest \
@@ -124,6 +127,11 @@ Crawler identity verification and AWS inventory are read-only. Crawl and edge ve
 passive by default; sensitive-path probes and rate-limit bursts are active, require Phase 0 and
 must carry the explicit authorization acknowledgement flag. Any HTTP audit of a third-party host
 still requires written authorization even when the request pattern is passive.
+
+External source adapters are opt-in and caller-installed. Read `docs/adapter-protocol.md` before
+selecting Gitleaks or OSV-Scanner. Use evidence-only `--fail-on never` until the consuming repository
+has accepted `docs/alert-policy.md`; do not infer or assign its alert owner. Missing or failed tools
+are `unknown`, not clean. OSV-Scanner may access the public OSV database.
 
 ## Hard rules
 

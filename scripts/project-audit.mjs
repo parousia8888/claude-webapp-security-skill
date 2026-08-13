@@ -3,16 +3,18 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  assertComparableBaseline, compareFindingsV2, createReportV2, exitCodeV2,
+  assertComparableBaseline, compareFindingsV2, createFindingV2, createReportV2, exitCodeV2,
   initializeFindingsV2, policyForFailOn, readBaselineV2, sourceFindingV2, writeReportBundleV2,
 } from './lib/evidence-v2.mjs';
 import { auditSource, renderPatch } from './lib/source-audit.mjs';
+import { parseAdapterSelection, parseAdapterTimeout } from './lib/adapter-definitions.mjs';
+import { runExternalAdapters } from './lib/external-adapters.mjs';
 import { buildScope, discoverProject } from './lib/project-discovery.mjs';
 import {
   ephemeralSubject, readProjectIdentity, sourceAuditBoundary, validatePersistedScope,
   sourceTraversalLimits,
 } from './lib/project-identity.mjs';
-import { sourceCoverage, sourceRuleset } from './lib/source-rules.mjs';
+import { sourceCoverage, sourceRuleForAdapter, sourceRuleset } from './lib/source-rules.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
@@ -32,6 +34,10 @@ Options:
   --max-files <n>         Maximum discovered files, 1..200000 (default: 20000)
   --max-entries <n>       Maximum directory entries, 1..500000 (default: 50000)
   --max-file-bytes <n>    Maximum candidate bytes, 1024..16777216 (default: 1048576)
+  --adapter <id>           builtin, gitleaks, osv, or all; repeatable (default: builtin)
+  --adapter-timeout <sec> External adapter timeout, 1..600 (default: 120)
+  --acknowledge-alert-policy
+                           Allow selected external adapter findings to use the configured gate
 `);
   process.exit(code);
 }
@@ -58,6 +64,10 @@ const name = take('--name', 'report');
 const baselinePath = take('--baseline');
 const failOn = take('--fail-on', 'high');
 const failOnDomains = takeAll('--fail-on-domain');
+const adapterValues = takeAll('--adapter');
+const adapterTimeoutArg = take('--adapter-timeout');
+const acknowledgeAlertPolicy = args.includes('--acknowledge-alert-policy');
+if (acknowledgeAlertPolicy) args.splice(args.indexOf('--acknowledge-alert-policy'), 1);
 const limitArgs = {
   maxDepth: take('--max-depth'),
   maxFiles: take('--max-files'),
@@ -95,6 +105,8 @@ try {
   let subject;
   let persistScope = false;
   let limits;
+  let selectedAdapters;
+  let adapterTimeoutSeconds;
 
   if (existsSync(scopePath)) {
     localScope = validatePersistedScope(JSON.parse(readFileSync(scopePath, 'utf8')));
@@ -107,6 +119,14 @@ try {
       }
     }
     limits = sourceTraversalLimits(localScope.auditBoundary.traversalLimits);
+    selectedAdapters = localScope.auditBoundary.adapters || ['builtin'];
+    adapterTimeoutSeconds = localScope.auditBoundary.adapterTimeoutSeconds || 120;
+    if (adapterValues.length && JSON.stringify(parseAdapterSelection(adapterValues)) !== JSON.stringify(selectedAdapters)) {
+      throw new Error('adapter selection is fixed by the persisted scope; create a new run to change it');
+    }
+    if (adapterTimeoutArg !== null && parseAdapterTimeout(adapterTimeoutArg) !== adapterTimeoutSeconds) {
+      throw new Error('adapter timeout is fixed by the persisted scope; create a new run to change it');
+    }
     projectRoot = resolve(localScope.target.projectRoot);
     const identity = readProjectIdentity(projectRoot);
     if (!identity || identity.subjectId !== localScope.subject.id) {
@@ -120,7 +140,11 @@ try {
     }
     limits = sourceTraversalLimits(Object.fromEntries(Object.entries(limitArgs)
       .filter(([, value]) => value !== null).map(([key, value]) => [key, Number(value)])));
-    const auditBoundary = sourceAuditBoundary(limits);
+    selectedAdapters = parseAdapterSelection(adapterValues);
+    adapterTimeoutSeconds = parseAdapterTimeout(adapterTimeoutArg === null ? undefined : adapterTimeoutArg);
+    const auditBoundary = sourceAuditBoundary(limits, {
+      adapters: selectedAdapters, timeoutSeconds: adapterTimeoutSeconds,
+    });
     const discovery = discoverProject(target, { traversalLimits: limits });
     projectRoot = discovery.projectRoot;
     output = resolve(outArg || join(projectRoot, '.webapp-security', 'runs', `audit-${now.toISOString().replace(/[:.]/g, '-')}`));
@@ -137,14 +161,45 @@ try {
   }
 
   if (!existsSync(projectRoot) || !statSync(projectRoot).isDirectory()) throw new Error('scope projectRoot no longer exists');
+  const externalGateEnabled = failOn !== 'never'
+    || failOnDomains.some((value) => !value.endsWith('=never'));
+  if (selectedAdapters.some((adapter) => adapter !== 'builtin') && externalGateEnabled && !acknowledgeAlertPolicy) {
+    throw new Error('external adapter gating requires --acknowledge-alert-policy; use --fail-on never for evidence-only execution');
+  }
   const conflicts = evidenceConflicts(output, name);
   if (conflicts.length) throw new Error(`refusing to overwrite existing evidence: ${conflicts.join(', ')}`);
 
-  const ruleset = sourceRuleset();
-  const audit = auditSource(projectRoot, limits);
+  const ruleset = sourceRuleset(selectedAdapters);
+  const audit = selectedAdapters.includes('builtin')
+    ? auditSource(projectRoot, limits)
+    : { findings: [], coverage: {}, traversal: null };
   const rawFindings = audit.findings;
-  const coverage = sourceCoverage(audit);
-  const current = rawFindings.map((finding) => sourceFindingV2(finding, ruleset));
+  const external = runExternalAdapters(projectRoot, localScope.target.lockfiles || [], selectedAdapters, {
+    timeoutSeconds: adapterTimeoutSeconds,
+  });
+  const coverage = [
+    ...(selectedAdapters.includes('builtin') ? sourceCoverage(audit) : []),
+    ...external.flatMap((result) => result.coverage),
+  ];
+  const current = [
+    ...rawFindings.map((finding) => sourceFindingV2(finding, ruleset)),
+    ...external.flatMap((result) => result.findings).map((finding) => {
+      const rule = sourceRuleForAdapter(finding.adapterId, finding.ruleId, selectedAdapters);
+      return createFindingV2({
+        ruleset,
+        adapterId: finding.adapterId,
+        rule,
+        title: finding.title,
+        severity: finding.severity,
+        state: finding.state,
+        summary: finding.summary,
+        location: finding.location,
+        evidence: finding.evidence,
+        remediation: finding.remediation,
+        retest: finding.retest,
+      });
+    }),
+  ];
   let baseline = null;
   let findings;
   if (baselinePath) {
@@ -165,18 +220,26 @@ try {
     scope: {
       auditBoundary: localScope.auditBoundary,
       authorizationStatus: localScope.authorization?.status || 'pending',
-      checkModes: ['source', 'local'],
-      networkAccessPerformed: false,
+      checkModes: localScope.auditBoundary.checkModes,
+      networkAccessPerformed: external.some((result) => result.networkAccessPerformed),
       runId: localScope.run?.id || null,
       traversal: audit.traversal,
+      adapters: external.map((result) => ({
+        id: result.adapter.id,
+        expectedVersion: result.adapter.version,
+        observedVersion: result.identity.observedVersion || null,
+        status: result.identity.status,
+      })),
     },
     coverage,
     findings,
     baseline,
     policy: policyForFailOn(failOn, failOnDomains),
     limitations: [
-      'Only deterministic source rules ran; agent-guided API, identity, LLM, data-layer and deployment review did not run.',
-      'No network request or dependency execution was performed.',
+      'Only the recorded built-in and selected external adapters ran; agent-guided API, identity, LLM, data-layer and deployment review did not run.',
+      external.some((result) => result.networkAccessPerformed)
+        ? 'OSV-Scanner may query the public OSV service; no project dependency was executed.'
+        : 'No network request or dependency execution was performed.',
       'Suspected findings require deployment or runtime evidence before confirmation.',
     ],
   });
@@ -190,7 +253,7 @@ try {
   console.log(`subject:   ${report.subject.id} (${report.subject.binding})`);
   console.log(`states:    confirmed=${report.summary.byState.confirmed}, suspected=${report.summary.byState.suspected}, unknown=${report.summary.byState.unknown}`);
   console.log(`baseline:  new=${report.summary.byBaseline.new}, fixed=${report.summary.byBaseline.fixed}, unchanged=${report.summary.byBaseline.unchanged}, regressed=${report.summary.byBaseline.regressed}, unretested=${report.summary.byBaseline.unretested}, not_comparable=${report.summary.byBaseline.not_comparable}`);
-  console.log('network:   none');
+  console.log(`network:   ${external.some((result) => result.networkAccessPerformed) ? 'OSV public database query' : 'none'}`);
   process.exit(exitCodeV2(report));
 } catch (error) {
   usage(2, error.message);

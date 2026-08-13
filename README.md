@@ -119,6 +119,19 @@ webapp-security retest .webapp-security/runs/<retest-run-id> \
   --baseline .webapp-security/runs/<run-id>/report.json
 ```
 
+The default is the bundled, network-free source adapter. Optional external adapters are explicit:
+
+```bash
+webapp-security doctor . --adapter all --json
+webapp-security audit . --adapter gitleaks --adapter osv --fail-on never
+```
+
+Tested versions are Gitleaks `8.30.1` and OSV-Scanner `2.5.0`. The CLI and Action do not download
+them. OSV-Scanner may query the public OSV database; project dependencies are not executed. A
+blocking external-adapter run additionally requires `--acknowledge-alert-policy` after the consuming
+repository accepts the responsibilities in [`docs/alert-policy.md`](docs/alert-policy.md). See the
+[`adapter protocol`](docs/adapter-protocol.md) for failure, redaction and version semantics.
+
 Each source audit writes v2 JSON, Markdown, HTML, SARIF, JUnit, a SHA-256 sidecar and
 `proposed.patch`. A direct project audit is allowed for one-off review but has ephemeral identity and
 cannot be a retest baseline. `fixed` requires the same persisted subject and scope, a compatible
@@ -147,11 +160,11 @@ coverage:
   methodology.
 - **Maturity:** `stable`, `experimental`, `agent_guided`, or `planned`.
 
-The current stable Detection families are the narrow source audit, crawl-boundary audit, crawler
-identity verification, edge verification, and the read-only AWS inventory helper. Project discovery,
+The current stable Detection families are the narrow built-in source audit, opt-in Gitleaks and
+OSV-Scanner adapters, crawl-boundary audit, crawler identity verification, edge verification, and the read-only AWS inventory helper. Project discovery,
 the demo, report renderers, retest infrastructure, installer, and GitHub Action are tested product
-capabilities, but are not additional detector families. Gitleaks and OSV-Scanner adapters are
-`planned`; API authorization, business logic, LLM/OAuth, data-layer, supply-chain and broader AWS
+capabilities, but are not additional detector families. API authorization, business logic,
+LLM/OAuth, data-layer and broader AWS
 reviews remain Agent-guided methodology until a named adapter earns regression evidence.
 
 The [generated capability matrix](docs/capabilities.md) links every category and maturity statement
@@ -170,6 +183,8 @@ webapp-security start .
 
 # Source-only audit, explain and required-baseline retest
 webapp-security audit .webapp-security/runs/<run-id> --fail-on high
+webapp-security doctor . --adapter all
+webapp-security audit . --adapter gitleaks --adapter osv --fail-on never
 webapp-security explain <finding-id> --report <report.json>
 webapp-security start . --run-id <retest-run-id>
 webapp-security retest .webapp-security/runs/<retest-run-id> \
@@ -210,7 +225,8 @@ non-comparable migration; they are never accepted as a comparable baseline.
 
 ## GitHub Action
 
-The composite Action is passive by default and will not run until authorization is acknowledged:
+The composite Action keeps the v0.3 crawl inputs and outputs. Crawl mode is passive by default and
+requires deployment authorization acknowledgement:
 
 ```yaml
 - name: Audit public crawl boundary
@@ -226,6 +242,19 @@ For repeatable CI, use the immutable commit above. The stable major-version alia
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
+```
+
+Source mode defaults to the bundled adapter. External binaries must be installed and pinned by the
+caller; the Action never downloads them:
+
+```yaml
+- name: Audit source
+  uses: parousia8888/web-app-security-skill@v1
+  with:
+    mode: source
+    project: .
+    adapters: builtin
+    fail-on: high
 ```
 
 The moving `v1` tag is updated only after a versioned release passes the real consumer workflow;

@@ -7,7 +7,7 @@ Severity is interpreted inside the named risk domain. In particular, a HIGH
 `evidence_integrity` severity describes the importance of missing evidence rather than a
 confirmed product vulnerability.
 
-## Source rules
+## Built-in source rules
 
 | Rule | Domain | Severity | Rationale |
 |---|---|---|---|
@@ -17,6 +17,14 @@ confirmed product vulnerability.
 | `production-source-map-enabled` | `security_exposure` | `medium` | Configuration enables source-map output; public delivery still requires artifact or deployment evidence. |
 | `source-stack-unsupported` | `evidence_integrity` | `info` | The built-in source adapter cannot identify a supported manifest. |
 | `source-evidence-incomplete` | `evidence_integrity` | `high` | A required input could not be obtained or interpreted; severity describes the importance of the evidence gap, not a confirmed vulnerability. |
+
+## External source adapter rules
+
+| Rule | Domain | Severity | Rationale |
+|---|---|---|---|
+| `gitleaks-committed-secret` | `supply_chain` | `high` | A secret pattern was reproduced in Git history; persisted evidence is redacted and fingerprinted. |
+| `gitleaks-working-tree-secret` | `supply_chain` | `high` | A secret pattern was reproduced in the working tree; persisted evidence is redacted and fingerprinted. |
+| `osv-known-vulnerability` | `supply_chain` | `info` | A recorded dependency version matched an OSV advisory; reachability and remediation priority still require project context. |
 
 ## Crawl rules
 

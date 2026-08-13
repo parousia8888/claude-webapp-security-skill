@@ -19,8 +19,8 @@ context and judgment, and `planned` behavior is unavailable.
 | Edge hardening verification | `stable` | Checks security headers, HTTP-to-HTTPS redirect, certificate validation and TLS policy; bounded rate-limit traffic is separately authorized. | [`scripts/verify-hardening.sh`](../scripts/verify-hardening.sh), [`test/verify-hardening.test.mjs`](../test/verify-hardening.test.mjs) |
 | Narrow deterministic source audit | `stable` | Checks four narrow source rule families: lockfile absence, environment-named files, public Node inspector bindings and common production source-map settings. It is not general SAST. | [`scripts/lib/source-audit.mjs`](../scripts/lib/source-audit.mjs), [`test/evidence-loop.test.mjs`](../test/evidence-loop.test.mjs), [`docs/compatibility.md`](../docs/compatibility.md) |
 | AWS exposure inventory helper | `stable` | Runs a read-only, permission-aware AWS inventory helper. Denied, missing or malformed evidence becomes explicit v2 unknown coverage and never a fabricated posture finding. | [`scripts/aws-exposure-audit.sh`](../scripts/aws-exposure-audit.sh), [`test/aws-permission-evidence.test.mjs`](../test/aws-permission-evidence.test.mjs) |
-| Gitleaks secret detection adapter | `planned` | Planned v0.4.0 adapter for redacted repository and working-tree secret findings. It is unavailable until the adapter, planted fixtures and failure semantics ship. | Not shipped; planned for `v0.4.0` |
-| OSV-Scanner dependency vulnerability adapter | `planned` | Planned v0.4.0 adapter for supported lockfile and SBOM vulnerability evidence. It is unavailable until the adapter, planted fixtures and failure semantics ship. | Not shipped; planned for `v0.4.0` |
+| Gitleaks secret detection adapter | `stable` | Opt-in Gitleaks 8.30.1 adapter for Git history and working-tree secret patterns. It persists rule/location and digested fingerprints, never secret values; missing or failed execution is unknown. | [`scripts/lib/external-adapters.mjs`](../scripts/lib/external-adapters.mjs), [`test/external-adapters.test.mjs`](../test/external-adapters.test.mjs), [`test/real-adapters.test.mjs`](../test/real-adapters.test.mjs) |
+| OSV-Scanner dependency vulnerability adapter | `stable` | Opt-in OSV-Scanner 2.5.0 adapter for recorded lockfiles. It preserves advisory identity and upstream severity without local inflation; missing or failed execution is unknown. | [`scripts/lib/external-adapters.mjs`](../scripts/lib/external-adapters.mjs), [`test/external-adapters.test.mjs`](../test/external-adapters.test.mjs), [`test/real-adapters.test.mjs`](../test/real-adapters.test.mjs) |
 
 ## Evidence and reporting infrastructure
 
@@ -35,7 +35,7 @@ context and judgment, and `planned` behavior is unavailable.
 
 | Capability | Maturity | Current boundary | Evidence |
 |---|---|---|---|
-| Installer and GitHub Action | `stable` | Installs Claude Code, Codex and CLI surfaces with conflict preflight/backups, and runs a passive-by-default composite Action with an authorization gate. | [`scripts/webapp-security.mjs`](../scripts/webapp-security.mjs), [`action.yml`](../action.yml), [`test/product-surfaces.test.mjs`](../test/product-surfaces.test.mjs) |
+| Installer and GitHub Action | `stable` | Installs Claude Code, Codex and CLI surfaces with conflict preflight/backups, and runs a composite Action with backward-compatible crawl mode plus built-in or caller-provided source adapters. | [`scripts/webapp-security.mjs`](../scripts/webapp-security.mjs), [`action.yml`](../action.yml), [`test/product-surfaces.test.mjs`](../test/product-surfaces.test.mjs) |
 
 ## Agent-guided methodology
 

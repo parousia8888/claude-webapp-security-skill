@@ -1,16 +1,31 @@
 name: "Web App Security Skill"
-description: "Audit crawl boundaries and crawler accessibility with reproducible JSON and Markdown evidence."
+description: "Audit authorized crawl boundaries or source projects with reproducible evidence."
 author: "parousia8888"
 branding:
   icon: "shield"
   color: "red"
 inputs:
+  mode:
+    description: "Audit mode: crawl or source"
+    default: "crawl"
   site:
-    description: "Authorized http(s) origin to audit"
-    required: true
+    description: "Authorized http(s) origin required in crawl mode"
+    default: ""
   acknowledge-authorization:
-    description: "Must be true to confirm ownership or written authorization"
-    required: true
+    description: "Must be true in crawl mode to confirm ownership or written authorization"
+    default: "false"
+  project:
+    description: "Project directory in source mode"
+    default: "."
+  adapters:
+    description: "Comma-separated source adapters: builtin, gitleaks, osv, or all"
+    default: "builtin"
+  adapter-timeout:
+    description: "External source adapter timeout in seconds"
+    default: "120"
+  acknowledge-alert-policy:
+    description: "Allow selected external adapter findings to use the configured source gate"
+    default: "false"
   output-dir:
     description: "Report directory"
     default: "webapp-security-report"
@@ -26,11 +41,16 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: "Validate authorization"
+    - name: "Run selected audit"
       shell: "bash"
       env:
         INPUT_SITE: "${{ inputs.site }}"
+        INPUT_MODE: "${{ inputs.mode }}"
         INPUT_ACKNOWLEDGE_AUTHORIZATION: "${{ inputs.acknowledge-authorization }}"
+        INPUT_PROJECT: "${{ inputs.project }}"
+        INPUT_ADAPTERS: "${{ inputs.adapters }}"
+        INPUT_ADAPTER_TIMEOUT: "${{ inputs.adapter-timeout }}"
+        INPUT_ACKNOWLEDGE_ALERT_POLICY: "${{ inputs.acknowledge-alert-policy }}"
         INPUT_OUTPUT_DIR: "${{ inputs.output-dir }}"
         INPUT_FAIL_ON: "${{ inputs.fail-on }}"
         INPUT_FAIL_ON_DOMAIN: "${{ inputs.fail-on-domain }}"
@@ -44,3 +64,9 @@ outputs:
   report-markdown:
     description: "Markdown report path"
     value: "${{ inputs.output-dir }}/report.md"
+  report-sarif:
+    description: "SARIF report path (source mode; crawl mode may omit it)"
+    value: "${{ inputs.output-dir }}/report.sarif"
+  report-junit:
+    description: "JUnit report path (source mode; crawl mode may omit it)"
+    value: "${{ inputs.output-dir }}/report.junit.xml"

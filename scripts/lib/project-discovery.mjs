@@ -243,7 +243,7 @@ export function buildScope(discovery, metadata) {
       note: 'Source access does not prove ownership of a deployment.',
     },
     checkModes: {
-      source: { status: 'ready', network: false, authorizationRequired: false },
+      source: { status: 'ready', network: Boolean(metadata.auditBoundary?.networkAccess), authorizationRequired: false },
       local: { status: 'ready', network: false, authorizationRequired: false },
       remotePassive: {
         status: hasOrigin ? 'blocked_pending_authorization' : 'not_configured',

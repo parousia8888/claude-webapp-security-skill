@@ -12,7 +12,7 @@ I built [Web App Security Skill](https://github.com/parousia8888/web-app-securit
 
 The repository-owned demo deliberately starts with 2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM. It shows the patch and reruns the same path at 0 active HIGH / 0 active MEDIUM, with 21 findings recorded as fixed. [The generated reports and patch are public](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md).
 
-The current contract names 5 stable narrow detection families and keeps 4 evidence/reporting plus 1 lifecycle/distribution capabilities outside that detection count. Context-heavy API, identity, data and cloud review still depends on 6 agent-guided methods and human review. [The full category-by-maturity matrix links each claim to evidence](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md).
+The current contract names 7 stable narrow detection families and keeps 4 evidence/reporting plus 1 lifecycle/distribution capabilities outside that detection count. Context-heavy API, identity, data and cloud review still depends on 6 agent-guided methods and human review. [The full category-by-maturity matrix links each claim to evidence](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md).
 
 I also ran 3 ordinary projects at immutable commits with network denied. Those journeys retain zero findings, false-positive closures, suspected and unknown results rather than presenting only successful detections. A separate 5-project corpus exercises the broader source-review method. [Method and reproduction commands](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md).
 

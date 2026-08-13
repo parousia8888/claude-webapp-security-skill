@@ -51,8 +51,9 @@ Still open:
   `security.txt` check that never labels absence a vulnerability.
 - [#6](https://github.com/parousia8888/web-app-security-skill/issues/6): ShellCheck and an
   evidence-based coverage threshold without weakening Bash 3.2 support.
-- [#7](https://github.com/parousia8888/web-app-security-skill/issues/7): dependency review and
-  secret scanning after alert ownership and response policy are documented.
+- [#7](https://github.com/parousia8888/web-app-security-skill/issues/7): Gitleaks/OSV evidence-only
+  adapters and the [response-policy template](docs/alert-policy.md) are implemented on `main`;
+  blocking use remains pending explicit signal-owner assignments and owner acceptance.
 
 ## Platform and documentation backlog
 

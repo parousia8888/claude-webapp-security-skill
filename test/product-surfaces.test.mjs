@@ -90,6 +90,7 @@ try {
   assert.equal(result.status, 0, result.stderr);
   assert.ok(existsSync(join(actionOut, 'report.json')));
   assert.ok(existsSync(join(actionOut, 'report.md')));
+  assert.ok(existsSync(join(actionOut, 'report.sarif')));
 
   const failingActionOut = join(temp, 'action-failing-report');
   const stepSummary = join(temp, 'step-summary.md');
@@ -107,6 +108,29 @@ try {
   assert.equal(result.status, 1, 'Action must preserve the audit failure status');
   assert.ok(existsSync(join(failingActionOut, 'report.json')), 'failing Action must retain evidence');
   assert.match(readFileSync(stepSummary, 'utf8'), /Web App Security report/);
+
+  const sourceProject = join(temp, 'action-source-project');
+  mkdirSync(sourceProject);
+  writeFileSync(join(sourceProject, 'package.json'), '{"name":"action-source","version":"1.0.0"}\n');
+  writeFileSync(join(sourceProject, 'package-lock.json'), '{"name":"action-source","version":"1.0.0","lockfileVersion":3,"packages":{"":{"name":"action-source","version":"1.0.0"}}}\n');
+  const sourceActionOut = join(temp, 'action-source-report');
+  const sourceStepSummary = join(temp, 'source-step-summary.md');
+  result = await run('/bin/bash', [ACTION], {
+    env: {
+      ...process.env,
+      INPUT_MODE: 'source',
+      INPUT_PROJECT: sourceProject,
+      INPUT_OUTPUT_DIR: sourceActionOut,
+      INPUT_FAIL_ON: 'never',
+      GITHUB_STEP_SUMMARY: sourceStepSummary,
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const sourceActionReport = JSON.parse(readFileSync(join(sourceActionOut, 'report.json'), 'utf8'));
+  assert.deepEqual(sourceActionReport.ruleset.adapters.map((adapter) => adapter.id), ['builtin-source']);
+  assert.equal(sourceActionReport.scope.networkAccessPerformed, false);
+  assert.ok(existsSync(join(sourceActionOut, 'report.sarif')));
+  assert.match(readFileSync(sourceStepSummary, 'utf8'), /# Web App Security report/);
 
   const demoOut = join(temp, 'demo');
   result = await run(process.execPath, [CLI, 'demo', '--out', demoOut]);
@@ -157,6 +181,9 @@ try {
     assert.ok(existsSync(join(installed, 'docs', 'finding-v2.schema.json')));
     assert.ok(existsSync(join(installed, 'docs', 'report-v2.schema.json')));
     assert.ok(existsSync(join(installed, 'docs', 'report-v2-migration.md')));
+    assert.ok(existsSync(join(installed, 'docs', 'adapter-protocol.md')));
+    assert.ok(existsSync(join(installed, 'docs', 'alert-policy.md')));
+    assert.ok(existsSync(join(installed, 'docs', 'rule-taxonomy.md')));
     assert.match(readFileSync(join(installed, 'SKILL.md'), 'utf8'), /^name: web-app-security$/m);
   }
   const codexSkills = join(fakeHome, '.codex', 'skills');

@@ -1,0 +1,81 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+if (process.env.WEBAPP_SECURITY_REAL_ADAPTER_TEST !== 'true') {
+  console.log('real adapters skipped: set WEBAPP_SECURITY_REAL_ADAPTER_TEST=true with pinned binaries');
+  process.exit(0);
+}
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const CLI = join(ROOT, 'scripts', 'webapp-security.mjs');
+const temp = mkdtempSync(join(tmpdir(), 'web-app-security-real-adapters-'));
+const plantedToken = 'ghp_123456789012345678901234567890123456';
+
+function command(program, args, options = {}) {
+  const result = spawnSync(program, args, { encoding: 'utf8', timeout: 180000, ...options });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return result;
+}
+
+function project(name, vulnerable) {
+  const root = join(temp, name);
+  mkdirSync(root);
+  writeFileSync(join(root, 'package.json'), `${JSON.stringify({ name, version: '1.0.0' })}\n`);
+  const dependency = vulnerable
+    ? { name: 'lodash', version: '4.17.20' }
+    : { name: 'is-number', version: '7.0.0' };
+  const packages = {
+    '': { name, version: '1.0.0', dependencies: { [dependency.name]: dependency.version } },
+    [`node_modules/${dependency.name}`]: { version: dependency.version },
+  };
+  writeFileSync(join(root, 'package-lock.json'), `${JSON.stringify({
+    name, version: '1.0.0', lockfileVersion: 3, packages,
+  }, null, 2)}\n`);
+  writeFileSync(join(root, 'config.txt'), vulnerable ? `github_token = ${plantedToken}\n` : 'fixture = clean\n');
+  command('git', ['init', '-q'], { cwd: root });
+  command('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'add', '.'], { cwd: root });
+  command('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'], { cwd: root });
+  return root;
+}
+
+try {
+  for (const binary of [process.env.WEBAPP_SECURITY_GITLEAKS_BIN, process.env.WEBAPP_SECURITY_OSV_SCANNER_BIN]) {
+    assert.ok(binary, 'pinned adapter binary path is required');
+    chmodSync(binary, 0o755);
+  }
+  const vulnerable = project('vulnerable', true);
+  const vulnerableOut = join(temp, 'vulnerable-report');
+  let result = spawnSync(process.execPath, [
+    CLI, 'audit', vulnerable, '--out', vulnerableOut, '--adapter', 'gitleaks', '--adapter', 'osv',
+    '--fail-on', 'never', '--adapter-timeout', '120',
+  ], { cwd: ROOT, encoding: 'utf8', timeout: 180000, env: { ...process.env, SOURCE_DATE_EPOCH: '0' } });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const report = JSON.parse(readFileSync(join(vulnerableOut, 'report.json'), 'utf8'));
+  assert.ok(report.findings.some((finding) => finding.rule.id === 'gitleaks-committed-secret'));
+  assert.ok(report.findings.some((finding) => finding.rule.id === 'gitleaks-working-tree-secret'));
+  assert.ok(report.findings.some((finding) => finding.rule.id === 'osv-known-vulnerability'));
+  assert.ok(report.findings.some((finding) => finding.evidence.advisoryIds?.includes('GHSA-29mw-wpgm-hmr9')));
+  for (const name of readdirSync(vulnerableOut)) {
+    assert.equal(readFileSync(join(vulnerableOut, name), 'utf8').includes(plantedToken), false);
+  }
+
+  const clean = project('clean', false);
+  const cleanOut = join(temp, 'clean-report');
+  result = spawnSync(process.execPath, [
+    CLI, 'audit', clean, '--out', cleanOut, '--adapter', 'gitleaks', '--adapter', 'osv',
+    '--fail-on', 'never', '--adapter-timeout', '120',
+  ], { cwd: ROOT, encoding: 'utf8', timeout: 180000, env: { ...process.env, SOURCE_DATE_EPOCH: '0' } });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const cleanReport = JSON.parse(readFileSync(join(cleanOut, 'report.json'), 'utf8'));
+  assert.equal(cleanReport.findings.filter((finding) => finding.state === 'confirmed').length, 0);
+  assert.ok(cleanReport.coverage.every((entry) => entry.status === 'completed'));
+
+  console.log('real adapters ok: pinned Gitleaks and OSV-Scanner positive and clean controls');
+} finally {
+  rmSync(temp, { recursive: true, force: true });
+}

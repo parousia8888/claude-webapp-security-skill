@@ -115,6 +115,19 @@ webapp-security retest .webapp-security/runs/<retest-run-id> \
   --baseline .webapp-security/runs/<run-id>/report.json
 ```
 
+默认使用内置、无网络的源码 adapter。外部 adapter 必须显式选择：
+
+```bash
+webapp-security doctor . --adapter all --json
+webapp-security audit . --adapter gitleaks --adapter osv --fail-on never
+```
+
+已测试版本为 Gitleaks `8.30.1` 和 OSV-Scanner `2.5.0`；CLI 与 Action 都不会自动下载。
+OSV-Scanner 可能查询公共 OSV 数据库，但不会执行项目依赖。外部结果要影响阻断退出码前，还必须在
+使用方仓库接受 [`docs/alert-policy.md`](docs/alert-policy.md) 中的责任，并传入
+`--acknowledge-alert-policy`。版本、失败与脱敏语义见
+[`adapter protocol`](docs/adapter-protocol.md)。
+
 每次源码 audit 会写出 v2 JSON、Markdown、HTML、SARIF、JUnit、SHA-256 sidecar 和
 `proposed.patch`。直接对项目执行的一次性 audit 使用 ephemeral identity，不能作为复测 baseline。
 `fixed` 必须同时满足 persisted subject/scope 相同、rule 兼容、本次 coverage 已完成且条件明确不存在。
@@ -140,10 +153,11 @@ webapp-security crawl --site https://example.com --out ./security-report \
 - **类别：** 检测；证据与报告；生命周期与分发；或 Agent 方法论。
 - **成熟度：** `stable`、`experimental`、`agent_guided` 或 `planned`。
 
-当前 stable 检测家族包括窄范围源码 audit、crawl boundary、crawler 身份验证、edge 验证和
+当前 stable 检测家族包括窄范围内置源码 audit、显式启用的 Gitleaks 与 OSV-Scanner adapter、
+crawl boundary、crawler 身份验证、edge 验证和
 只读 AWS inventory helper。项目识别、demo、报告 renderer、复测基础设施、安装器与 GitHub
-Action 虽然都有测试，但不构成更多 detector 家族。Gitleaks 与 OSV-Scanner adapter 仍是
-`planned`；API 授权、业务逻辑、LLM/OAuth、数据层、供应链和更广的 AWS 审查仍属于 Agent
+Action 虽然都有测试，但不构成更多 detector 家族。API 授权、业务逻辑、LLM/OAuth、数据层和
+更广的 AWS 审查仍属于 Agent
 方法论，直到具体 adapter 获得回归证据。
 
 [生成的能力矩阵](docs/capabilities.md)为每项类别与成熟度声明链接证据。结果只使用 `confirmed`、
@@ -159,6 +173,8 @@ webapp-security start .
 
 # 只读源码 audit、finding 解释与强制 baseline 复测
 webapp-security audit .webapp-security/runs/<run-id> --fail-on high
+webapp-security doctor . --adapter all
+webapp-security audit . --adapter gitleaks --adapter osv --fail-on never
 webapp-security explain <finding-id> --report <report.json>
 webapp-security start . --run-id <retest-run-id>
 webapp-security retest .webapp-security/runs/<retest-run-id> \
@@ -198,7 +214,7 @@ baseline。
 
 ## GitHub Action
 
-Composite Action 默认被动，且没有授权确认时不会执行：
+Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被动，且必须确认部署授权：
 
 ```yaml
 - name: Audit public crawl boundary
@@ -214,6 +230,18 @@ Composite Action 默认被动，且没有授权确认时不会执行：
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
+```
+
+Source mode 默认只用内置 adapter。外部二进制必须由调用方固定版本并安装，Action 不会下载：
+
+```yaml
+- name: Audit source
+  uses: parousia8888/web-app-security-skill@v1
+  with:
+    mode: source
+    project: .
+    adapters: builtin
+    fail-on: high
 ```
 
 移动的 `v1` tag 只在版本化 release 通过真实 consumer workflow 后更新；接受更新前应检查 release note。

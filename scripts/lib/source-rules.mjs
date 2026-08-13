@@ -1,4 +1,5 @@
 import { createRulesetV2 } from './ruleset-v2.mjs';
+import { adapterDefinitions } from './adapter-definitions.mjs';
 
 export const BUILTIN_SOURCE_ADAPTER = {
   id: 'builtin-source',
@@ -17,13 +18,24 @@ export const SOURCE_RULES = [
   id, revision: '1', domain, severity, rationale,
 }));
 
-export function sourceRuleset() {
-  return createRulesetV2([{ ...BUILTIN_SOURCE_ADAPTER, rules: SOURCE_RULES }]);
+export function sourceRuleset(selected = ['builtin']) {
+  return createRulesetV2([
+    ...(selected.includes('builtin') ? [{ ...BUILTIN_SOURCE_ADAPTER, rules: SOURCE_RULES }] : []),
+    ...adapterDefinitions(selected),
+  ]);
 }
 
 export function sourceRule(ruleId) {
   const rule = SOURCE_RULES.find((item) => item.id === ruleId);
   if (!rule) throw new Error(`source audit returned an unregistered rule: ${ruleId}`);
+  return rule;
+}
+
+export function sourceRuleForAdapter(adapterId, ruleId, selected = ['builtin']) {
+  if (adapterId === BUILTIN_SOURCE_ADAPTER.id) return sourceRule(ruleId);
+  const definition = adapterDefinitions(selected).find((item) => item.id === adapterId);
+  const rule = definition?.rules.find((item) => item.id === ruleId);
+  if (!rule) throw new Error(`adapter returned an unregistered rule: ${adapterId}/${ruleId}`);
   return rule;
 }
 

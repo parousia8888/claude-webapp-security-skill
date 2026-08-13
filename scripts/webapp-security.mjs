@@ -24,6 +24,7 @@ Commands:
   audit <project|run>          Run deterministic source checks and render evidence
   explain <id> --report <json> Explain one finding from a structured report
   retest <project|run>         Rerun source checks against a required baseline
+  doctor [project]             Report adapter versions/prerequisites without downloads
   migrate-report <v1-report>   Bind historical v1 evidence as non-comparable v2 lineage
   rebind <project>             Explicitly bind a moved/cloned project to a reviewed subject
   demo                         Run the deterministic local before/after demo
@@ -139,6 +140,7 @@ const include = [
   'docs/capabilities.json', 'docs/capabilities.md', 'docs/security-scope.schema.json',
   'docs/finding.schema.json', 'docs/report.schema.json', 'docs/finding-v2.schema.json',
   'docs/report-v2.schema.json', 'docs/report-v2-migration.md',
+  'docs/adapter-protocol.md', 'docs/alert-policy.md', 'docs/rule-taxonomy.md',
 ];
 
 function stagePayload(spec) {
@@ -318,6 +320,7 @@ switch (command) {
   case 'audit': run(process.execPath, [join(ROOT, 'scripts', 'project-audit.mjs'), 'audit', ...argv]); break;
   case 'explain': run(process.execPath, [join(ROOT, 'scripts', 'explain-finding.mjs'), ...argv]); break;
   case 'retest': run(process.execPath, [join(ROOT, 'scripts', 'project-audit.mjs'), 'retest', ...argv]); break;
+  case 'doctor': run(process.execPath, [join(ROOT, 'scripts', 'adapter-doctor.mjs'), ...argv]); break;
   case 'migrate-report': run(process.execPath, [join(ROOT, 'scripts', 'migrate-report.mjs'), ...argv]); break;
   case 'rebind': run(process.execPath, [join(ROOT, 'scripts', 'rebind-project.mjs'), ...argv]); break;
   case 'demo': run(process.execPath, [join(ROOT, 'scripts', 'demo.mjs'), ...argv]); break;

@@ -16,3 +16,11 @@ jobs:
       - run: npm run lint
       - run: npm test                        # unit + robots + real-CLI integration (fixture)
       - run: bash test/shell-smoke.sh        # real gate: exit codes + Bash 3.2, no `|| true`
+      - name: Install checksum-pinned external adapters
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        run: bash test/install-pinned-adapters.sh
+      - name: Run real external adapter fixtures
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        env:
+          WEBAPP_SECURITY_REAL_ADAPTER_TEST: "true"
+        run: node test/real-adapters.test.mjs

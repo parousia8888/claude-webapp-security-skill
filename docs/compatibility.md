@@ -10,7 +10,9 @@
 | Claude Code | Skill directory under `~/.claude/skills/` | Install, marker, upgrade, uninstall and migration tests in an isolated home |
 | Codex | Skill directory under `~/.codex/skills/` | `agents/openai.yaml`, Skill validator and isolated lifecycle tests |
 | Ordinary CLI | `~/.local/share/web-app-security` plus `~/.local/bin/webapp-security` | Extracted-release lifecycle under a network-denied isolated home |
-| GitHub Actions | Linux runner; composite Action | Local entrypoint test plus manually dispatched real `@v1` consumer workflow |
+| GitHub Actions | Linux runner; composite Action crawl and source modes | Local entrypoint regression plus manually dispatched real `@v1` consumer workflow |
+| Gitleaks | Exactly 8.30.1 when selected | Pinned Linux real-tool fixture plus parser/failure/redaction regressions |
+| OSV-Scanner | Exactly 2.5.0 when selected | Pinned Linux real-tool fixture plus parser/failure/severity regressions |
 | AWS CLI | v2 recommended | Optional; missing CLI, permission failures and malformed JSON are v2 `unknown` evidence |
 | Windows | WSL2 only | Native PowerShell is not currently supported |
 
@@ -22,8 +24,11 @@ remain explicit in `security-scope.yml`.
 
 The deterministic source audit currently recognizes adjacent lockfile absence, environment-named
 files without reading their contents, public Node inspector bindings in package scripts and common
-production source-map settings. JSON, Markdown, HTML, SARIF 2.1.0 and JUnit render from one report
-object. Other security domains remain agent-guided until a specific deterministic adapter ships.
+production source-map settings. Opt-in Gitleaks checks Git history and the working tree; opt-in
+OSV-Scanner checks recorded lockfiles and may query the public OSV database. Neither tool is
+downloaded automatically or executes project dependencies. JSON, Markdown, HTML, SARIF 2.1.0 and
+JUnit render from one report object. Other security domains remain agent-guided until a specific
+deterministic adapter ships.
 
 Node 18 may run some scripts but is not a supported release target. TLS results vary by curl TLS
 backend; protocol checks are capability-tested and stop with `unknown` if they cannot be proven.

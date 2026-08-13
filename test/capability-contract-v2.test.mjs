@@ -20,7 +20,7 @@ function run(value) {
 try {
   let result = run(source);
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /5 stable detection, 2 planned detection/);
+  assert.match(result.stdout, /7 stable detection, 0 planned detection/);
 
   const demoAsDetection = structuredClone(source);
   demoAsDetection.capabilities.find((item) => item.id === 'local-before-after-demo').category = 'detection';
@@ -34,22 +34,25 @@ try {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /cannot count as detection/);
 
-  const plannedClaimedStable = structuredClone(source);
-  const gitleaks = plannedClaimedStable.capabilities.find((item) => item.id === 'gitleaks-secret-detection');
-  gitleaks.maturity = 'stable';
-  result = run(plannedClaimedStable);
+  const stableWithoutImplementationEvidence = structuredClone(source);
+  const gitleaks = stableWithoutImplementationEvidence.capabilities.find((item) => item.id === 'gitleaks-secret-detection');
+  gitleaks.evidence = ['docs/V0.4.0_ENGINEERING_PLAN.md'];
+  result = run(stableWithoutImplementationEvidence);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /requires implementation and test evidence/);
 
   const plannedWithEvidence = structuredClone(source);
-  plannedWithEvidence.capabilities.find((item) => item.id === 'gitleaks-secret-detection')
-    .evidence.push('docs/V0.4.0_ENGINEERING_PLAN.md');
+  const plannedGitleaks = plannedWithEvidence.capabilities.find((item) => item.id === 'gitleaks-secret-detection');
+  plannedGitleaks.maturity = 'planned';
+  plannedGitleaks.plannedFor = '0.5.0';
   result = run(plannedWithEvidence);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /planned maturity cannot claim implementation evidence/);
 
   const plannedWithoutTarget = structuredClone(source);
-  delete plannedWithoutTarget.capabilities.find((item) => item.id === 'osv-dependency-detection').plannedFor;
+  const plannedOsv = plannedWithoutTarget.capabilities.find((item) => item.id === 'osv-dependency-detection');
+  plannedOsv.maturity = 'planned';
+  delete plannedOsv.plannedFor;
   result = run(plannedWithoutTarget);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /planned maturity requires plannedFor/);
