@@ -46,6 +46,9 @@ for (const capability of source.capabilities || []) {
     fail(`${capability.id} is infrastructure, demo, or distribution and cannot count as detection`);
   }
   if (!capability.name || !capability.scope || !Array.isArray(capability.evidence)) fail(`${capability.id} is incomplete`);
+  if (/fixture|simulat/i.test(capability.scope) && capability.id === 'aws-exposure-inventory') {
+    fail('AWS detection claim must describe the real read-only collector, not a fixture');
+  }
   if (capability.maturity === 'planned') {
     if (!/^\d+\.\d+\.\d+$/.test(capability.plannedFor || '')) fail(`${capability.id} planned maturity requires plannedFor`);
     if (capability.evidence.length) fail(`${capability.id} planned maturity cannot claim implementation evidence`);

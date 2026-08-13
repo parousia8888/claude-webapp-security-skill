@@ -104,7 +104,7 @@ try {
   const duplicate = JSON.parse(originalBytes.toString('utf8'));
   duplicate.findings.push(structuredClone(duplicate.findings[0]));
   duplicate.summary.total += 1;
-  duplicate.summary.byDomain[duplicate.findings[0].domain] += 1;
+  duplicate.summary.byDomain[duplicate.findings[0].domain].total += 1;
   duplicate.summary.bySeverity[duplicate.findings[0].severity] += 1;
   duplicate.summary.byState[duplicate.findings[0].state] += 1;
   duplicate.summary.byBaseline[duplicate.findings[0].baseline.state] += 1;

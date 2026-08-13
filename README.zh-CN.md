@@ -48,8 +48,8 @@ npm run demo -- --out ./demo-output
 ```
 
 阅读[生成的加固前 / 变更建议 / 复测证据](docs/demo-evidence.md)，再检查
-`demo-output/summary.md`、`before.json`、`hardening.patch` 与 `after.json`。仓库门禁会重新生成证据，
-结果变化但文档未更新时会失败。
+`demo-output/demo-result.json`、`summary.md`、`before.json`、`hardening.patch` 与 `after.json`。
+所有公开 demo 计数都来自 `demo-result.json`；仓库门禁会重跑 fixture，并在任一公开面不一致时失败。
 
 完整的安装到卸载流程见经过测试的[第一个项目教程](docs/tutorial.zh-CN.md)。
 
@@ -119,6 +119,19 @@ webapp-security retest .webapp-security/runs/<retest-run-id> \
 `proposed.patch`。直接对项目执行的一次性 audit 使用 ephemeral identity，不能作为复测 baseline。
 `fixed` 必须同时满足 persisted subject/scope 相同、rule 兼容、本次 coverage 已完成且条件明确不存在。
 命令不会应用补丁，也不授予部署探测权限。
+
+报告先按风险 domain，再按 evidence state，最后按 severity 汇总。默认 CI policy 只 gate 已确认的
+HIGH `security_exposure` 与 `supply_chain` finding。现有 `--fail-on` 继续同时设置这两个 domain；
+如需 gate 其他 domain，必须显式指定，例如：
+
+```bash
+webapp-security crawl --site https://example.com --out ./security-report \
+  --fail-on high --fail-on-domain search_discoverability=high
+```
+
+可以组合多个 `--fail-on-domain <domain=threshold>`。有效 threshold 会写入 report。
+[生成的 rule taxonomy](docs/rule-taxonomy.md)记录每条内置 source/crawl rule 的 domain、severity
+与 rationale。
 
 ## 能力边界
 

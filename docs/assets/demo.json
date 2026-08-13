@@ -3,9 +3,8 @@
   "generator": "scripts/generate-demo-gif.mjs",
   "sources": [
     "scripts/demo.mjs",
-    "before.json",
-    "hardening.patch",
-    "after.json"
+    "demo-result.json",
+    "hardening.patch"
   ],
   "width": 840,
   "height": 472,
@@ -14,28 +13,329 @@
   "bytes": 2742052,
   "sha256": "c2a69f2cec43e48ba904fd753bf0ab481859730489a9860e730ce780dfdd945c",
   "result": {
+    "schemaVersion": 1,
+    "generator": "scripts/demo.mjs",
+    "boundary": "owned-local-fixture-no-third-party-target",
     "before": {
-      "active": {
-        "high": 13,
-        "medium": 6
-      },
       "byDomain": {
         "security_exposure": {
-          "high": 2
+          "confirmed": {
+            "critical": 0,
+            "high": 2,
+            "medium": 0,
+            "low": 0,
+            "info": 1
+          },
+          "suspected": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "unknown": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "not_applicable": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          }
+        },
+        "supply_chain": {
+          "confirmed": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "suspected": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "unknown": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "not_applicable": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          }
         },
         "search_discoverability": {
-          "high": 11,
-          "medium": 5
+          "confirmed": {
+            "critical": 0,
+            "high": 11,
+            "medium": 5,
+            "low": 0,
+            "info": 0
+          },
+          "suspected": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "unknown": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "not_applicable": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          }
         },
         "reliability": {
-          "medium": 1
+          "confirmed": {
+            "critical": 0,
+            "high": 0,
+            "medium": 1,
+            "low": 0,
+            "info": 1
+          },
+          "suspected": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "unknown": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "not_applicable": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          }
+        },
+        "evidence_integrity": {
+          "confirmed": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "suspected": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "unknown": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "not_applicable": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          }
         }
+      },
+      "bySeverity": {
+        "critical": 0,
+        "high": 13,
+        "medium": 6,
+        "low": 0,
+        "info": 2
       }
     },
     "after": {
-      "active": {
+      "byDomain": {
+        "security_exposure": {
+          "confirmed": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 1
+          },
+          "suspected": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "unknown": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "not_applicable": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          }
+        },
+        "supply_chain": {
+          "confirmed": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "suspected": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "unknown": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "not_applicable": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          }
+        },
+        "search_discoverability": {
+          "confirmed": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "suspected": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "unknown": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "not_applicable": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          }
+        },
+        "reliability": {
+          "confirmed": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "suspected": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "unknown": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "not_applicable": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          }
+        },
+        "evidence_integrity": {
+          "confirmed": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "suspected": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "unknown": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          },
+          "not_applicable": {
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "info": 0
+          }
+        }
+      },
+      "bySeverity": {
+        "critical": 0,
         "high": 0,
-        "medium": 0
+        "medium": 0,
+        "low": 0,
+        "info": 1
       }
     },
     "fixed": 21

@@ -16,7 +16,7 @@ const publication = json('docs/adoption/publication.json');
 const metadata = json('docs/github-metadata.json');
 const contract = json('docs/public-contract.json');
 const capabilities = json('docs/capabilities.json');
-const demo = json('docs/assets/demo.json');
+const demo = json('docs/assets/demo.json').result;
 const journeys = json('docs/case-studies/journeys/evidence.json');
 const version = read('VERSION').trim();
 const releaseState = json('docs/release-state.json');
@@ -33,13 +33,13 @@ requireFact(metadata.repository === publication.repositoryUrl.replace('https://g
 requireFact(metadata.promise?.en && metadata.promise?.['zh-CN'], 'canonical promises are missing');
 requireFact(existsSync(join(ROOT, releaseEvidencePath)), `published release evidence is missing for v${published.version}`);
 requireFact(demo.boundary === 'owned-local-fixture-no-third-party-target', 'demo must remain an owned local fixture');
-requireFact(Number.isInteger(demo.result?.before?.byDomain?.security_exposure?.high)
-  && Number.isInteger(demo.result?.before?.byDomain?.search_discoverability?.high)
-  && Number.isInteger(demo.result?.before?.byDomain?.search_discoverability?.medium)
-  && Number.isInteger(demo.result?.before?.byDomain?.reliability?.medium)
-  && Number.isInteger(demo.result?.after?.active?.high)
-  && Number.isInteger(demo.result?.after?.active?.medium)
-  && Number.isInteger(demo.result?.fixed), 'demo counts are invalid');
+requireFact(Number.isInteger(demo.before?.byDomain?.security_exposure?.confirmed?.high)
+  && Number.isInteger(demo.before?.byDomain?.search_discoverability?.confirmed?.high)
+  && Number.isInteger(demo.before?.byDomain?.search_discoverability?.confirmed?.medium)
+  && Number.isInteger(demo.before?.byDomain?.reliability?.confirmed?.medium)
+  && Number.isInteger(demo.after?.bySeverity?.high)
+  && Number.isInteger(demo.after?.bySeverity?.medium)
+  && Number.isInteger(demo.fixed), 'demo counts are invalid');
 requireFact(journeys.journeys?.length === contract.projectJourneys?.length, 'ordinary journey sources disagree');
 requireFact(contract.methodStudies?.length > 0, 'method studies are missing');
 requireFact(journeys.journeys.every((journey) => /^[a-f0-9]{40}$/.test(journey.commit || '')), 'journeys must pin immutable commits');
@@ -66,13 +66,13 @@ const facts = {
   evidenceReporting: capabilityCount('evidence_reporting'),
   lifecycleDistribution: capabilityCount('lifecycle_distribution'),
   guided: capabilityCount('agent_guided_methodology'),
-  securityHigh: demo.result.before.byDomain.security_exposure.high,
-  discoverabilityHigh: demo.result.before.byDomain.search_discoverability.high,
-  discoverabilityMedium: demo.result.before.byDomain.search_discoverability.medium,
-  reliabilityMedium: demo.result.before.byDomain.reliability.medium,
-  afterHigh: demo.result.after.active.high,
-  afterMedium: demo.result.after.active.medium,
-  fixed: demo.result.fixed,
+  securityHigh: demo.before.byDomain.security_exposure.confirmed.high,
+  discoverabilityHigh: demo.before.byDomain.search_discoverability.confirmed.high,
+  discoverabilityMedium: demo.before.byDomain.search_discoverability.confirmed.medium,
+  reliabilityMedium: demo.before.byDomain.reliability.confirmed.medium,
+  afterHigh: demo.after.bySeverity.high,
+  afterMedium: demo.after.bySeverity.medium,
+  fixed: demo.fixed,
   journeys: journeys.journeys.length,
   studies: contract.methodStudies.length,
 };

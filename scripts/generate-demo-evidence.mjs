@@ -9,15 +9,6 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const OUTPUT = join(ROOT, 'docs', 'demo-evidence.md');
 const temp = mkdtempSync(join(tmpdir(), 'web-app-security-demo-'));
 
-function count(report, severity) {
-  return report.findings.filter((finding) => finding.severity === severity && finding.baseline.state !== 'fixed').length;
-}
-
-function domainCount(report, domain, severity) {
-  return report.findings.filter((finding) => finding.domain === domain
-    && finding.severity === severity && finding.baseline.state !== 'fixed').length;
-}
-
 try {
   const result = spawnSync(process.execPath, [join(ROOT, 'scripts', 'demo.mjs'), '--out', temp], {
     encoding: 'utf8',
@@ -29,7 +20,8 @@ try {
   }
 
   const before = JSON.parse(readFileSync(join(temp, 'before.json'), 'utf8'));
-  const after = JSON.parse(readFileSync(join(temp, 'after.json'), 'utf8'));
+  const facts = JSON.parse(readFileSync(join(temp, 'demo-result.json'), 'utf8'));
+  const fact = (stage, domain, severity) => facts[stage].byDomain[domain].confirmed[severity];
   const ids = new Set(before.findings.map((finding) => finding.rule.id));
   const required = [
     'robots-blocks-search-crawler',
@@ -50,7 +42,7 @@ the proposed hardening; no third-party host is contacted.
 
 | Input | Security HIGH | Discoverability HIGH / MEDIUM | Reliability MEDIUM | Reviewable change | Retest |
 |---|---:|---:|---:|---|---|
-| Owned local fixture | ${domainCount(before, 'security_exposure', 'high')} | ${domainCount(before, 'search_discoverability', 'high')} / ${domainCount(before, 'search_discoverability', 'medium')} | ${domainCount(before, 'reliability', 'medium')} | public crawl policy, sensitive artifact responses, unknown-route status | ${count(after, 'high')} active HIGH, ${count(after, 'medium')} active MEDIUM |
+| Owned local fixture | ${fact('before', 'security_exposure', 'high')} | ${fact('before', 'search_discoverability', 'high')} / ${fact('before', 'search_discoverability', 'medium')} | ${fact('before', 'reliability', 'medium')} | public crawl policy, exposed artifacts, unknown-route status | ${facts.after.bySeverity.high} active HIGH, ${facts.after.bySeverity.medium} active MEDIUM |
 
 Representative confirmed evidence before the change:
 
@@ -65,7 +57,8 @@ ${patch}
 \`\`\`
 
 The change is not described as fixed until the second audit produces the retest counts above.
-Run \`npm run demo -- --out ./demo-output\` for the complete JSON and Markdown reports.
+Run \`npm run demo -- --out ./demo-output\` for the complete reports, patch and
+\`demo-result.json\` used by every public demo surface.
 `;
 
   if (process.argv.includes('--check')) {

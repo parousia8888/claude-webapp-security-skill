@@ -20,12 +20,19 @@ function take(name, fallback = null) {
   return value;
 }
 
+function takeAll(name) {
+  const values = [];
+  while (args.includes(name)) values.push(take(name));
+  return values;
+}
+
 try {
   const path = take('--observations');
   const site = take('--site');
   const output = take('--out');
   const name = take('--report-name', 'edge-report');
   const failOn = take('--fail-on', 'high');
+  const failOnDomains = takeAll('--fail-on-domain');
   const active = take('--active', 'false') === 'true';
   if (!path || !site || args.length) throw new Error('observations, site and known options are required');
   if (!['critical', 'high', 'medium', 'low', 'never'].includes(failOn)) throw new Error('--fail-on is invalid');
@@ -85,7 +92,7 @@ try {
     },
     coverage,
     findings: initializeFindingsV2(findings, coverage),
-    policy: policyForFailOn(failOn),
+    policy: policyForFailOn(failOn, failOnDomains),
     limitations: [
       'Edge observations do not establish application authorization or origin-side implementation correctness.',
       'Rate-limit behavior is sampled over the bounded configured request count, not proven for all traffic patterns.',

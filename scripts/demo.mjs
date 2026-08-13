@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { once } from 'node:events';
+import { createDemoFacts, demoCount } from './lib/demo-facts.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const outIndex = process.argv.indexOf('--out');
@@ -58,19 +59,18 @@ writeFileSync(join(out, 'hardening.patch'), `--- insecure-demo/before.conf
 `);
 const before = JSON.parse(readFileSync(join(out, 'before.json'), 'utf8'));
 const after = JSON.parse(readFileSync(join(out, 'after.json'), 'utf8'));
-const count = (report, severity) => report.findings
-  .filter((finding) => finding.severity === severity && finding.baseline.state !== 'fixed').length;
-const domainCount = (report, domain, severity) => report.findings
-  .filter((finding) => finding.domain === domain && finding.severity === severity
-    && finding.baseline.state !== 'fixed').length;
-const summary = `# Demo result\n\n| Stage | Security HIGH | Discoverability HIGH | Discoverability MEDIUM | Reliability MEDIUM | Evidence |\n|---|---:|---:|---:|---:|---|\n| Before | ${domainCount(before, 'security_exposure', 'high')} | ${domainCount(before, 'search_discoverability', 'high')} | ${domainCount(before, 'search_discoverability', 'medium')} | ${domainCount(before, 'reliability', 'medium')} | \`before.json\`, \`before.md\` |\n| Proposed hardening | - | - | - | - | \`hardening.patch\` |\n| Retest | ${domainCount(after, 'security_exposure', 'high')} | ${domainCount(after, 'search_discoverability', 'high')} | ${domainCount(after, 'search_discoverability', 'medium')} | ${domainCount(after, 'reliability', 'medium')} | \`after.json\`, \`after.md\` |\n\nThe patch is evidence for review. A fix is counted only from the compatible v2 retest output.\n`;
+const facts = createDemoFacts(before, after);
+writeFileSync(join(out, 'demo-result.json'), `${JSON.stringify(facts, null, 2)}\n`);
+const fact = (stage, domain, severity) => demoCount(facts, stage, domain, 'confirmed', severity);
+const summary = `# Demo result\n\n| Stage | Security HIGH | Discoverability HIGH | Discoverability MEDIUM | Reliability MEDIUM | Evidence |\n|---|---:|---:|---:|---:|---|\n| Before | ${fact('before', 'security_exposure', 'high')} | ${fact('before', 'search_discoverability', 'high')} | ${fact('before', 'search_discoverability', 'medium')} | ${fact('before', 'reliability', 'medium')} | \`before.json\`, \`before.md\` |\n| Proposed hardening | - | - | - | - | \`hardening.patch\` |\n| Retest | ${fact('after', 'security_exposure', 'high')} | ${fact('after', 'search_discoverability', 'high')} | ${fact('after', 'search_discoverability', 'medium')} | ${fact('after', 'reliability', 'medium')} | \`after.json\`, \`after.md\` |\n\nThe patch is evidence for review. A fix is counted only from the compatible v2 retest output.\n`;
 writeFileSync(join(out, 'summary.md'), summary);
 console.log(`Demo complete in ${out}
-before: ${domainCount(before, 'security_exposure', 'high')} security HIGH; ${domainCount(before, 'search_discoverability', 'high')} discoverability HIGH + ${domainCount(before, 'search_discoverability', 'medium')} MEDIUM; ${domainCount(before, 'reliability', 'medium')} reliability MEDIUM
-after:  ${count(after, 'high')} active HIGH, ${count(after, 'medium')} active MEDIUM
+before: ${fact('before', 'security_exposure', 'high')} security HIGH; ${fact('before', 'search_discoverability', 'high')} discoverability HIGH + ${fact('before', 'search_discoverability', 'medium')} MEDIUM; ${fact('before', 'reliability', 'medium')} reliability MEDIUM
+after:  ${facts.after.bySeverity.high} active HIGH, ${facts.after.bySeverity.medium} active MEDIUM
 
 Reports:
   ${join(out, 'summary.md')}
+  ${join(out, 'demo-result.json')}
   ${join(out, 'before.md')}
   ${join(out, 'after.md')}
 Patch evidence:

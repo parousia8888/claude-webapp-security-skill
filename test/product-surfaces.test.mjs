@@ -120,7 +120,10 @@ try {
   assert.equal(demoEvidenceBefore.schemaVersion, 2);
   assert.equal(demoEvidenceBefore.mode, 'demo-before');
   assert.equal(demoEvidenceBefore.summary.byState.confirmed, 21);
-  assert.equal(demoEvidenceBefore.summary.byDomain.security_exposure, 3);
+  assert.equal(demoEvidenceBefore.summary.byDomain.security_exposure.total, 3);
+  const demoFacts = JSON.parse(readFileSync(join(demoOut, 'demo-result.json'), 'utf8'));
+  assert.equal(demoFacts.before.byDomain.security_exposure.confirmed.high, 2);
+  assert.equal(demoFacts.before.byDomain.search_discoverability.confirmed.high, 11);
   assert.equal(demoEvidenceAfter.mode, 'demo-after');
   assert.equal(demoEvidenceAfter.summary.byBaseline.fixed, 21);
   assert.ok(existsSync(join(demoOut, 'before.html')));

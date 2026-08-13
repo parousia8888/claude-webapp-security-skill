@@ -91,6 +91,15 @@ The output includes `report.json`, `report.sha256`, `report.md`, `report.html`, 
 `report.junit.xml` and `proposed.patch`. Use JSON for automation, the sidecar for local integrity
 checking, Markdown/HTML for review, SARIF/JUnit for CI, and the patch file only as a proposal.
 
+The default policy gates confirmed HIGH security and supply-chain findings. Reports summarize by
+domain, evidence state and severity. Keep `--fail-on` for the compatible security/supply-chain
+threshold, and add a repeatable domain override only when that domain belongs in the CI gate:
+
+```bash
+webapp-security audit .webapp-security/runs/first-review \
+  --fail-on high --fail-on-domain reliability=high
+```
+
 ## Interpret results
 
 | State | Meaning | Required response |

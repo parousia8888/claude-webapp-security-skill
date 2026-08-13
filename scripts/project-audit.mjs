@@ -27,6 +27,7 @@ Options:
   --name <basename>       Report basename (default: report)
   --baseline <report>     Required by retest; optional comparison for audit
   --fail-on <severity>    critical, high, medium, low, or never (default: high)
+  --fail-on-domain <d=t> Override one domain threshold; may be repeated
   --max-depth <n>         Maximum directory depth, 1..64 (default: 12)
   --max-files <n>         Maximum discovered files, 1..200000 (default: 20000)
   --max-entries <n>       Maximum directory entries, 1..500000 (default: 50000)
@@ -44,12 +45,19 @@ function take(name, fallback = null) {
   return value;
 }
 
+function takeAll(name) {
+  const values = [];
+  while (args.includes(name)) values.push(take(name));
+  return values;
+}
+
 if (!['audit', 'retest'].includes(mode)) usage(2, 'mode must be audit or retest');
 if (args.includes('-h') || args.includes('--help')) usage(0);
 const outArg = take('--out');
 const name = take('--name', 'report');
 const baselinePath = take('--baseline');
 const failOn = take('--fail-on', 'high');
+const failOnDomains = takeAll('--fail-on-domain');
 const limitArgs = {
   maxDepth: take('--max-depth'),
   maxFiles: take('--max-files'),
@@ -165,7 +173,7 @@ try {
     coverage,
     findings,
     baseline,
-    policy: policyForFailOn(failOn),
+    policy: policyForFailOn(failOn, failOnDomains),
     limitations: [
       'Only deterministic source rules ran; agent-guided API, identity, LLM, data-layer and deployment review did not run.',
       'No network request or dependency execution was performed.',

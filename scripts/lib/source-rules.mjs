@@ -7,13 +7,15 @@ export const BUILTIN_SOURCE_ADAPTER = {
 };
 
 export const SOURCE_RULES = [
-  { id: 'dependency-lockfile-missing', revision: '1', domain: 'supply_chain' },
-  { id: 'sensitive-env-file-present', revision: '1', domain: 'security_exposure' },
-  { id: 'node-inspector-public-bind', revision: '1', domain: 'security_exposure' },
-  { id: 'production-source-map-enabled', revision: '1', domain: 'security_exposure' },
-  { id: 'source-stack-unsupported', revision: '1', domain: 'evidence_integrity' },
-  { id: 'source-evidence-incomplete', revision: '1', domain: 'evidence_integrity' },
-];
+  ['dependency-lockfile-missing', 'supply_chain', 'low', 'dependency_reproducibility'],
+  ['sensitive-env-file-present', 'security_exposure', 'medium', 'sensitive_material_review'],
+  ['node-inspector-public-bind', 'security_exposure', 'high', 'remote_debug_exposure'],
+  ['production-source-map-enabled', 'security_exposure', 'medium', 'source_disclosure_lead'],
+  ['source-stack-unsupported', 'evidence_integrity', 'info', 'unsupported_scope'],
+  ['source-evidence-incomplete', 'evidence_integrity', 'high', 'required_evidence_missing'],
+].map(([id, domain, severity, rationale]) => ({
+  id, revision: '1', domain, severity, rationale,
+}));
 
 export function sourceRuleset() {
   return createRulesetV2([{ ...BUILTIN_SOURCE_ADAPTER, rules: SOURCE_RULES }]);

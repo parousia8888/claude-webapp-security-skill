@@ -25,16 +25,27 @@ export const DEFAULT_POLICY = {
   precedence: 'confirmed_threshold_before_incomplete',
 };
 
-export function policyForFailOn(failOn) {
+export function policyForFailOn(failOn, domainOverrides = []) {
   if (!['critical', 'high', 'medium', 'low', 'never'].includes(failOn)) {
     throw new Error(`invalid fail-on threshold: ${failOn}`);
+  }
+  const overrides = new Map();
+  for (const value of domainOverrides) {
+    const [domain, threshold, extra] = String(value).split('=');
+    if (extra !== undefined || !V2_DOMAINS.includes(domain)
+        || !['critical', 'high', 'medium', 'low', 'never'].includes(threshold)) {
+      throw new Error(`invalid domain threshold: ${value}; expected <domain>=<critical|high|medium|low|never>`);
+    }
+    if (overrides.has(domain)) throw new Error(`duplicate domain threshold: ${domain}`);
+    overrides.set(domain, threshold);
   }
   return {
     thresholds: DEFAULT_POLICY.thresholds.map((threshold) => ({
       ...threshold,
-      failOn: ['security_exposure', 'supply_chain'].includes(threshold.domain)
-        ? failOn
-        : threshold.failOn,
+      failOn: overrides.get(threshold.domain)
+        || (['security_exposure', 'supply_chain'].includes(threshold.domain)
+          ? failOn
+          : threshold.failOn),
     })),
     precedence: DEFAULT_POLICY.precedence,
   };
@@ -67,6 +78,9 @@ export function createFindingV2({
 }) {
   const adapter = ruleset.adapters.find((item) => item.id === adapterId);
   if (!adapter) throw new Error(`finding references unregistered adapter: ${adapterId}`);
+  if (rule.severity && severity !== rule.severity) {
+    throw new Error(`finding severity differs from rule taxonomy: ${rule.id} expected ${rule.severity}, received ${severity}`);
+  }
   const core = {
     schemaVersion: 2,
     fingerprintVersion: 2,
@@ -242,11 +256,19 @@ export function summarizeV2(findings) {
   const bySeverity = Object.fromEntries(SEVERITIES.map((severity) => [severity, 0]));
   const byState = Object.fromEntries(V2_RESULT_STATES.map((state) => [state, 0]));
   const byBaseline = Object.fromEntries(V2_BASELINE_STATES.map((state) => [state, 0]));
-  const byDomain = Object.fromEntries(V2_DOMAINS.map((domain) => [domain, 0]));
+  const byDomain = Object.fromEntries(V2_DOMAINS.map((domain) => [domain, {
+    total: 0,
+    byState: Object.fromEntries(V2_RESULT_STATES.map((state) => [state, {
+      total: 0,
+      bySeverity: Object.fromEntries(SEVERITIES.map((severity) => [severity, 0])),
+    }])),
+  }]));
   for (const finding of findings) {
     bySeverity[finding.severity] += 1;
     byState[finding.state] += 1;
-    byDomain[finding.domain] += 1;
+    byDomain[finding.domain].total += 1;
+    byDomain[finding.domain].byState[finding.state].total += 1;
+    byDomain[finding.domain].byState[finding.state].bySeverity[finding.severity] += 1;
     if (finding.baseline.state) byBaseline[finding.baseline.state] += 1;
   }
   return { total: findings.length, byDomain, bySeverity, byState, byBaseline };
@@ -343,6 +365,21 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => (
 })[character]);
 const escapeXml = escapeHtml;
 
+function domainSummaryLines(report) {
+  return V2_DOMAINS.flatMap((domain) => {
+    const summary = report.summary.byDomain[domain];
+    if (!summary.total) return [];
+    const states = V2_RESULT_STATES.flatMap((state) => {
+      const stateSummary = summary.byState[state];
+      if (!stateSummary.total) return [];
+      const severities = SEVERITIES.filter((severity) => stateSummary.bySeverity[severity])
+        .map((severity) => `${severity}=${stateSummary.bySeverity[severity]}`).join(', ');
+      return `${state}=${stateSummary.total} (${severities})`;
+    }).join('; ');
+    return [`${domain}: total=${summary.total}; ${states}`];
+  });
+}
+
 export function renderMarkdownV2(report) {
   const coverageLines = report.coverage.flatMap((entry) => {
     const counts = Object.entries(entry.counts).map(([key, value]) => `${key}=${value}`).join(', ');
@@ -361,7 +398,9 @@ export function renderMarkdownV2(report) {
     `- Subject: \`${report.subject.id}\` (${report.subject.binding})`,
     `- Generated: ${report.generatedAt}`,
     `- Findings: ${report.summary.total}`,
-    `- Evidence states: ${V2_RESULT_STATES.map((state) => `${state}=${report.summary.byState[state]}`).join(', ')}`,
+    '', '## Risk summary', '',
+    ...domainSummaryLines(report).map((line) => `- ${line}`),
+    ...(report.summary.total ? [] : ['No findings were produced by the checks that ran.']),
     '', '## Coverage', '',
     ...traversal,
     ...coverageLines,
@@ -400,7 +439,8 @@ export function renderHtmlV2(report) {
   const traversal = report.scope?.traversal
     ? `<p>Traversal: <code>${escapeHtml(JSON.stringify(report.scope.traversal))}</code></p>`
     : '';
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:8px}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><p>Subject: <code>${escapeHtml(report.subject.id)}</code></p><h2>Coverage</h2>${traversal}<ul>${coverage}</ul><h2>Findings</h2>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
+  const summary = domainSummaryLines(report).map((line) => `<li>${escapeHtml(line)}</li>`).join('');
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:8px}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><p>Subject: <code>${escapeHtml(report.subject.id)}</code></p><h2>Risk summary</h2>${summary ? `<ul>${summary}</ul>` : '<p>No findings were produced by the checks that ran.</p>'}<h2>Coverage</h2>${traversal}<ul>${coverage}</ul><h2>Findings</h2>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
 }
 
 export function renderSarifV2(report) {

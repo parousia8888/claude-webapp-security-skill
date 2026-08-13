@@ -8,6 +8,7 @@ import {
   validateFindingV2, validateReportV2,
 } from '../scripts/lib/report-v2-contract.mjs';
 import { createFinding, createReport } from '../scripts/lib/evidence.mjs';
+import { summarizeV2 } from '../scripts/lib/evidence-v2.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 for (const path of ['docs/finding-v2.schema.json', 'docs/report-v2.schema.json']) {
@@ -85,7 +86,7 @@ const report = (overrides = {}) => ({
     precedence: 'confirmed_threshold_before_incomplete',
   },
   coverage: [coverage],
-  summary: {},
+  summary: summarizeV2([finding()]),
   findings: [finding()],
   limitations: [],
   baseline: { sourceDigest: digest, sourceSchemaVersion: 2, subjectId: 'project-0123456789abcdef', scopeDigest: digest, rulesetDigest: digest, compatibility: 'compatible', reasonCode: null },

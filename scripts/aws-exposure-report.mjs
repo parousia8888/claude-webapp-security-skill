@@ -20,6 +20,12 @@ function take(name, fallback = null) {
   return value;
 }
 
+function takeAll(name) {
+  const values = [];
+  while (args.includes(name)) values.push(take(name));
+  return values;
+}
+
 function decode(value) {
   return Buffer.from(value, 'base64').toString('utf8');
 }
@@ -35,6 +41,7 @@ try {
   const output = take('--out');
   const name = take('--report-name', 'aws-report');
   const failOn = take('--fail-on', 'high');
+  const failOnDomains = takeAll('--fail-on-domain');
   if (!path || !region || args.length) throw new Error('observations, region and known options are required');
   if (!['critical', 'high', 'medium', 'low', 'never'].includes(failOn)) throw new Error('--fail-on is invalid');
   if (!/^[a-zA-Z0-9._-]+$/.test(name)) throw new Error('--report-name contains unsupported characters');
@@ -101,7 +108,7 @@ try {
     },
     coverage,
     findings: initializeFindingsV2(uniqueFindings, coverage),
-    policy: policyForFailOn(failOn),
+    policy: policyForFailOn(failOn, failOnDomains),
     limitations: [
       'The inventory covers one account and one configured region; global services are included only where queried.',
       'Read-only AWS configuration evidence does not prove application-layer authorization or runtime isolation.',

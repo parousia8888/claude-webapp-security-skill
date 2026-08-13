@@ -27,13 +27,8 @@ try {
     timeout: 30000,
   });
   if (demo.status !== 0) throw new Error(demo.stderr || demo.stdout || 'demo failed');
-  const before = JSON.parse(readFileSync(join(temp, 'before.json'), 'utf8'));
-  const after = JSON.parse(readFileSync(join(temp, 'after.json'), 'utf8'));
-  const severity = (report, name) => report.findings
-    .filter((item) => item.severity === name && item.baseline.state !== 'fixed').length;
-  const domainSeverity = (report, domain, name) => report.findings
-    .filter((item) => item.domain === domain && item.severity === name
-      && item.baseline.state !== 'fixed').length;
+  const demoFacts = JSON.parse(readFileSync(join(temp, 'demo-result.json'), 'utf8'));
+  const domainSeverity = (stage, domain, name) => demoFacts[stage].byDomain[domain].confirmed[name];
   const count = (category, maturity) => capabilities.capabilities.filter((item) =>
     item.category === category && (!maturity || item.maturity === maturity)).length;
   const stableDetection = count('detection', 'stable');
@@ -59,7 +54,7 @@ try {
     '|---|---|---|',
     `| Detection contract | ${stableDetection} stable narrow detection families; ${plannedDetection} planned detection adapters | [Generated matrix](capabilities.md) |`,
     `| Supporting contract | ${evidenceReporting} evidence/reporting, ${lifecycleDistribution} lifecycle/distribution and ${agentGuided} agent-guided capabilities; none are counted as detection coverage | [Generated matrix](capabilities.md) |`,
-    `| Local before/after demo | ${domainSeverity(before, 'security_exposure', 'high')} security HIGH; ${domainSeverity(before, 'search_discoverability', 'high')} discoverability HIGH + ${domainSeverity(before, 'search_discoverability', 'medium')} MEDIUM; ${domainSeverity(before, 'reliability', 'medium')} reliability MEDIUM -> ${severity(after, 'high')} active HIGH / ${severity(after, 'medium')} active MEDIUM | [Generated demo evidence](demo-evidence.md) |`,
+    `| Local before/after demo | ${domainSeverity('before', 'security_exposure', 'high')} security HIGH; ${domainSeverity('before', 'search_discoverability', 'high')} discoverability HIGH + ${domainSeverity('before', 'search_discoverability', 'medium')} MEDIUM; ${domainSeverity('before', 'reliability', 'medium')} reliability MEDIUM -> ${demoFacts.after.bySeverity.high} active HIGH / ${demoFacts.after.bySeverity.medium} active MEDIUM | [Generated demo evidence](demo-evidence.md) |`,
     `| Ordinary project journeys | ${journeys.journeys.length} fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |`,
     `| Source methodology studies | ${publicContract.methodStudies.length} fixed-commit studies, kept separate from CLI precision claims | [Study method](case-studies/README.md) |`,
     `| Release | v${published.version} signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance | [v${published.version} release](${published.url}) |`,

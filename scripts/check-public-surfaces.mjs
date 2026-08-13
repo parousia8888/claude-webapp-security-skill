@@ -7,6 +7,7 @@ const read = (path) => readFileSync(`${ROOT}/${path}`, 'utf8');
 const normalize = (value) => value.replace(/\s+/g, ' ').trim();
 const contract = JSON.parse(read('docs/public-contract.json'));
 const capabilities = JSON.parse(read('docs/capabilities.json'));
+const demo = JSON.parse(read('docs/assets/demo.json')).result;
 const en = read('README.md');
 const zh = read('README.zh-CN.md');
 const evidence = read('docs/demo-evidence.md');
@@ -72,10 +73,19 @@ for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
   }
 }
 
-const result = evidence.match(/\| Owned local fixture \| (\d+) \| (\d+) \/ (\d+) \| (\d+) \| .* \| (\d+) active HIGH, (\d+) active MEDIUM \|/);
-if (!result) fail('generated demo evidence has no result row');
-if (result) {
-  const [securityHigh, discoverabilityHigh, discoverabilityMedium, reliabilityMedium, afterHigh, afterMedium] = result.slice(1);
+const demoFacts = [
+  demo?.before?.byDomain?.security_exposure?.confirmed?.high,
+  demo?.before?.byDomain?.search_discoverability?.confirmed?.high,
+  demo?.before?.byDomain?.search_discoverability?.confirmed?.medium,
+  demo?.before?.byDomain?.reliability?.confirmed?.medium,
+  demo?.after?.bySeverity?.high,
+  demo?.after?.bySeverity?.medium,
+];
+if (!demoFacts.every(Number.isInteger)) fail('structured demo facts are invalid');
+if (demoFacts.every(Number.isInteger)) {
+  const [securityHigh, discoverabilityHigh, discoverabilityMedium, reliabilityMedium, afterHigh, afterMedium] = demoFacts.map(String);
+  const row = `| Owned local fixture | ${securityHigh} | ${discoverabilityHigh} / ${discoverabilityMedium} | ${reliabilityMedium} | public crawl policy, exposed artifacts, unknown-route status | ${afterHigh} active HIGH, ${afterMedium} active MEDIUM |`;
+  if (!evidence.includes(row)) fail('generated demo evidence differs from structured demo facts');
   for (const [path, text, markers] of [
     ['README.md', en, [`${securityHigh} HIGH`, `${discoverabilityHigh} HIGH + ${discoverabilityMedium} MEDIUM`, `${reliabilityMedium} MEDIUM`, `${afterHigh} active HIGH / MEDIUM`]],
     ['README.zh-CN.md', zh, [`${securityHigh} HIGH`, `${discoverabilityHigh} HIGH + ${discoverabilityMedium} MEDIUM`, `${reliabilityMedium} MEDIUM`, `${afterHigh} active HIGH / MEDIUM`]],
@@ -88,6 +98,23 @@ if (result) {
 
 for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
   if (/13\s+(?:high|HIGH)/.test(text)) fail(`${path} combines cross-domain demo severity`);
+  if (!text.includes('demo-result.json')) fail(`${path} does not name the structured demo fact source`);
+  if (!text.includes('fail-on-domain')) fail(`${path} does not document domain policy`);
+  if (!text.includes('docs/rule-taxonomy.md')) fail(`${path} does not link the rule taxonomy`);
+}
+
+const detectionCount = capabilities.capabilities.filter((item) =>
+  item.category === 'detection' && item.maturity === 'stable').length;
+for (const [path, text] of [
+  ['README.md', en], ['README.zh-CN.md', zh], ['docs/demo-evidence.md', evidence],
+  ['docs/launch-evidence.md', read('docs/launch-evidence.md')],
+]) {
+  if (new RegExp(`${capabilities.capabilities.length}\\s+(?:automated|automation|detection)`, 'i').test(text)) {
+    fail(`${path} presents the aggregate capability count as detection coverage`);
+  }
+  if (path.includes('launch') && !text.includes(`${detectionCount} stable narrow detection families`)) {
+    fail(`${path} is missing the category-scoped stable detection count`);
+  }
 }
 
 if (/Replace the placeholder|替换占位符/.test(`${en}\n${zh}`)) fail('stale Action placeholder copy remains');

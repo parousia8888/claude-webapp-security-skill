@@ -97,7 +97,7 @@ try {
   const wrongProduct = await run(base, 'missing-prefixes.json', 'valid-hit.json');
   assert.equal(wrongProduct.status, 3, wrongProduct.stderr);
   assert.match(wrongProduct.stdout, /unverifiable/);
-  assert.match(wrongProduct.stdout, /Evidence states: confirmed=0, suspected=0, unknown=1/);
+  assert.match(wrongProduct.stdout, /evidence_integrity: total=1; unknown=1 \(high=1\)/);
 
   const customAnthropic = await run(base, 'valid-miss.json', 'valid-miss.json', {
     ua: 'ClaudeBot/1.0',

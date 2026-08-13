@@ -87,6 +87,15 @@ webapp-security audit .webapp-security/runs/first-review \
 `report.junit.xml` 和 `proposed.patch`。JSON 用于自动化，sidecar 用于本地完整性检查，
 Markdown/HTML 用于审查，SARIF/JUnit 用于 CI；patch 只是提案。
 
+默认 policy gate 已确认的 HIGH security 与 supply-chain finding。报告依次按 domain、evidence state
+和 severity 汇总。`--fail-on` 保持兼容的 security/supply-chain threshold；只有当其他 domain 确实
+属于 CI gate 时，再添加可重复的 domain override：
+
+```bash
+webapp-security audit .webapp-security/runs/first-review \
+  --fail-on high --fail-on-domain reliability=high
+```
+
 ## 解释结果
 
 | 状态 | 含义 | 后续动作 |

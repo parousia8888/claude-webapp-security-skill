@@ -7,7 +7,7 @@ the proposed hardening; no third-party host is contacted.
 
 | Input | Security HIGH | Discoverability HIGH / MEDIUM | Reliability MEDIUM | Reviewable change | Retest |
 |---|---:|---:|---:|---|---|
-| Owned local fixture | 2 | 11 / 5 | 1 | public crawl policy, sensitive artifact responses, unknown-route status | 0 active HIGH, 0 active MEDIUM |
+| Owned local fixture | 2 | 11 / 5 | 1 | public crawl policy, exposed artifacts, unknown-route status | 0 active HIGH, 0 active MEDIUM |
 
 Representative confirmed evidence before the change:
 
@@ -37,4 +37,5 @@ Proposed fixture change:
 ```
 
 The change is not described as fixed until the second audit produces the retest counts above.
-Run `npm run demo -- --out ./demo-output` for the complete JSON and Markdown reports.
+Run `npm run demo -- --out ./demo-output` for the complete reports, patch and
+`demo-result.json` used by every public demo surface.

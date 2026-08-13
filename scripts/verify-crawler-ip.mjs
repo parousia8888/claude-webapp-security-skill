@@ -43,6 +43,7 @@ const OUT_DIR = arg('out');
 const REPORT_NAME = arg('report-name');
 const QUIET = flag('quiet');
 const FAIL_ON = arg('fail-on', 'high');
+const FAIL_ON_DOMAINS = all('fail-on-domain');
 const MAX_RANGE_AGE_DAYS = Number(arg('max-range-age-days', 30));
 const log = (...m) => { if (!QUIET) console.error('·', ...m); };
 
@@ -52,6 +53,13 @@ if (!Number.isInteger(MAX_RANGE_AGE_DAYS) || MAX_RANGE_AGE_DAYS < 1 || MAX_RANGE
 }
 if (!['critical', 'high', 'medium', 'low', 'never'].includes(FAIL_ON)) {
   console.error('error: --fail-on must be critical, high, medium, low, or never');
+  process.exit(2);
+}
+let EFFECTIVE_POLICY;
+try {
+  EFFECTIVE_POLICY = policyForFailOn(FAIL_ON, FAIL_ON_DOMAINS);
+} catch (error) {
+  console.error(`error: ${error.message}`);
   process.exit(2);
 }
 if (REPORT_NAME && !/^[a-zA-Z0-9._-]+$/.test(REPORT_NAME)) {
@@ -507,7 +515,7 @@ const report = createReportV2({
   },
   coverage,
   findings: initializeFindingsV2(current, coverage),
-  policy: policyForFailOn(FAIL_ON),
+  policy: EFFECTIVE_POLICY,
   limitations: [
     'Crawler identity never grants access to a private path and is not an authorization decision.',
     'Published range evidence is product-specific and time-bounded; sibling product ranges cannot confirm a claim.',

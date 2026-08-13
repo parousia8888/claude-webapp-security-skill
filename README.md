@@ -46,8 +46,9 @@ npm run demo -- --out ./demo-output
 ```
 
 Read the [generated before / proposed change / retest evidence](docs/demo-evidence.md), then inspect
-`demo-output/summary.md`, `before.json`, `hardening.patch`, and `after.json`. The repository check
-regenerates this evidence and fails if the result changes without an update.
+`demo-output/demo-result.json`, `summary.md`, `before.json`, `hardening.patch`, and `after.json`.
+Every public demo count is derived from `demo-result.json`; the repository check reruns the fixture
+and fails if any surface disagrees.
 
 For the complete install-to-uninstall path, follow the tested
 [first project tutorial](docs/tutorial.md).
@@ -123,6 +124,19 @@ Each source audit writes v2 JSON, Markdown, HTML, SARIF, JUnit, a SHA-256 sideca
 cannot be a retest baseline. `fixed` requires the same persisted subject and scope, a compatible
 rule, completed current coverage and affirmative absence of the condition. The patch is never
 applied by this command. None of these commands grants permission to probe a deployment.
+
+Reports summarize by risk domain, then evidence state, then severity. The default CI policy gates
+confirmed HIGH `security_exposure` and `supply_chain` findings only. Existing `--fail-on` behavior
+continues to set those two domains; opt into another domain explicitly, for example:
+
+```bash
+webapp-security crawl --site https://example.com --out ./security-report \
+  --fail-on high --fail-on-domain search_discoverability=high
+```
+
+Multiple `--fail-on-domain <domain=threshold>` options may be combined. Effective thresholds are
+recorded in the report. The [generated rule taxonomy](docs/rule-taxonomy.md) records each built-in
+source/crawl rule's domain, severity and rationale.
 
 ## Capability boundary
 

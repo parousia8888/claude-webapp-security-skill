@@ -126,7 +126,29 @@
         }
       }
     },
-    "summary": { "type": "object" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "byDomain", "bySeverity", "byState", "byBaseline"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "byDomain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["security_exposure", "supply_chain", "search_discoverability", "reliability", "evidence_integrity"],
+          "properties": {
+            "security_exposure": { "$ref": "#/$defs/domainSummary" },
+            "supply_chain": { "$ref": "#/$defs/domainSummary" },
+            "search_discoverability": { "$ref": "#/$defs/domainSummary" },
+            "reliability": { "$ref": "#/$defs/domainSummary" },
+            "evidence_integrity": { "$ref": "#/$defs/domainSummary" }
+          }
+        },
+        "bySeverity": { "$ref": "#/$defs/severityCounts" },
+        "byState": { "$ref": "#/$defs/stateCounts" },
+        "byBaseline": { "$ref": "#/$defs/baselineCounts" }
+      }
+    },
     "findings": { "type": "array", "items": { "$ref": "./finding-v2.schema.json" } },
     "limitations": { "type": "array", "items": { "type": "string" } },
     "baseline": {
@@ -201,6 +223,70 @@
   ],
   "$defs": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "domain": { "enum": ["security_exposure", "supply_chain", "search_discoverability", "reliability", "evidence_integrity"] }
+    "domain": { "enum": ["security_exposure", "supply_chain", "search_discoverability", "reliability", "evidence_integrity"] },
+    "severityCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["critical", "high", "medium", "low", "info"],
+      "properties": {
+        "critical": { "type": "integer", "minimum": 0 },
+        "high": { "type": "integer", "minimum": 0 },
+        "medium": { "type": "integer", "minimum": 0 },
+        "low": { "type": "integer", "minimum": 0 },
+        "info": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "stateCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["confirmed", "suspected", "unknown", "not_applicable"],
+      "properties": {
+        "confirmed": { "type": "integer", "minimum": 0 },
+        "suspected": { "type": "integer", "minimum": 0 },
+        "unknown": { "type": "integer", "minimum": 0 },
+        "not_applicable": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "baselineCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["new", "unchanged", "regressed", "fixed", "unretested", "not_comparable"],
+      "properties": {
+        "new": { "type": "integer", "minimum": 0 },
+        "unchanged": { "type": "integer", "minimum": 0 },
+        "regressed": { "type": "integer", "minimum": 0 },
+        "fixed": { "type": "integer", "minimum": 0 },
+        "unretested": { "type": "integer", "minimum": 0 },
+        "not_comparable": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "domainSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "byState"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "byState": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["confirmed", "suspected", "unknown", "not_applicable"],
+          "properties": {
+            "confirmed": { "$ref": "#/$defs/stateSeveritySummary" },
+            "suspected": { "$ref": "#/$defs/stateSeveritySummary" },
+            "unknown": { "$ref": "#/$defs/stateSeveritySummary" },
+            "not_applicable": { "$ref": "#/$defs/stateSeveritySummary" }
+          }
+        }
+      }
+    },
+    "stateSeveritySummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "bySeverity"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "bySeverity": { "$ref": "#/$defs/severityCounts" }
+      }
+    }
   }
 }

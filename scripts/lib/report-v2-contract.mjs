@@ -48,6 +48,15 @@ function requiredObject(value, fields, label, errors) {
   return true;
 }
 
+function countRecord(value, keys, label, errors) {
+  if (!requiredObject(value, keys, label, errors)) return false;
+  for (const key of Object.keys(value)) if (!keys.includes(key)) errors.push(`${label}.${key} is not allowed`);
+  for (const key of keys) {
+    if (!Number.isInteger(value[key]) || value[key] < 0) errors.push(`${label}.${key} must be a non-negative integer`);
+  }
+  return true;
+}
+
 export function validateFindingV2(finding) {
   const errors = [];
   if (finding?.schemaVersion !== 2) errors.push('finding.schemaVersion must be 2');
@@ -177,6 +186,53 @@ export function validateReportV2(report) {
           + coverage.counts.truncated + coverage.counts.errors;
         if (reasonCount !== expectedReasonCount) errors.push(`${label}.reason counts are not reconciled`);
       }
+    }
+  }
+  if (requiredObject(report?.summary,
+    ['total', 'byDomain', 'bySeverity', 'byState', 'byBaseline'], 'report.summary', errors)) {
+    for (const key of Object.keys(report.summary)) {
+      if (!['total', 'byDomain', 'bySeverity', 'byState', 'byBaseline'].includes(key)) {
+        errors.push(`report.summary.${key} is not allowed`);
+      }
+    }
+    if (!Number.isInteger(report.summary.total) || report.summary.total < 0) {
+      errors.push('report.summary.total must be a non-negative integer');
+    }
+    countRecord(report.summary.bySeverity, SEVERITIES, 'report.summary.bySeverity', errors);
+    countRecord(report.summary.byState, V2_RESULT_STATES, 'report.summary.byState', errors);
+    countRecord(report.summary.byBaseline, V2_BASELINE_STATES, 'report.summary.byBaseline', errors);
+    if (requiredObject(report.summary.byDomain, V2_DOMAINS, 'report.summary.byDomain', errors)) {
+      for (const domain of Object.keys(report.summary.byDomain)) {
+        if (!V2_DOMAINS.includes(domain)) errors.push(`report.summary.byDomain.${domain} is not allowed`);
+      }
+      let domainTotal = 0;
+      for (const domain of V2_DOMAINS) {
+        const domainSummary = report.summary.byDomain[domain];
+        const label = `report.summary.byDomain.${domain}`;
+        if (!requiredObject(domainSummary, ['total', 'byState'], label, errors)) continue;
+        for (const key of Object.keys(domainSummary)) {
+          if (!['total', 'byState'].includes(key)) errors.push(`${label}.${key} is not allowed`);
+        }
+        if (!Number.isInteger(domainSummary.total) || domainSummary.total < 0) {
+          errors.push(`${label}.total must be a non-negative integer`);
+        } else domainTotal += domainSummary.total;
+        if (!requiredObject(domainSummary.byState, V2_RESULT_STATES, `${label}.byState`, errors)) continue;
+        let stateTotal = 0;
+        for (const state of V2_RESULT_STATES) {
+          const stateSummary = domainSummary.byState[state];
+          const stateLabel = `${label}.byState.${state}`;
+          if (!requiredObject(stateSummary, ['total', 'bySeverity'], stateLabel, errors)) continue;
+          if (!Number.isInteger(stateSummary.total) || stateSummary.total < 0) {
+            errors.push(`${stateLabel}.total must be a non-negative integer`);
+          } else stateTotal += stateSummary.total;
+          if (countRecord(stateSummary.bySeverity, SEVERITIES, `${stateLabel}.bySeverity`, errors)) {
+            const severityTotal = SEVERITIES.reduce((sum, severity) => sum + stateSummary.bySeverity[severity], 0);
+            if (severityTotal !== stateSummary.total) errors.push(`${stateLabel} severity counts are not reconciled`);
+          }
+        }
+        if (stateTotal !== domainSummary.total) errors.push(`${label} state counts are not reconciled`);
+      }
+      if (domainTotal !== report.summary.total) errors.push('report.summary domain counts are not reconciled');
     }
   }
   if (!Array.isArray(report?.findings)) errors.push('report.findings must be an array');

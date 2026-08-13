@@ -77,6 +77,9 @@ default. The default policy is:
 
 Users may explicitly configure discoverability or reliability thresholds. Severity remains scoped
 to its domain; a HIGH discoverability impact is not relabelled as a HIGH security vulnerability.
+The compatible `--fail-on` option sets `security_exposure` and `supply_chain` together. Repeat
+`--fail-on-domain <domain=threshold>` for explicit overrides; duplicate domains and malformed
+thresholds are rejected. Every report stores the resulting five-domain policy.
 
 When a run contains both a confirmed configured threshold breach and unrelated incomplete evidence,
 exit `1` takes precedence and the report retains both. When there is no confirmed threshold breach

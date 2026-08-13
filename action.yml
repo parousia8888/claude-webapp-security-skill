@@ -15,8 +15,11 @@ inputs:
     description: "Report directory"
     default: "webapp-security-report"
   fail-on:
-    description: "high, medium, low, or never"
+    description: "Security and supply-chain threshold: high, medium, low, or never"
     default: "high"
+  fail-on-domain:
+    description: "Optional domain-specific override such as search_discoverability=high"
+    default: ""
   active-probe:
     description: "Probe common sensitive paths; disabled by default"
     default: "false"
@@ -30,6 +33,7 @@ runs:
         INPUT_ACKNOWLEDGE_AUTHORIZATION: "${{ inputs.acknowledge-authorization }}"
         INPUT_OUTPUT_DIR: "${{ inputs.output-dir }}"
         INPUT_FAIL_ON: "${{ inputs.fail-on }}"
+        INPUT_FAIL_ON_DOMAIN: "${{ inputs.fail-on-domain }}"
         INPUT_ACTIVE_PROBE: "${{ inputs.active-probe }}"
       run: |
         bash "$GITHUB_ACTION_PATH/scripts/run-action.sh"

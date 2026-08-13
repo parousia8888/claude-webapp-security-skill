@@ -5,6 +5,7 @@ set -euo pipefail
 : "${INPUT_ACKNOWLEDGE_AUTHORIZATION:?INPUT_ACKNOWLEDGE_AUTHORIZATION is required}"
 INPUT_OUTPUT_DIR="${INPUT_OUTPUT_DIR:-webapp-security-report}"
 INPUT_FAIL_ON="${INPUT_FAIL_ON:-high}"
+INPUT_FAIL_ON_DOMAIN="${INPUT_FAIL_ON_DOMAIN:-}"
 INPUT_ACTIVE_PROBE="${INPUT_ACTIVE_PROBE:-false}"
 
 if [ "$INPUT_ACKNOWLEDGE_AUTHORIZATION" != "true" ]; then
@@ -19,6 +20,9 @@ args=(
   --report-name report
   --fail-on "$INPUT_FAIL_ON"
 )
+if [ -n "$INPUT_FAIL_ON_DOMAIN" ]; then
+  args+=(--fail-on-domain "$INPUT_FAIL_ON_DOMAIN")
+fi
 if [ "$INPUT_ACTIVE_PROBE" = "true" ]; then
   args+=(--active-probe --acknowledge-authorization)
 elif [ "$INPUT_ACTIVE_PROBE" != "false" ]; then

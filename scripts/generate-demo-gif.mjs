@@ -14,15 +14,6 @@ const WIDTH = 840;
 const HEIGHT = 472;
 const temp = mkdtempSync(join(tmpdir(), 'web-app-security-demo-gif-'));
 
-function count(report, severity) {
-  return report.findings.filter((finding) => finding.severity === severity && finding.baseline.state !== 'fixed').length;
-}
-
-function domainCount(report, domain, severity) {
-  return report.findings.filter((finding) => finding.domain === domain
-    && finding.severity === severity && finding.baseline.state !== 'fixed').length;
-}
-
 function frame(title, subtitle, lines, { accent = 5, delay = 180 } = {}) {
   const canvas = createCanvas(WIDTH, HEIGHT);
   fillRect(canvas, 0, 0, WIDTH, 10, accent);
@@ -53,8 +44,8 @@ try {
   });
   if (demo.status !== 0) throw new Error(demo.stderr || demo.stdout || 'demo failed');
   const before = JSON.parse(readFileSync(join(temp, 'before.json'), 'utf8'));
-  const after = JSON.parse(readFileSync(join(temp, 'after.json'), 'utf8'));
-  const evidenceAfter = after;
+  const facts = JSON.parse(readFileSync(join(temp, 'demo-result.json'), 'utf8'));
+  const fact = (stage, domain, severity) => facts[stage].byDomain[domain].confirmed[severity];
   const patch = readFileSync(join(temp, 'hardening.patch'), 'utf8');
   const codes = new Set(before.findings.map((finding) => finding.rule.id));
   for (const required of [
@@ -63,19 +54,19 @@ try {
     if (!codes.has(required)) throw new Error(`demo report is missing ${required}`);
   }
 
-  const beforeHigh = count(before, 'high');
-  const beforeMedium = count(before, 'medium');
-  const afterHigh = count(after, 'high');
-  const afterMedium = count(after, 'medium');
+  const beforeHigh = facts.before.bySeverity.high;
+  const beforeMedium = facts.before.bySeverity.medium;
+  const afterHigh = facts.after.bySeverity.high;
+  const afterMedium = facts.after.bySeverity.medium;
   const beforeByDomain = {
-    security_exposure: { high: domainCount(before, 'security_exposure', 'high') },
+    security_exposure: { high: fact('before', 'security_exposure', 'high') },
     search_discoverability: {
-      high: domainCount(before, 'search_discoverability', 'high'),
-      medium: domainCount(before, 'search_discoverability', 'medium'),
+      high: fact('before', 'search_discoverability', 'high'),
+      medium: fact('before', 'search_discoverability', 'medium'),
     },
-    reliability: { medium: domainCount(before, 'reliability', 'medium') },
+    reliability: { medium: fact('before', 'reliability', 'medium') },
   };
-  const fixed = evidenceAfter.summary.byBaseline.fixed;
+  const fixed = facts.fixed;
   const patchLines = [
     normalizedPatchLine(patch, /^\+Allow: \/$/),
     normalizedPatchLine(patch, /^\+GET \/\.env\s+-> 404$/),
@@ -115,18 +106,14 @@ try {
   const metadata = `${JSON.stringify({
     schemaVersion: 2,
     generator: 'scripts/generate-demo-gif.mjs',
-    sources: ['scripts/demo.mjs', 'before.json', 'hardening.patch', 'after.json'],
+    sources: ['scripts/demo.mjs', 'demo-result.json', 'hardening.patch'],
     width: WIDTH,
     height: HEIGHT,
     frames: frames.length,
     durationMilliseconds: frames.reduce((sum, item) => sum + item.delay * 10, 0),
     bytes: gif.length,
     sha256: digest,
-    result: {
-      before: { active: { high: beforeHigh, medium: beforeMedium }, byDomain: beforeByDomain },
-      after: { active: { high: afterHigh, medium: afterMedium } },
-      fixed,
-    },
+    result: facts,
     boundary: 'owned-local-fixture-no-third-party-target',
   }, null, 2)}\n`;
 

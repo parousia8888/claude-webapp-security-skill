@@ -21,6 +21,8 @@
  *   --acknowledge-authorization
  *                       confirm ownership or written authorization for active probes
  *   --fail-on <level>   exit 1 at high, medium, low, or never (default high)
+ *   --fail-on-domain <domain=level>
+ *                       override one domain threshold; may be repeated
  *   --baseline <json>   compare with a compatible persisted v2 crawl report
  *   --subject-id <id>   explicit persisted subject identity for repeatable audits
  *   --scope-id <id>     stable scope binding used with --subject-id
@@ -48,6 +50,8 @@ const arg = (name, fallback = null) => {
   return i === -1 ? fallback : argv[i + 1];
 };
 const flag = (name) => argv.includes(`--${name}`);
+const all = (name) => argv.reduce((values, value, index) =>
+  (value === `--${name}` ? [...values, argv[index + 1]] : values), []);
 
 const SITE = arg('site');
 if (!SITE) {
@@ -75,7 +79,9 @@ const TIMEOUT = Number(arg('timeout', 15000));
 const PROBE = flag('active-probe') && !flag('no-probe');
 const ACKNOWLEDGED = flag('acknowledge-authorization');
 const FAIL_ON = arg('fail-on', 'high');
+const FAIL_ON_DOMAINS = all('fail-on-domain');
 const QUIET = flag('quiet');
+let EFFECTIVE_POLICY;
 
 for (const [name, value, min, max] of [
   ['max-urls', MAX_URLS, 0, 1000], ['matrix', MATRIX_URLS, 0, 20],
@@ -88,6 +94,12 @@ for (const [name, value, min, max] of [
 }
 if (!['high', 'medium', 'low', 'never'].includes(FAIL_ON)) {
   console.error('error: --fail-on must be high, medium, low, or never');
+  process.exit(2);
+}
+try {
+  EFFECTIVE_POLICY = policyForFailOn(FAIL_ON, FAIL_ON_DOMAINS);
+} catch (error) {
+  console.error(`error: ${error.message}`);
   process.exit(2);
 }
 if (PROBE && !ACKNOWLEDGED) {
@@ -805,7 +817,7 @@ const v2Report = createReportV2({
   coverage,
   findings: v2Findings,
   baseline,
-  policy: policyForFailOn(FAIL_ON),
+  policy: EFFECTIVE_POLICY,
   limitations: [
     'HTTP observations do not prove application authorization, business logic, identity or data-layer security.',
     'Crawler user-agent replay does not prove that a request originated from a vendor-owned crawler address.',
