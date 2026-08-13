@@ -23,7 +23,7 @@ Options:
   --max-files <n>     Maximum discovered files, 1..200000 (default: 20000)
   --max-entries <n>   Maximum directory entries, 1..500000 (default: 50000)
   --max-file-bytes <n> Maximum candidate bytes, 1024..16777216 (default: 1048576)
-  --adapter <id>      builtin, gitleaks, opengrep, osv, or all; repeatable (default: builtin)
+  --adapter <id>      builtin, checkov, gitleaks, opengrep, osv, or all; repeatable (default: builtin)
   --adapter-timeout <seconds> External adapter timeout, 1..600 (default: 120)
 `);
   process.exit(code);

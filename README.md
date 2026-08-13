@@ -123,14 +123,16 @@ The default is the bundled, network-free source adapter. Optional external adapt
 
 ```bash
 webapp-security doctor . --adapter all --json
-webapp-security audit . --adapter gitleaks --adapter opengrep --adapter osv --fail-on never
+webapp-security audit . --adapter checkov --adapter gitleaks --adapter opengrep --adapter osv --fail-on never
 ```
 
-Tested versions are Gitleaks `8.30.1`, Opengrep `1.27.0` and OSV-Scanner `2.5.0`. The CLI and Action
-do not download them. Opengrep uses only the bundled, digest-pinned two-rule local ruleset and makes
-no network request; OSV-Scanner may query the public OSV database. Project dependencies are not
-executed. A blocking external-adapter run additionally requires `--acknowledge-alert-policy` after
-the consuming repository accepts the responsibilities in
+Tested versions are Checkov `3.3.9`, Gitleaks `8.30.1`, Opengrep `1.27.0` and OSV-Scanner `2.5.0`.
+The CLI and Action do not download them. Checkov runs only three fixed root Dockerfile/GitHub
+Actions rules with `--skip-download`; it may query PyPI for version metadata but does not upload
+project source. Opengrep uses only the bundled, digest-pinned two-rule local ruleset and makes no
+network request; OSV-Scanner may query the public OSV database. Project dependencies are not
+executed. Compose, Terraform, Kubernetes and the rest of Checkov are not stable coverage. A
+blocking external-adapter run additionally requires `--acknowledge-alert-policy` after the consuming repository accepts the responsibilities in
 [`docs/alert-policy.md`](docs/alert-policy.md). See the
 [`adapter protocol`](docs/adapter-protocol.md) for failure, redaction and version semantics.
 
@@ -157,7 +159,8 @@ recorded in the report. The [generated rule taxonomy](docs/rule-taxonomy.md) sep
 kind, family, language, domain, severity, default evidence state and standards. Exact stable source
 counts and complete explanation metadata come from the machine-readable
 [`stable-source-rules.json`](docs/stable-source-rules.json): 20 built-in risk rules, 2 built-in
-evidence-integrity rules and 5 external adapter risk rules on `main`. Eight JavaScript/TypeScript
+evidence-integrity rules and 8 external adapter risk rules on `main`, for 30 stable source and
+deployment-policy rules. Eight JavaScript/TypeScript
 and eight Python rules are bounded lexical leads for execution, unsafe browser or framework
 configuration, transport, authentication secrets and deserialization. Their exact detection and
 false-positive boundaries are recorded in the [JS/TS](docs/js-ts-rule-decisions.md) and
@@ -173,8 +176,8 @@ coverage:
   methodology.
 - **Maturity:** `stable`, `experimental`, `agent_guided`, or `planned`.
 
-The current stable Detection families are the narrow built-in source audit, opt-in Gitleaks,
-Opengrep and OSV-Scanner adapters, crawl-boundary audit, crawler identity verification, edge
+The current stable Detection families are the narrow built-in source audit, opt-in Checkov,
+Gitleaks, Opengrep and OSV-Scanner adapters, crawl-boundary audit, crawler identity verification, edge
 verification, and the read-only AWS inventory helper. Project discovery,
 the demo, report renderers, retest infrastructure, installer, and GitHub Action are tested product
 capabilities, but are not additional detector families. API authorization, business logic,
@@ -198,7 +201,7 @@ webapp-security start .
 # Source-only audit, explain and required-baseline retest
 webapp-security audit .webapp-security/runs/<run-id> --fail-on high
 webapp-security doctor . --adapter all
-webapp-security audit . --adapter gitleaks --adapter opengrep --adapter osv --fail-on never
+webapp-security audit . --adapter checkov --adapter gitleaks --adapter opengrep --adapter osv --fail-on never
 webapp-security explain <finding-id> --report <report.json>
 webapp-security start . --run-id <retest-run-id>
 webapp-security retest .webapp-security/runs/<retest-run-id> \

@@ -3,10 +3,12 @@ import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { discoverProject } from './lib/project-discovery.mjs';
 import {
-  parseAdapterSelection, parseAdapterTimeout, GITLEAKS_ADAPTER, OPENGREP_ADAPTER,
+  parseAdapterSelection, parseAdapterTimeout, CHECKOV_ADAPTER, GITLEAKS_ADAPTER, OPENGREP_ADAPTER,
   OPENGREP_RULESET, OSV_ADAPTER,
 } from './lib/adapter-definitions.mjs';
-import { probeGitleaks, probeOpengrep, probeOsv, verifyOpengrepRuleset } from './lib/external-adapters.mjs';
+import {
+  probeCheckov, probeGitleaks, probeOpengrep, probeOsv, verifyOpengrepRuleset,
+} from './lib/external-adapters.mjs';
 
 const args = process.argv.slice(2);
 function usage(code, message) {
@@ -14,11 +16,12 @@ function usage(code, message) {
   console.log(`webapp-security doctor [project] [options]
 
 Options:
-  --adapter <id>      builtin, gitleaks, opengrep, osv, or all; repeatable (default: all)
+  --adapter <id>      builtin, checkov, gitleaks, opengrep, osv, or all; repeatable (default: all)
   --adapter-timeout <seconds> Version-probe timeout, 1..600 (default: 120)
   --json              Print structured status
 
-This command is read-only and never downloads or installs an adapter.`);
+This command never downloads or installs an adapter. Checkov may query PyPI for version metadata;
+its cache and temporary files are isolated and removed.`);
   process.exit(code);
 }
 function take(name) {
@@ -52,6 +55,23 @@ try {
     id: 'builtin', status: 'available', version: 'bundled', applicability: 'applicable',
     guidance: null,
   });
+  if (selected.includes('checkov')) {
+    const probe = probeCheckov(process.env.WEBAPP_SECURITY_CHECKOV_BIN || 'checkov', timeoutSeconds);
+    const deployment = discovery?.deploymentSurfaces || [];
+    const dockerfiles = deployment.filter((path) => path === 'Dockerfile');
+    const workflows = deployment.filter((path) => /^\.github\/workflows\/[^/]+\.ya?ml$/i.test(path));
+    statuses.push({
+      id: CHECKOV_ADAPTER.id,
+      status: probe.status,
+      expectedVersion: probe.expectedVersion,
+      observedVersion: probe.observedVersion || null,
+      applicability: discovery
+        ? `${dockerfiles.length} Dockerfile and ${workflows.length} root GitHub Actions workflow input(s)`
+        : 'project not supplied',
+      networkAccessPossible: probe.status !== 'missing',
+      guidance: probe.status === 'available' ? null : 'Install Checkov 3.3.9 from its verified release; this command will not download it.',
+    });
+  }
   if (selected.includes('gitleaks')) {
     const probe = probeGitleaks(process.env.WEBAPP_SECURITY_GITLEAKS_BIN || 'gitleaks', timeoutSeconds);
     statuses.push({
@@ -89,7 +109,11 @@ try {
       guidance: probe.status === 'available' ? null : 'Install OSV-Scanner 2.5.0 from its verified release; this command will not download it.',
     });
   }
-  const output = { schemaVersion: 1, downloadsPerformed: false, timeoutSeconds, adapters: statuses };
+  const output = {
+    schemaVersion: 1, downloadsPerformed: false,
+    networkAccessPossible: statuses.some((item) => item.networkAccessPossible),
+    timeoutSeconds, adapters: statuses,
+  };
   if (json) console.log(JSON.stringify(output, null, 2));
   else {
     console.log('webapp-security doctor (downloads: none)');

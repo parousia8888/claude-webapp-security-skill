@@ -4,11 +4,12 @@ import {
   chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
-  parseGitleaksJson, parseOpengrepJson, parseOsvJson, runGitleaks, runOpengrep, runOsv,
+  parseCheckovJson, parseGitleaksJson, parseOpengrepJson, parseOsvJson, runCheckov, runGitleaks,
+  runOpengrep, runOsv,
 } from '../scripts/lib/external-adapters.mjs';
 import { createFindingV2 } from '../scripts/lib/evidence-v2.mjs';
 import { sanitizeEvidence } from '../scripts/lib/evidence-writer.mjs';
@@ -24,6 +25,82 @@ mkdirSync(join(project, '.git'));
 writeFileSync(join(project, 'package.json'), '{"name":"fixture","version":"1.0.0"}\n');
 writeFileSync(join(project, 'package-lock.json'), '{"name":"fixture","version":"1.0.0","lockfileVersion":3,"packages":{}}\n');
 writeFileSync(join(project, 'config.txt'), 'fixture\n');
+writeFileSync(join(project, 'Dockerfile'), 'FROM node:22-alpine\nUSER root\nCMD ["node", "server.js"]\n');
+mkdirSync(join(project, '.github', 'workflows'), { recursive: true });
+writeFileSync(join(project, '.github', 'workflows', 'ci.yml'), 'name: fixture\non: push\npermissions: write-all\n');
+mkdirSync(join(project, 'nested'));
+writeFileSync(join(project, 'nested', 'Dockerfile'), 'FROM alpine\nUSER root\n');
+
+const fakeCheckov = join(temp, 'fake-checkov.mjs');
+writeFileSync(fakeCheckov, `#!/usr/bin/env node
+import { dirname, join } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+const args = process.argv.slice(2);
+const mode = process.env.FAKE_CHECKOV_MODE || 'clean';
+const state = join(process.env.HOME, 'Library', 'Caches', 'checkov', 'update_checker_cache.json');
+mkdirSync(dirname(state), { recursive: true });
+writeFileSync(state, '${secret}');
+writeFileSync(join(process.env.TMPDIR, '.lark_cache_fixture.tmp'), '${secret}');
+if (args[0] === '--version') {
+  console.log(mode === 'version-drift' ? '3.3.8' : '3.3.9');
+  process.exit(0);
+}
+const fileFlag = args.indexOf('-f');
+const frameworkFlag = args.indexOf('--framework');
+const scannedFiles = fileFlag >= 0 && frameworkFlag > fileFlag
+  ? args.slice(fileFlag + 1, frameworkFlag)
+  : [];
+if (args.includes('-d') || scannedFiles.join(',') !== 'Dockerfile,.github/workflows/ci.yml') {
+  process.exit(2);
+}
+const check = (check_id, file_path, file_line_range) => ({
+  check_id, file_path, file_line_range, code_block: [[1, '${secret}']], resource: '${secret}',
+});
+const docker = {
+  check_type: 'dockerfile',
+  summary: { checkov_version: '3.3.9', parsing_errors: mode === 'scan-errors' ? 1 : 0 },
+  results: { passed_checks: [], failed_checks: [], skipped_checks: [] },
+};
+const workflow = {
+  check_type: 'github_actions',
+  summary: { checkov_version: '3.3.9', parsing_errors: 0 },
+  results: { passed_checks: [], failed_checks: [], skipped_checks: [] },
+};
+const root = check('CKV_DOCKER_8', '/Dockerfile', [2, 2]);
+const health = check('CKV_DOCKER_2', '/Dockerfile', [1, 3]);
+const permissions = check('CKV2_GHA_1', '/.github/workflows/ci.yml', [3, 3]);
+if (mode === 'finding' || mode === 'duplicate') {
+  docker.results.failed_checks = mode === 'duplicate' ? [root, root, health] : [root, health];
+  workflow.results.failed_checks = [permissions];
+} else if (mode === 'escape') {
+  docker.results.failed_checks = [check('CKV_DOCKER_8', '/../escape', [1, 1]), health];
+  workflow.results.passed_checks = [permissions];
+} else if (mode === 'unknown-rule') {
+  docker.results.failed_checks = [check('CKV_DOCKER_99', '/Dockerfile', [1, 1])];
+  workflow.results.passed_checks = [permissions];
+} else if (mode === 'incomplete') {
+  docker.results.passed_checks = [root];
+  workflow.results.passed_checks = [permissions];
+} else if (mode === 'suppressed') {
+  docker.results.passed_checks = [health];
+  docker.results.skipped_checks = [root];
+  workflow.results.passed_checks = [permissions];
+} else {
+  docker.results.passed_checks = [root, health];
+  workflow.results.passed_checks = [permissions];
+}
+if (mode === 'timeout') setTimeout(() => {}, 5000);
+else if (mode === 'output-limit') process.stdout.write('x'.repeat(17 * 1024 * 1024));
+else if (mode === 'internal') { console.error('${secret} raw stderr'); process.exit(2); }
+else if (mode === 'malformed') { console.log('{bad'); process.exit(1); }
+else if (mode === 'inconsistent') { console.log(JSON.stringify([docker, workflow])); process.exit(1); }
+else {
+  console.error('${secret} raw stderr');
+  console.log(JSON.stringify([docker, workflow]));
+  process.exit(['finding', 'duplicate', 'escape', 'unknown-rule'].includes(mode) ? 1 : 0);
+}
+`);
+chmodSync(fakeCheckov, 0o755);
 
 const fakeGitleaks = join(temp, 'fake-gitleaks.mjs');
 writeFileSync(fakeGitleaks, `#!/usr/bin/env node
@@ -133,6 +210,86 @@ function cli(args, env = {}) {
 }
 
 try {
+  const cleanCheckov = JSON.stringify([
+    {
+      check_type: 'dockerfile', summary: { checkov_version: '3.3.9', parsing_errors: 0 },
+      results: {
+        passed_checks: [
+          { check_id: 'CKV_DOCKER_8', file_path: '/Dockerfile' },
+          { check_id: 'CKV_DOCKER_2', file_path: '/Dockerfile' },
+        ],
+        failed_checks: [], skipped_checks: [],
+      },
+    },
+    {
+      check_type: 'github_actions', summary: { checkov_version: '3.3.9', parsing_errors: 0 },
+      results: {
+        passed_checks: [{ check_id: 'CKV2_GHA_1', file_path: '/.github/workflows/ci.yml' }],
+        failed_checks: [], skipped_checks: [],
+      },
+    },
+  ]);
+  assert.deepEqual(parseCheckovJson(cleanCheckov, project).findings, []);
+  assert.throws(() => parseCheckovJson('{bad', project), /malformed_json/);
+  let result = withEnv({ FAKE_CHECKOV_MODE: 'finding' }, () => runCheckov(project, {
+    binary: fakeCheckov, timeoutSeconds: 1,
+  }));
+  assert.deepEqual(result.findings.map((finding) => finding.ruleId), [
+    'checkov-dockerfile-healthcheck-missing',
+    'checkov-dockerfile-root-user',
+    'checkov-github-actions-write-all',
+  ]);
+  assert.ok(result.findings.every((finding) => finding.state === 'suspected'));
+  assert.equal(JSON.stringify(result).includes(secret), false);
+  assert.ok(result.coverage.every((entry) => entry.status === 'completed'));
+  result = withEnv({ FAKE_CHECKOV_MODE: 'duplicate' }, () => runCheckov(project, {
+    binary: fakeCheckov, timeoutSeconds: 1,
+  }));
+  assert.equal(result.findings.length, 3, 'duplicate Checkov results must be stable and deduplicated');
+  for (const [mode, reason] of [
+    ['malformed', 'adapter_malformed_json'], ['inconsistent', 'adapter_inconsistent_exit'],
+    ['scan-errors', 'adapter_scan_errors'], ['escape', 'adapter_unsafe_path'],
+    ['unknown-rule', 'adapter_unknown_rule'], ['incomplete', 'adapter_incomplete_framework_evidence'],
+    ['internal', 'adapter_internal_error'], ['timeout', 'adapter_timeout'],
+    ['output-limit', 'adapter_output_limit'],
+  ]) {
+    result = withEnv({ FAKE_CHECKOV_MODE: mode }, () => runCheckov(project, {
+      binary: fakeCheckov, timeoutSeconds: mode === 'output-limit' ? 10 : 1,
+    }));
+    assert.ok(result.coverage.every((entry) => entry.status === 'unavailable'), `${mode}: ${JSON.stringify(result)}`);
+    assert.ok(result.findings.every((finding) => finding.state === 'unknown'));
+    assert.ok(result.findings.every((finding) => finding.evidence.reasonCode === reason),
+      `${mode}: expected ${reason}: ${JSON.stringify(result)}`);
+  }
+  result = withEnv({ FAKE_CHECKOV_MODE: 'suppressed' }, () => runCheckov(project, {
+    binary: fakeCheckov, timeoutSeconds: 1,
+  }));
+  assert.equal(result.findings.length, 1);
+  assert.equal(result.findings[0].evidence.reasonCode, 'adapter_rule_suppressed');
+  assert.equal(result.coverage.find((entry) => entry.ruleId === 'checkov-dockerfile-root-user').status, 'unavailable');
+  assert.ok(result.coverage.filter((entry) => entry.ruleId !== 'checkov-dockerfile-root-user')
+    .every((entry) => entry.status === 'completed'));
+  result = withEnv({ FAKE_CHECKOV_MODE: 'version-drift' }, () => runCheckov(project, {
+    binary: fakeCheckov, timeoutSeconds: 1,
+  }));
+  assert.equal(result.identity.status, 'unsupported_version');
+  result = runCheckov(project, { binary: join(temp, 'missing-checkov'), timeoutSeconds: 1 });
+  assert.ok(result.findings.every((finding) => finding.evidence.reasonCode === 'adapter_missing'));
+  const checkovHome = join(temp, 'checkov-home');
+  const userCache = join(checkovHome, 'Library', 'Caches', 'checkov', 'update_checker_cache.json');
+  mkdirSync(dirname(userCache), { recursive: true });
+  writeFileSync(userCache, 'owner cache\n');
+  withEnv({ FAKE_CHECKOV_MODE: 'clean', HOME: checkovHome }, () => runCheckov(project, {
+    binary: fakeCheckov, timeoutSeconds: 1,
+  }));
+  assert.equal(readFileSync(userCache, 'utf8'), 'owner cache\n', 'Checkov must not write state to the user cache');
+  const noDeployment = join(temp, 'no-deployment');
+  mkdirSync(noDeployment);
+  result = runCheckov(noDeployment, { binary: join(temp, 'missing-checkov'), timeoutSeconds: 1 });
+  assert.equal(result.identity.status, 'not_applicable');
+  assert.equal(result.findings.length, 0);
+  assert.ok(result.coverage.every((entry) => entry.status === 'not_applicable'));
+
   assert.deepEqual(parseGitleaksJson('[]', project, 'working-tree'), []);
   assert.throws(() => parseGitleaksJson('{bad', project, 'working-tree'), /malformed_json/);
   assert.throws(() => parseGitleaksJson('[{"RuleID":"x","StartLine":1,"File":"../escape"}]', project, 'working-tree'), /unsafe_path/);
@@ -167,7 +324,7 @@ try {
   assert.equal(sanitizeEvidence(numericDigestFinding).id, numericDigestFinding.id,
     'finding ID must not be rewritten as an AWS account number');
 
-  let result = withEnv({ FAKE_GITLEAKS_MODE: 'clean' }, () => runGitleaks(project, {
+  result = withEnv({ FAKE_GITLEAKS_MODE: 'clean' }, () => runGitleaks(project, {
     binary: fakeGitleaks, timeoutSeconds: 1,
   }));
   assert.ok(result.coverage.every((entry) => entry.status === 'completed'));
@@ -293,6 +450,7 @@ try {
 
   const gateDir = join(temp, 'gate');
   result = cli(['audit', project, '--out', gateDir, '--adapter', 'all'], {
+    WEBAPP_SECURITY_CHECKOV_BIN: fakeCheckov,
     WEBAPP_SECURITY_GITLEAKS_BIN: fakeGitleaks,
     WEBAPP_SECURITY_OPENGREP_BIN: fakeOpengrep,
     WEBAPP_SECURITY_OSV_SCANNER_BIN: fakeOsv,
@@ -303,16 +461,19 @@ try {
 
   const reportDir = join(temp, 'report');
   result = cli(['audit', project, '--out', reportDir, '--adapter', 'all', '--fail-on', 'never'], {
+    WEBAPP_SECURITY_CHECKOV_BIN: fakeCheckov,
     WEBAPP_SECURITY_GITLEAKS_BIN: fakeGitleaks,
     WEBAPP_SECURITY_OPENGREP_BIN: fakeOpengrep,
     WEBAPP_SECURITY_OSV_SCANNER_BIN: fakeOsv,
     FAKE_GITLEAKS_MODE: 'finding',
+    FAKE_CHECKOV_MODE: 'finding',
     FAKE_OPENGREP_MODE: 'finding',
     FAKE_OSV_MODE: 'finding',
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const report = JSON.parse(readFileSync(join(reportDir, 'report.json'), 'utf8'));
-  assert.deepEqual(report.ruleset.adapters.map((adapter) => adapter.id), ['builtin-source', 'gitleaks', 'opengrep', 'osv']);
+  assert.deepEqual(report.ruleset.adapters.map((adapter) => adapter.id), ['builtin-source', 'checkov', 'gitleaks', 'opengrep', 'osv']);
+  assert.ok(report.findings.some((finding) => finding.rule.id === 'checkov-github-actions-write-all'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'gitleaks-committed-secret'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'osv-known-vulnerability'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'opengrep-js-request-command-flow'));
@@ -332,10 +493,13 @@ try {
     assert.match(output, /2\.5\.0/);
     assert.match(output, /opengrep/);
     assert.match(output, /1\.27\.0/);
+    assert.match(output, /checkov/);
+    assert.match(output, /3\.3\.9/);
     assert.match(output, /coverage|Coverage/);
   }
 
   result = cli(['doctor', project, '--adapter', 'all', '--json'], {
+    WEBAPP_SECURITY_CHECKOV_BIN: join(temp, 'missing-checkov'),
     WEBAPP_SECURITY_GITLEAKS_BIN: join(temp, 'missing-gitleaks'),
     WEBAPP_SECURITY_OPENGREP_BIN: join(temp, 'missing-opengrep'),
     WEBAPP_SECURITY_OSV_SCANNER_BIN: join(temp, 'missing-osv'),

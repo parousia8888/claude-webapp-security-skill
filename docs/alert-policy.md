@@ -1,7 +1,7 @@
 # External adapter alert policy
 
 Status: **owner acceptance pending**. This document defines the conditions a repository must accept
-before Gitleaks or OSV-Scanner findings become a merge or release gate. It does not assign a person,
+before Checkov, Gitleaks, Opengrep or OSV-Scanner findings become a merge or release gate. It does not assign a person,
 enable a GitHub setting or close Issue #7.
 
 ## Required assignment
@@ -26,7 +26,9 @@ accepted, run external adapters with `--fail-on never` and treat their reports a
 2. For a potentially live secret, revoke or rotate first; do not paste the value into an issue.
 3. For a dependency advisory, establish whether the package/version is shipped and whether the
    vulnerable path is reachable. The adapter's local `info` severity is not a priority decision.
-4. Close as fixed only after the same adapter no longer reports the identity under completed
+4. For a Checkov lead, establish the effective deployed user, health probe or workflow token
+   permissions. Test file ownership/startup or release/publish/deploy jobs before accepting a fix.
+5. Close as fixed only after the same adapter no longer reports the identity under completed
    coverage.
 
 A suppression must be stored in the consuming repository and include the finding/advisory identity,

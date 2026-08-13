@@ -12,7 +12,7 @@
 
 这个项目把 Web 安全加固拆成范围确认、证据分类、最小补丁和强制复测。自有本地 fixture 的生成式 demo 为 2 个 security HIGH、11 个 discoverability HIGH + 5 个 MEDIUM、1 个 reliability MEDIUM，应用可审查补丁后沿同一路径复测为 0 个 active HIGH / 0 个 active MEDIUM；报告、补丁和生成方式都可以检查。
 
-目前能力合同明确列出 8 个 stable 窄检测家族、1 项 planned 检测能力和 6 项 agent-guided 方法；证据/报告与分发能力不计入检测覆盖。另有 5 个固定 commit 的普通开源项目旅程，保留零 finding、误报关闭和 unknown 结果，未探测线上实例。
+目前能力合同明确列出 9 个 stable 窄检测家族、0 项 planned 检测能力和 6 项 agent-guided 方法；证据/报告与分发能力不计入检测覆盖。另有 5 个固定 commit 的普通开源项目旅程，保留零 finding、误报关闭和 unknown 结果，未探测线上实例。
 
 v0.4.0 release 提供签名 tag、可复现归档、SPDX SBOM、校验和、manifest 与 provenance。安装路径会先固定并校验 bootstrap，再校验 release 资产。
 

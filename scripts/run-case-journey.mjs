@@ -150,12 +150,13 @@ try {
   if (existsSync(output)) throw new Error(`output already exists: ${output}`);
   const gitleaksBinary = process.env.WEBAPP_SECURITY_GITLEAKS_BIN;
   const opengrepBinary = process.env.WEBAPP_SECURITY_OPENGREP_BIN;
+  const checkovBinary = process.env.WEBAPP_SECURITY_CHECKOV_BIN;
   const osvBinary = process.env.WEBAPP_SECURITY_OSV_SCANNER_BIN;
-  if (!gitleaksBinary || !opengrepBinary || !osvBinary) {
-    throw new Error('set WEBAPP_SECURITY_GITLEAKS_BIN, WEBAPP_SECURITY_OPENGREP_BIN and WEBAPP_SECURITY_OSV_SCANNER_BIN to pinned binaries');
+  if (!checkovBinary || !gitleaksBinary || !opengrepBinary || !osvBinary) {
+    throw new Error('set WEBAPP_SECURITY_CHECKOV_BIN, WEBAPP_SECURITY_GITLEAKS_BIN, WEBAPP_SECURITY_OPENGREP_BIN and WEBAPP_SECURITY_OSV_SCANNER_BIN to pinned binaries');
   }
   for (const [name, binary] of [
-    ['Gitleaks', gitleaksBinary], ['Opengrep', opengrepBinary], ['OSV-Scanner', osvBinary],
+    ['Checkov', checkovBinary], ['Gitleaks', gitleaksBinary], ['Opengrep', opengrepBinary], ['OSV-Scanner', osvBinary],
   ]) {
     if (!existsSync(binary)) throw new Error(`${name} binary does not exist: ${binary}`);
   }
@@ -163,6 +164,7 @@ try {
   const env = {
     ...process.env,
     SOURCE_DATE_EPOCH: String(Date.parse(journey.corpus.runDate) / 1000),
+    WEBAPP_SECURITY_CHECKOV_BIN: realpathSync(checkovBinary),
     WEBAPP_SECURITY_GITLEAKS_BIN: realpathSync(gitleaksBinary),
     WEBAPP_SECURITY_OPENGREP_BIN: realpathSync(opengrepBinary),
     WEBAPP_SECURITY_OSV_SCANNER_BIN: realpathSync(osvBinary),

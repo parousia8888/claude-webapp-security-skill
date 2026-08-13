@@ -36,7 +36,7 @@ Options:
   --max-files <n>         Maximum discovered files, 1..200000 (default: 20000)
   --max-entries <n>       Maximum directory entries, 1..500000 (default: 50000)
   --max-file-bytes <n>    Maximum candidate bytes, 1024..16777216 (default: 1048576)
-  --adapter <id>           builtin, gitleaks, opengrep, osv, or all; repeatable (default: builtin)
+  --adapter <id>           builtin, checkov, gitleaks, opengrep, osv, or all; repeatable (default: builtin)
   --adapter-timeout <sec> External adapter timeout, 1..600 (default: 120)
   --acknowledge-alert-policy
                            Allow selected external adapter findings to use the configured gate
@@ -239,9 +239,9 @@ try {
     baseline,
     policy: policyForFailOn(failOn, failOnDomains),
     limitations: [
-      'Only the recorded built-in and selected external adapters ran; agent-guided API, identity, LLM, data-layer and deployment review did not run.',
+      'Only the recorded built-in and selected external adapters ran; agent-guided API, identity, LLM, data-layer and deployment/runtime review did not run.',
       external.some((result) => result.networkAccessPerformed)
-        ? 'OSV-Scanner may query the public OSV service; no project dependency was executed.'
+        ? 'OSV-Scanner may query the public OSV service and Checkov may query PyPI for version metadata when selected; no project dependency was executed and Checkov was not given project source over the network.'
         : 'No network request or dependency execution was performed.',
       'Suspected findings require deployment or runtime evidence before confirmation.',
     ],
@@ -256,7 +256,7 @@ try {
   console.log(`subject:   ${report.subject.id} (${report.subject.binding})`);
   console.log(`states:    confirmed=${report.summary.byState.confirmed}, suspected=${report.summary.byState.suspected}, unknown=${report.summary.byState.unknown}`);
   console.log(`baseline:  new=${report.summary.byBaseline.new}, fixed=${report.summary.byBaseline.fixed}, unchanged=${report.summary.byBaseline.unchanged}, regressed=${report.summary.byBaseline.regressed}, unretested=${report.summary.byBaseline.unretested}, not_comparable=${report.summary.byBaseline.not_comparable}`);
-  console.log(`network:   ${external.some((result) => result.networkAccessPerformed) ? 'OSV public database query' : 'none'}`);
+  console.log(`network:   ${external.some((result) => result.networkAccessPerformed) ? 'selected adapter metadata/advisory query may occur' : 'none'}`);
   process.exit(exitCodeV3(report));
 } catch (error) {
   usage(2, error.message);

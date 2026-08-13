@@ -9,7 +9,7 @@ confirmed product vulnerability.
 
 Stable source inventory: 20 built-in risk rules,
 2 built-in evidence-integrity rules and
-5 external adapter risk rules.
+8 external adapter risk rules.
 
 ## Stable source rules
 
@@ -37,6 +37,9 @@ Stable source inventory: 20 built-in risk rules,
 | [`python-cors-wildcard-with-credentials`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `risk_detection` | `framework_exposure` | `python` | `security_exposure` | `medium` / `suspected` | `CWE-942`, `OWASP-API-2023-API8` |
 | [`source-stack-unsupported`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `evidence_integrity` | `deployment_configuration` | `javascript`, `typescript`, `python` | `evidence_integrity` | `info` / `unknown` | None |
 | [`source-evidence-incomplete`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/stable-source-rules.json) | `builtin-source@1.1.0` | `evidence_integrity` | `deployment_configuration` | `javascript`, `typescript`, `python` | `evidence_integrity` | `high` / `unknown` | None |
+| [`checkov-dockerfile-root-user`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `checkov@3.3.9` | `risk_detection` | `deployment_configuration` | `dockerfile` | `security_exposure` | `medium` / `suspected` | `CWE-250`, `OWASP-TOP10-2025-A02` |
+| [`checkov-dockerfile-healthcheck-missing`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `checkov@3.3.9` | `risk_detection` | `deployment_configuration` | `dockerfile` | `security_exposure` | `low` / `suspected` | `OWASP-TOP10-2025-A02` |
+| [`checkov-github-actions-write-all`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `checkov@3.3.9` | `risk_detection` | `deployment_configuration` | `yaml` | `supply_chain` | `high` / `suspected` | `CWE-250`, `OWASP-TOP10-2025-A03` |
 | [`gitleaks-committed-secret`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `gitleaks@8.30.1` | `risk_detection` | `secret_management` | `any` | `supply_chain` | `high` / `suspected` | `CWE-798` |
 | [`gitleaks-working-tree-secret`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `gitleaks@8.30.1` | `risk_detection` | `secret_management` | `any` | `supply_chain` | `high` / `suspected` | `CWE-798` |
 | [`opengrep-js-request-command-flow`](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md) | `opengrep@1.27.0` | `risk_detection` | `injection_execution` | `javascript`, `typescript` | `security_exposure` | `high` / `suspected` | `CWE-78`, `OWASP-TOP10-2025-A05` |

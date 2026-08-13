@@ -119,12 +119,14 @@ webapp-security retest .webapp-security/runs/<retest-run-id> \
 
 ```bash
 webapp-security doctor . --adapter all --json
-webapp-security audit . --adapter gitleaks --adapter opengrep --adapter osv --fail-on never
+webapp-security audit . --adapter checkov --adapter gitleaks --adapter opengrep --adapter osv --fail-on never
 ```
 
-已测试版本为 Gitleaks `8.30.1`、Opengrep `1.27.0` 和 OSV-Scanner `2.5.0`；CLI 与 Action
-都不会自动下载。Opengrep 只使用内置、摘要固定的两条本地规则且不访问网络；OSV-Scanner 可能查询
-公共 OSV 数据库。两者都不会执行项目依赖。外部结果要影响阻断退出码前，还必须在使用方仓库接受
+已测试版本为 Checkov `3.3.9`、Gitleaks `8.30.1`、Opengrep `1.27.0` 和 OSV-Scanner `2.5.0`；CLI 与
+Action 都不会自动下载。Checkov 只运行三条固定的根目录 Dockerfile/GitHub Actions 规则，并使用
+`--skip-download`；它可能向 PyPI 查询版本元数据，但不会上传项目源码。Opengrep 只使用内置、摘要
+固定的两条本地规则且不访问网络；OSV-Scanner 可能查询公共 OSV 数据库。所有 adapter 都不会执行
+项目依赖。Compose、Terraform、Kubernetes 和 Checkov 的其他规则不属于 stable 覆盖。外部结果要影响阻断退出码前，还必须在使用方仓库接受
 [`docs/alert-policy.md`](docs/alert-policy.md) 中的责任，并传入
 `--acknowledge-alert-policy`。版本、失败与脱敏语义见
 [`adapter protocol`](docs/adapter-protocol.md)。
@@ -148,7 +150,7 @@ webapp-security crawl --site https://example.com --out ./security-report \
 [生成的 rule taxonomy](docs/rule-taxonomy.md)把 source rule 的 kind、family、language、domain、
 severity、默认证据状态与标准引用分开记录。精确 stable source 数量和完整解释元数据来自机器可读的
 [`stable-source-rules.json`](docs/stable-source-rules.json)：`main` 当前是 20 条 built-in 风险规则、
-2 条 built-in 证据完整性规则和 5 条外部适配器风险规则。其中 JavaScript/TypeScript 与 Python
+2 条 built-in 证据完整性规则和 8 条外部适配器风险规则，合计 30 条 stable 源码与部署策略规则。其中 JavaScript/TypeScript 与 Python
 各有 8 条 built-in 风险规则，都是有边界的词法线索，覆盖危险执行、浏览器或框架配置、传输、
 认证密钥与反序列化。它们不能证明输入流或运行时可达性，未经独立复现一律保持 `suspected`。
 
@@ -159,7 +161,7 @@ severity、默认证据状态与标准引用分开记录。精确 stable source 
 - **类别：** 检测；证据与报告；生命周期与分发；或 Agent 方法论。
 - **成熟度：** `stable`、`experimental`、`agent_guided` 或 `planned`。
 
-当前 stable 检测家族包括窄范围内置源码 audit、显式启用的 Gitleaks、Opengrep 与 OSV-Scanner
+当前 stable 检测家族包括窄范围内置源码 audit、显式启用的 Checkov、Gitleaks、Opengrep 与 OSV-Scanner
 adapter、crawl boundary、crawler 身份验证、edge 验证和
 只读 AWS inventory helper。项目识别、demo、报告 renderer、复测基础设施、安装器与 GitHub
 Action 虽然都有测试，但不构成更多 detector 家族。API 授权、业务逻辑、LLM/OAuth、数据层和
@@ -180,7 +182,7 @@ webapp-security start .
 # 只读源码 audit、finding 解释与强制 baseline 复测
 webapp-security audit .webapp-security/runs/<run-id> --fail-on high
 webapp-security doctor . --adapter all
-webapp-security audit . --adapter gitleaks --adapter opengrep --adapter osv --fail-on never
+webapp-security audit . --adapter checkov --adapter gitleaks --adapter opengrep --adapter osv --fail-on never
 webapp-security explain <finding-id> --report <report.json>
 webapp-security start . --run-id <retest-run-id>
 webapp-security retest .webapp-security/runs/<retest-run-id> \

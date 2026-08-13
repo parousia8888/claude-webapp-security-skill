@@ -2,7 +2,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { GITLEAKS_RULES, OPENGREP_RULES, OSV_RULES } from '../scripts/lib/adapter-definitions.mjs';
+import {
+  CHECKOV_RULES, GITLEAKS_RULES, OPENGREP_RULES, OSV_RULES,
+} from '../scripts/lib/adapter-definitions.mjs';
 import {
   SOURCE_RULE_REGISTRY, registrySemanticDigest, runtimeRule, stableSourceRuleManifest,
   validateSourceRuleRegistry,
@@ -15,7 +17,7 @@ const clone = () => structuredClone(SOURCE_RULE_REGISTRY);
 assert.deepEqual(validateSourceRuleRegistry(SOURCE_RULE_REGISTRY, { root: ROOT }), []);
 const manifest = stableSourceRuleManifest();
 assert.deepEqual(manifest.counts, {
-  stableTotal: 27, builtInRisk: 20, builtInIntegrity: 2, externalRisk: 5,
+  stableTotal: 30, builtInRisk: 20, builtInIntegrity: 2, externalRisk: 8,
 });
 assert.deepEqual(manifest.rules.map((rule) => rule.id),
   [...manifest.rules.map((rule) => rule.id)].sort());
@@ -23,14 +25,16 @@ assert.deepEqual(JSON.parse(readFileSync(`${ROOT}/docs/stable-source-rules.json`
 
 const runtime = SOURCE_RULE_REGISTRY.filter((rule) => rule.adapter.type === 'built_in').map(runtimeRule);
 assert.deepEqual(SOURCE_RULES, runtime);
+assert.deepEqual(CHECKOV_RULES,
+  SOURCE_RULE_REGISTRY.filter((rule) => rule.adapter.id === 'checkov').map(runtimeRule));
 assert.deepEqual(GITLEAKS_RULES,
   SOURCE_RULE_REGISTRY.filter((rule) => rule.adapter.id === 'gitleaks').map(runtimeRule));
 assert.deepEqual(OPENGREP_RULES,
   SOURCE_RULE_REGISTRY.filter((rule) => rule.adapter.id === 'opengrep').map(runtimeRule));
 assert.deepEqual(OSV_RULES,
   SOURCE_RULE_REGISTRY.filter((rule) => rule.adapter.id === 'osv').map(runtimeRule));
-assert.equal(sourceRuleset(['builtin', 'gitleaks', 'opengrep', 'osv']).digest,
-  '7583da0fa0818f7b2d286933223c40c1f1531b57aac6945b39dcbff1c60e40cc');
+assert.equal(sourceRuleset(['builtin', 'checkov', 'gitleaks', 'opengrep', 'osv']).digest,
+  'c127d361ff758b0115425dfbaa9add2201ddc924a17e37edd873778e71a32330');
 
 const docsOnly = clone();
 docsOnly[0].plainLanguage = 'Documentation-only wording changed.';
@@ -45,7 +49,7 @@ experimental.push({
   fixtures: structuredClone(experimental[0].fixtures),
 });
 assert.equal(validateSourceRuleRegistry(experimental, { root: ROOT }).length, 0);
-assert.equal(stableSourceRuleManifest(experimental).counts.stableTotal, 27);
+assert.equal(stableSourceRuleManifest(experimental).counts.stableTotal, 30);
 
 for (const mutate of [
   (registry) => { registry[1].id = registry[0].id; },

@@ -60,7 +60,7 @@ export function sourceAuditBoundary(traversalLimits = DEFAULT_SOURCE_TRAVERSAL_L
       'coverage', 'dist', 'node_modules', 'target', 'vendor', '__pycache__', '.venv', 'venv',
     ],
     checkModes: ['source', 'local', ...adapters.filter((adapter) => adapter !== 'builtin').map((adapter) => `adapter:${adapter}`)],
-    networkAccess: adapters.includes('osv'),
+    networkAccess: adapters.includes('osv') || adapters.includes('checkov'),
     adapters,
     adapterTimeoutSeconds,
     traversalLimits: limits,
@@ -152,7 +152,7 @@ export function validatePersistedScope(scope) {
   sourceTraversalLimits(scope.auditBoundary.traversalLimits);
   if ('adapters' in scope.auditBoundary) {
     if (!Array.isArray(scope.auditBoundary.adapters) || !scope.auditBoundary.adapters.length
-        || scope.auditBoundary.adapters.some((adapter) => !['builtin', 'gitleaks', 'opengrep', 'osv'].includes(adapter))) {
+        || scope.auditBoundary.adapters.some((adapter) => !['builtin', 'checkov', 'gitleaks', 'opengrep', 'osv'].includes(adapter))) {
       throw new Error('scope contains an invalid adapter selection');
     }
     if (!Number.isInteger(scope.auditBoundary.adapterTimeoutSeconds)

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync, cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -42,6 +44,9 @@ function project(name, vulnerable) {
       ROOT, 'test', 'fixtures', 'opengrep-rules', `${vulnerable ? 'vulnerable' : 'safe'}.${extension}`,
     ), 'utf8'));
   }
+  cpSync(join(ROOT, 'test', 'fixtures', 'checkov-rules', vulnerable ? 'vulnerable' : 'safe'), root, {
+    recursive: true,
+  });
   command('git', ['init', '-q'], { cwd: root });
   command('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'add', '.'], { cwd: root });
   command('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'], { cwd: root });
@@ -50,6 +55,7 @@ function project(name, vulnerable) {
 
 try {
   for (const binary of [
+    process.env.WEBAPP_SECURITY_CHECKOV_BIN,
     process.env.WEBAPP_SECURITY_GITLEAKS_BIN,
     process.env.WEBAPP_SECURITY_OPENGREP_BIN,
     process.env.WEBAPP_SECURITY_OSV_SCANNER_BIN,
@@ -60,7 +66,7 @@ try {
   const vulnerable = project('vulnerable', true);
   const vulnerableOut = join(temp, 'vulnerable-report');
   let result = spawnSync(process.execPath, [
-    CLI, 'audit', vulnerable, '--out', vulnerableOut, '--adapter', 'gitleaks', '--adapter', 'opengrep', '--adapter', 'osv',
+    CLI, 'audit', vulnerable, '--out', vulnerableOut, '--adapter', 'checkov', '--adapter', 'gitleaks', '--adapter', 'opengrep', '--adapter', 'osv',
     '--fail-on', 'never', '--adapter-timeout', '120',
   ], { cwd: ROOT, encoding: 'utf8', timeout: 180000, env: { ...process.env, SOURCE_DATE_EPOCH: '0' } });
   assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -70,6 +76,9 @@ try {
   assert.ok(report.findings.some((finding) => finding.rule.id === 'osv-known-vulnerability'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'opengrep-js-request-command-flow'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'opengrep-python-request-command-flow'));
+  assert.ok(report.findings.some((finding) => finding.rule.id === 'checkov-dockerfile-root-user'));
+  assert.ok(report.findings.some((finding) => finding.rule.id === 'checkov-dockerfile-healthcheck-missing'));
+  assert.ok(report.findings.some((finding) => finding.rule.id === 'checkov-github-actions-write-all'));
   assert.ok(report.findings.every((finding) => finding.state === 'suspected'));
   assert.ok(report.findings.some((finding) => finding.evidence.advisoryIds?.includes('GHSA-29mw-wpgm-hmr9')));
   for (const name of readdirSync(vulnerableOut)) {
@@ -79,16 +88,17 @@ try {
   const clean = project('clean', false);
   const cleanOut = join(temp, 'clean-report');
   result = spawnSync(process.execPath, [
-    CLI, 'audit', clean, '--out', cleanOut, '--adapter', 'gitleaks', '--adapter', 'opengrep', '--adapter', 'osv',
+    CLI, 'audit', clean, '--out', cleanOut, '--adapter', 'checkov', '--adapter', 'gitleaks', '--adapter', 'opengrep', '--adapter', 'osv',
     '--fail-on', 'never', '--adapter-timeout', '120',
   ], { cwd: ROOT, encoding: 'utf8', timeout: 180000, env: { ...process.env, SOURCE_DATE_EPOCH: '0' } });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const cleanReport = JSON.parse(readFileSync(join(cleanOut, 'report.json'), 'utf8'));
   assert.equal(cleanReport.findings.filter((finding) => finding.state === 'confirmed').length, 0);
   assert.equal(cleanReport.findings.filter((finding) => finding.adapter.id === 'opengrep').length, 0);
+  assert.equal(cleanReport.findings.filter((finding) => finding.adapter.id === 'checkov').length, 0);
   assert.ok(cleanReport.coverage.every((entry) => entry.status === 'completed'));
 
-  console.log('real adapters ok: pinned Gitleaks, Opengrep and OSV-Scanner positive and clean controls');
+  console.log('real adapters ok: pinned Checkov, Gitleaks, Opengrep and OSV-Scanner positive and clean controls');
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

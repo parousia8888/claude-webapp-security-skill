@@ -1,12 +1,15 @@
 import { createHash } from 'node:crypto';
-import { chmodSync, existsSync, lstatSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync,
+  statSync, writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
-  GITLEAKS_ADAPTER, GITLEAKS_RULES, OPENGREP_ADAPTER, OPENGREP_RULES, OPENGREP_RULESET,
-  OSV_ADAPTER, OSV_RULES,
+  CHECKOV_ADAPTER, CHECKOV_RULES, GITLEAKS_ADAPTER, GITLEAKS_RULES, OPENGREP_ADAPTER,
+  OPENGREP_RULES, OPENGREP_RULESET, OSV_ADAPTER, OSV_RULES,
 } from './adapter-definitions.mjs';
 
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
@@ -22,8 +25,25 @@ function safeProjectPath(projectRoot, value) {
   return path.slice(0, 160);
 }
 
-function counts({ discovered = 1, eligible = 1, scanned = 0, excluded = 0, errors = 0 } = {}) {
-  return { discovered, eligible, scanned, excluded, skipped: 0, truncated: 0, errors };
+function safeCheckovPath(projectRoot, value) {
+  if (typeof value !== 'string' || !value || value.includes('\\') || value.includes('\0')) return null;
+  const relativePath = value.replace(/^\/+/, '');
+  if (!relativePath) return null;
+  const path = safeProjectPath(projectRoot, relativePath);
+  if (!path) return null;
+  const absolute = resolve(projectRoot, path);
+  try {
+    if (!existsSync(absolute) || lstatSync(absolute).isSymbolicLink()) return null;
+  } catch {
+    return null;
+  }
+  return path;
+}
+
+function counts({
+  discovered = 1, eligible = 1, scanned = 0, excluded = 0, skipped = 0, errors = 0,
+} = {}) {
+  return { discovered, eligible, scanned, excluded, skipped, truncated: 0, errors };
 }
 
 function coverage(adapter, rule, status, countValues, reasons = []) {
@@ -90,6 +110,33 @@ export function probeGitleaks(binary, timeoutSeconds) {
 export function probeOsv(binary, timeoutSeconds) {
   return version(binary, ['--version'], OSV_ADAPTER, timeoutSeconds,
     (stdout) => /osv-scanner version:\s*(\d+\.\d+\.\d+)/.exec(stdout)?.[1]);
+}
+
+function withCheckovState(callback) {
+  const stateDir = mkdtempSync(resolve(tmpdir(), 'webapp-security-checkov-'));
+  chmodSync(stateDir, 0o700);
+  const home = resolve(stateDir, 'home');
+  const temp = resolve(stateDir, 'tmp');
+  const config = resolve(stateDir, 'empty-config.yml');
+  for (const directory of [home, temp]) mkdirSync(directory, { mode: 0o700 });
+  writeFileSync(config, '{}\n', { mode: 0o600, flag: 'wx' });
+  const env = {
+    HOME: home,
+    XDG_CACHE_HOME: resolve(home, '.cache'),
+    TMPDIR: temp,
+    CHECKOV_CONFIG_FILE: config,
+  };
+  try {
+    return callback(env);
+  } finally {
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+}
+
+export function probeCheckov(binary, timeoutSeconds, stateEnv = null) {
+  const probe = (env) => version(binary, ['--version'], CHECKOV_ADAPTER, timeoutSeconds,
+    (stdout) => /^(\d+\.\d+\.\d+)\s*$/m.exec(stdout)?.[1], env);
+  return stateEnv ? probe(stateEnv) : withCheckovState(probe);
 }
 
 function withOpengrepState(callback) {
@@ -332,6 +379,232 @@ export function parseOpengrepJson(stdout, projectRoot) {
   return [...unique.values()].sort((left, right) => left.evidence.subject.localeCompare(right.evidence.subject));
 }
 
+const CHECKOV_RULE_MAP = new Map([
+  ['CKV_DOCKER_8', 'checkov-dockerfile-root-user'],
+  ['CKV_DOCKER_2', 'checkov-dockerfile-healthcheck-missing'],
+  ['CKV2_GHA_1', 'checkov-github-actions-write-all'],
+]);
+const CHECKOV_FRAMEWORKS = new Set(['dockerfile', 'github_actions']);
+
+export function parseCheckovJson(stdout, projectRoot, allowedPaths = null) {
+  let parsed;
+  try { parsed = JSON.parse(stdout || '{}'); } catch { throw new Error('malformed_json'); }
+  const reports = Array.isArray(parsed) ? parsed : [parsed];
+  if (!reports.length || reports.some((report) => !report || typeof report !== 'object')) {
+    throw new Error('malformed_output');
+  }
+  const findings = [];
+  const frameworkEvidence = new Map();
+  for (const report of reports) {
+    const framework = report.check_type;
+    const summary = report.summary;
+    const results = report.results;
+    if (!CHECKOV_FRAMEWORKS.has(framework) || frameworkEvidence.has(framework)
+        || !summary || summary.checkov_version !== CHECKOV_ADAPTER.version
+        || !Number.isInteger(summary.parsing_errors) || summary.parsing_errors !== 0
+        || !results || !Array.isArray(results.passed_checks)
+        || !Array.isArray(results.failed_checks) || !Array.isArray(results.skipped_checks)) {
+      throw new Error(summary?.parsing_errors > 0 ? 'scan_errors' : 'malformed_output');
+    }
+    const selectedEvidence = new Map([...CHECKOV_RULE_MAP.keys()]
+      .filter((ruleId) => (ruleId.startsWith('CKV_DOCKER_') ? 'dockerfile' : 'github_actions') === framework)
+      .map((ruleId) => [ruleId, { passed: [], failed: [], skipped: [] }]));
+    frameworkEvidence.set(framework, {
+      failed: results.failed_checks.length,
+      skipped: results.skipped_checks.length,
+      selectedEvidence,
+    });
+    for (const item of results.passed_checks) {
+      const evidence = selectedEvidence.get(item?.check_id);
+      if (evidence) {
+        const path = safeCheckovPath(projectRoot, item.file_path);
+        if (!path) throw new Error('unsafe_path');
+        if (allowedPaths && !allowedPaths.has(path)) throw new Error('unexpected_input_path');
+        evidence.passed.push({ path });
+      }
+    }
+    for (const item of results.failed_checks) {
+      if (!CHECKOV_RULE_MAP.has(item?.check_id)) throw new Error('unknown_rule');
+      const expectedFramework = item.check_id.startsWith('CKV_DOCKER_') ? 'dockerfile' : 'github_actions';
+      if (framework !== expectedFramework) throw new Error('malformed_output');
+      const path = safeCheckovPath(projectRoot, item.file_path);
+      if (!path || !Array.isArray(item.file_line_range) || item.file_line_range.length !== 2
+          || item.file_line_range.some((line) => !Number.isInteger(line) || line < 1)
+          || item.file_line_range[1] < item.file_line_range[0]) throw new Error('unsafe_path');
+      if (allowedPaths && !allowedPaths.has(path)) throw new Error('unexpected_input_path');
+      selectedEvidence.get(item.check_id).failed.push({ path, line: item.file_line_range[0] });
+      const localRuleId = CHECKOV_RULE_MAP.get(item.check_id);
+      findings.push({
+        adapterId: CHECKOV_ADAPTER.id,
+        ruleId: localRuleId,
+        title: `Deployment-policy lead from ${item.check_id}`,
+        severity: CHECKOV_RULES.find((rule) => rule.id === localRuleId).severity,
+        state: 'suspected',
+        summary: `Checkov matched deployment-policy rule ${item.check_id} at ${path}:${item.file_line_range[0]}; deployed runtime context and practical impact were not inferred.`,
+        location: { path, line: item.file_line_range[0] },
+        evidence: {
+          subject: `${item.check_id}:${path}:${item.file_line_range[0]}:${item.file_line_range[1]}`,
+          externalRuleId: item.check_id,
+          framework,
+          lineEnd: item.file_line_range[1],
+        },
+        remediation: `Review ${item.check_id} in deployment context, choose the narrowest configuration change, and test the recorded operational side effects before rollout.`,
+        retest: `Rerun Checkov ${item.check_id}, then verify the built image or workflow behavior in the owned deployment path.`,
+      });
+    }
+    for (const item of results.skipped_checks) {
+      const evidence = selectedEvidence.get(item?.check_id);
+      if (!evidence) throw new Error('unknown_rule');
+      const path = safeCheckovPath(projectRoot, item.file_path);
+      if (!path || !Array.isArray(item.file_line_range) || item.file_line_range.length !== 2
+          || item.file_line_range.some((line) => !Number.isInteger(line) || line < 1)
+          || item.file_line_range[1] < item.file_line_range[0]) throw new Error('unsafe_path');
+      if (allowedPaths && !allowedPaths.has(path)) throw new Error('unexpected_input_path');
+      evidence.skipped.push({ path, line: item.file_line_range[0] });
+    }
+  }
+  const unique = new Map();
+  for (const finding of findings) unique.set(finding.evidence.subject, finding);
+  return {
+    findings: [...unique.values()].sort((left, right) => left.evidence.subject.localeCompare(right.evidence.subject)),
+    frameworkEvidence,
+  };
+}
+
+function checkovInputs(projectRoot) {
+  const dockerfiles = existsSync(resolve(projectRoot, 'Dockerfile'))
+    && !lstatSync(resolve(projectRoot, 'Dockerfile')).isSymbolicLink() ? ['Dockerfile'] : [];
+  const workflows = [];
+  const workflowRoot = resolve(projectRoot, '.github', 'workflows');
+  if (existsSync(workflowRoot) && !lstatSync(workflowRoot).isSymbolicLink()
+      && statSync(workflowRoot).isDirectory()) {
+    for (const name of readdirSync(workflowRoot).sort()) {
+      const full = resolve(workflowRoot, name);
+      if (/\.ya?ml$/i.test(name) && !lstatSync(full).isSymbolicLink() && statSync(full).isFile()) {
+        workflows.push(`.github/workflows/${name}`);
+      }
+    }
+  }
+  return { dockerfiles, workflows };
+}
+
+export function runCheckov(projectRoot, { binary = 'checkov', timeoutSeconds = 120 } = {}) {
+  projectRoot = resolve(projectRoot);
+  const inputs = checkovInputs(projectRoot);
+  const allInputs = [...inputs.dockerfiles, ...inputs.workflows];
+  const applicableRules = CHECKOV_RULES.filter((rule) => (rule.id.startsWith('checkov-dockerfile-')
+    ? inputs.dockerfiles.length : inputs.workflows.length));
+  const notApplicableRules = CHECKOV_RULES.filter((rule) => !applicableRules.includes(rule));
+  if (!allInputs.length) {
+    return {
+      adapter: CHECKOV_ADAPTER,
+      identity: { status: 'not_applicable', expectedVersion: CHECKOV_ADAPTER.version },
+      findings: [],
+      coverage: CHECKOV_RULES.map((rule) => coverage(CHECKOV_ADAPTER, rule, 'not_applicable', {
+        discovered: 1, eligible: 0, excluded: 1,
+      }, [{ code: rule.id.startsWith('checkov-dockerfile-') ? 'no_dockerfile_input' : 'no_github_actions_input', count: 1, samplePaths: [] }])),
+      networkAccessPerformed: false,
+    };
+  }
+  return withCheckovState((stateEnv) => {
+    const identity = probeCheckov(binary, timeoutSeconds, stateEnv);
+    const notApplicableCoverage = notApplicableRules.map((rule) => coverage(
+      CHECKOV_ADAPTER, rule, 'not_applicable', { discovered: 1, eligible: 0, excluded: 1 },
+      [{ code: rule.id.startsWith('checkov-dockerfile-') ? 'no_dockerfile_input' : 'no_github_actions_input', count: 1, samplePaths: [] }],
+    ));
+    if (identity.status !== 'available') {
+      return {
+        adapter: CHECKOV_ADAPTER, identity,
+        ...unavailable(CHECKOV_ADAPTER, applicableRules, `adapter_${identity.status}`,
+          identity.observedVersion ? { observedVersion: identity.observedVersion } : {}),
+        coverage: [
+          ...unavailable(CHECKOV_ADAPTER, applicableRules, `adapter_${identity.status}`).coverage,
+          ...notApplicableCoverage,
+        ],
+        networkAccessPerformed: identity.status !== 'missing',
+      };
+    }
+    const result = run(binary, [
+      '-f', ...allInputs,
+      '--framework', 'dockerfile', 'github_actions',
+      '--check', 'CKV_DOCKER_8,CKV_DOCKER_2,CKV2_GHA_1',
+      '--output', 'json', '--skip-download', '--compact',
+    ], { cwd: projectRoot, timeoutSeconds, env: stateEnv });
+    if (result.kind !== 'completed' || ![0, 1].includes(result.status)) {
+      const reason = result.kind === 'completed' ? 'adapter_internal_error' : `adapter_${result.kind}`;
+      const failed = unavailable(CHECKOV_ADAPTER, applicableRules, reason);
+      return {
+        adapter: CHECKOV_ADAPTER, identity, findings: failed.findings,
+        coverage: [...failed.coverage, ...notApplicableCoverage], networkAccessPerformed: true,
+      };
+    }
+    try {
+      const parsed = parseCheckovJson(result.stdout, projectRoot, new Set(allInputs));
+      for (const framework of parsed.frameworkEvidence.keys()) {
+        if ((framework === 'dockerfile' && !inputs.dockerfiles.length)
+            || (framework === 'github_actions' && !inputs.workflows.length)) {
+          throw new Error('unexpected_input_framework');
+        }
+      }
+      if ((result.status === 1) !== (parsed.findings.length > 0)) throw new Error('inconsistent_exit');
+      for (const rule of applicableRules) {
+        const framework = rule.id.startsWith('checkov-dockerfile-') ? 'dockerfile' : 'github_actions';
+        const externalRuleId = [...CHECKOV_RULE_MAP.entries()]
+          .find(([, localRuleId]) => localRuleId === rule.id)?.[0];
+        const evidence = parsed.frameworkEvidence.get(framework)?.selectedEvidence.get(externalRuleId);
+        const paths = rule.id.startsWith('checkov-dockerfile-') ? inputs.dockerfiles : inputs.workflows;
+        const observedPaths = new Set([
+          ...(evidence?.passed || []), ...(evidence?.failed || []), ...(evidence?.skipped || []),
+        ].map((item) => item.path));
+        if (!evidence || paths.some((path) => !observedPaths.has(path))) {
+          throw new Error('incomplete_framework_evidence');
+        }
+      }
+      return {
+        adapter: CHECKOV_ADAPTER, identity, findings: [
+          ...parsed.findings,
+          ...applicableRules.flatMap((rule) => {
+            const framework = rule.id.startsWith('checkov-dockerfile-') ? 'dockerfile' : 'github_actions';
+            const externalRuleId = [...CHECKOV_RULE_MAP.entries()]
+              .find(([, localRuleId]) => localRuleId === rule.id)?.[0];
+            const evidence = parsed.frameworkEvidence.get(framework).selectedEvidence.get(externalRuleId);
+            return evidence.skipped.length ? [unknownFinding(CHECKOV_ADAPTER, rule, 'adapter_rule_suppressed', {
+              externalRuleId,
+              suppressions: evidence.skipped,
+            })] : [];
+          }),
+        ],
+        coverage: [
+          ...applicableRules.map((rule) => {
+            const paths = rule.id.startsWith('checkov-dockerfile-') ? inputs.dockerfiles : inputs.workflows;
+            const framework = rule.id.startsWith('checkov-dockerfile-') ? 'dockerfile' : 'github_actions';
+            const externalRuleId = [...CHECKOV_RULE_MAP.entries()]
+              .find(([, localRuleId]) => localRuleId === rule.id)?.[0];
+            const evidence = parsed.frameworkEvidence.get(framework).selectedEvidence.get(externalRuleId);
+            return coverage(CHECKOV_ADAPTER, rule, evidence.skipped.length ? 'unavailable' : 'completed', {
+              discovered: paths.length, eligible: paths.length,
+              scanned: evidence.skipped.length ? Math.max(0, paths.length - evidence.skipped.length) : paths.length,
+              skipped: evidence.skipped.length,
+              errors: evidence.skipped.length ? 1 : 0,
+            }, evidence.skipped.length ? [{
+              code: 'adapter_rule_suppressed', count: evidence.skipped.length,
+              samplePaths: evidence.skipped.map((item) => item.path).slice(0, 5),
+            }] : []);
+          }),
+          ...notApplicableCoverage,
+        ],
+        networkAccessPerformed: true,
+      };
+    } catch (error) {
+      const failed = unavailable(CHECKOV_ADAPTER, applicableRules, `adapter_${error.message}`);
+      return {
+        adapter: CHECKOV_ADAPTER, identity, findings: failed.findings,
+        coverage: [...failed.coverage, ...notApplicableCoverage], networkAccessPerformed: true,
+      };
+    }
+  });
+}
+
 export function runOpengrep(projectRoot, {
   binary = 'opengrep', timeoutSeconds = 120,
   rulesPath = resolve(ROOT, OPENGREP_RULESET.relativePath),
@@ -458,6 +731,10 @@ export function runOsv(projectRoot, lockfiles, { binary = 'osv-scanner', timeout
 
 export function runExternalAdapters(projectRoot, lockfiles, selected, options = {}) {
   const results = [];
+  if (selected.includes('checkov')) results.push(runCheckov(projectRoot, {
+    binary: process.env.WEBAPP_SECURITY_CHECKOV_BIN || 'checkov',
+    timeoutSeconds: options.timeoutSeconds,
+  }));
   if (selected.includes('gitleaks')) results.push(runGitleaks(projectRoot, {
     binary: process.env.WEBAPP_SECURITY_GITLEAKS_BIN || 'gitleaks',
     timeoutSeconds: options.timeoutSeconds,

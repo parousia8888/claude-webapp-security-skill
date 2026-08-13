@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "semanticDigest": "ed7d628fa9b8a0da557d489edbd95893304a12e54b37c7bf4b1e7261d8d5fc99",
+  "semanticDigest": "7e5d8a25b5377afbc4aa2c9e1125ab06135bca837c2b8361cc8a3cac582b5b58",
   "counts": {
-    "stableTotal": 27,
+    "stableTotal": 30,
     "builtInRisk": 20,
     "builtInIntegrity": 2,
-    "externalRisk": 5
+    "externalRisk": 8
   },
   "rules": [
     {
@@ -91,6 +91,257 @@
           {
             "id": "browser-html-sink-safe",
             "path": "test/fixtures/js-ts-rules/safe.tsx"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "checkov",
+        "version": "3.3.9",
+        "maturity": "stable",
+        "type": "external"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [
+        "Docker"
+      ],
+      "alternatives": [
+        "Define and test the health probe in the deployment platform instead of the reusable image."
+      ],
+      "userDecisions": [
+        "Confirm whether the image is a long-running service and which endpoint or local command represents real readiness."
+      ],
+      "id": "checkov-dockerfile-healthcheck-missing",
+      "kind": "risk_detection",
+      "family": "deployment_configuration",
+      "languages": [
+        "dockerfile"
+      ],
+      "domain": "security_exposure",
+      "severity": "low",
+      "defaultState": "suspected",
+      "rationale": "container_healthcheck_missing",
+      "technicalTerm": "Missing container health check",
+      "plainLanguage": "The image does not define a routine way for the container platform to tell whether the application is actually healthy.",
+      "consequence": "A stuck or partly started process may continue receiving traffic or remain unreplaced because the platform only knows that the process exists.",
+      "confidenceBoundary": "Checkov rule CKV_DOCKER_2 found no HEALTHCHECK in the Dockerfile. A deployment-level health probe may already exist and was not inspected.",
+      "applicability": "Files named Dockerfile scanned by caller-installed Checkov 3.3.9. Deployment manifests and platform-specific probes are outside this rule.",
+      "detection": {
+        "type": "external_policy_adapter",
+        "engine": "checkov",
+        "externalRuleId": "CKV_DOCKER_2",
+        "frameworks": [
+          "dockerfile"
+        ],
+        "matchState": "suspected"
+      },
+      "standards": [
+        {
+          "id": "OWASP-TOP10-2025-A02",
+          "url": "https://owasp.org/Top10/2025/A02_2025-Security_Misconfiguration/"
+        }
+      ],
+      "falsePositiveCauses": [
+        "The deployment manifest defines an equivalent liveness or health probe.",
+        "The image is a one-shot job for which a continuous health check is not appropriate."
+      ],
+      "proposal": {
+        "status": "review_required",
+        "summary": "Add a lightweight health check that reflects application readiness, with reviewed interval, timeout, start period and retries."
+      },
+      "proposalRisks": [
+        "A probe that starts too early, depends on an optional service or times out too quickly can restart a healthy application."
+      ],
+      "sideEffects": [
+        "Startup time, dependency availability and temporary load spikes can cause false unhealthy states or restart loops."
+      ],
+      "securityRetest": "Rerun CKV_DOCKER_2 and verify the deployed platform observes the intended probe rather than only process liveness.",
+      "functionalRetest": "Start the service from cold state, test slow dependency startup and confirm healthy, degraded and failed states are reported as intended.",
+      "rollback": "Disable or relax the new probe if it restarts healthy instances, then restore monitoring while the readiness signal and timing are corrected.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "checkov-healthcheck-positive",
+            "path": "test/fixtures/checkov-rules/vulnerable/Dockerfile"
+          }
+        ],
+        "negative": [
+          {
+            "id": "checkov-healthcheck-safe",
+            "path": "test/fixtures/checkov-rules/safe/Dockerfile"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "checkov",
+        "version": "3.3.9",
+        "maturity": "stable",
+        "type": "external"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [
+        "Docker"
+      ],
+      "alternatives": [
+        "Set an approved non-root UID in the deployment runtime when the image must remain reusable, and enforce that override as code."
+      ],
+      "userDecisions": [
+        "Confirm which directories must be writable and whether the service must bind a port below 1024."
+      ],
+      "id": "checkov-dockerfile-root-user",
+      "kind": "risk_detection",
+      "family": "deployment_configuration",
+      "languages": [
+        "dockerfile"
+      ],
+      "domain": "security_exposure",
+      "severity": "medium",
+      "defaultState": "suspected",
+      "rationale": "container_runs_as_root",
+      "technicalTerm": "Container runs as root (CWE-250)",
+      "plainLanguage": "The Dockerfile leaves the final container process running with the most powerful user inside the container.",
+      "consequence": "If the application is compromised, root privileges can make it easier to alter container files, bind privileged ports or abuse an unsafe runtime configuration.",
+      "confidenceBoundary": "Checkov rule CKV_DOCKER_8 matched the Dockerfile. A runtime USER override, rootless container engine or additional isolation may reduce the deployed impact; none was verified.",
+      "applicability": "Files named Dockerfile scanned by caller-installed Checkov 3.3.9. Other container build files and runtime manifests are outside stable coverage.",
+      "detection": {
+        "type": "external_policy_adapter",
+        "engine": "checkov",
+        "externalRuleId": "CKV_DOCKER_8",
+        "frameworks": [
+          "dockerfile"
+        ],
+        "matchState": "suspected"
+      },
+      "standards": [
+        {
+          "id": "CWE-250",
+          "url": "https://cwe.mitre.org/data/definitions/250.html"
+        },
+        {
+          "id": "OWASP-TOP10-2025-A02",
+          "url": "https://owasp.org/Top10/2025/A02_2025-Security_Misconfiguration/"
+        }
+      ],
+      "falsePositiveCauses": [
+        "The deployment platform overrides the image user with an approved non-root UID.",
+        "The container needs a short root-only setup phase but the final runtime is constrained elsewhere."
+      ],
+      "proposal": {
+        "status": "review_required",
+        "summary": "Create a dedicated runtime user, give it only the required files and directories, and set USER in the final image stage."
+      },
+      "proposalRisks": [
+        "The application may lose access to files, sockets or ports that currently depend on root ownership or privileges."
+      ],
+      "sideEffects": [
+        "File permissions, bind-mounted volume ownership and low-numbered port binding can change; image build and startup may fail until ownership is explicit."
+      ],
+      "securityRetest": "Rerun the pinned Checkov rule and inspect the built image/runtime identity to confirm the application process uses the intended non-root UID.",
+      "functionalRetest": "Build and start the image, exercise startup, file writes, uploads, logs, health checks and every required network port.",
+      "rollback": "Revert the USER and ownership change if normal startup fails, keep the deployment restricted, and identify the exact permission before proposing a narrower change.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "checkov-root-user-positive",
+            "path": "test/fixtures/checkov-rules/vulnerable/Dockerfile"
+          }
+        ],
+        "negative": [
+          {
+            "id": "checkov-root-user-safe",
+            "path": "test/fixtures/checkov-rules/safe/Dockerfile"
+          }
+        ]
+      }
+    },
+    {
+      "adapter": {
+        "id": "checkov",
+        "version": "3.3.9",
+        "maturity": "stable",
+        "type": "external"
+      },
+      "maturity": "stable",
+      "revision": "1",
+      "frameworks": [
+        "GitHub Actions"
+      ],
+      "alternatives": [
+        "Split publishing or deployment into a protected workflow with narrow permissions and keep build/test workflows read-only."
+      ],
+      "userDecisions": [
+        "Confirm which jobs are allowed to publish releases, packages, attestations or deployments and which events may trigger them."
+      ],
+      "id": "checkov-github-actions-write-all",
+      "kind": "risk_detection",
+      "family": "deployment_configuration",
+      "languages": [
+        "yaml"
+      ],
+      "domain": "supply_chain",
+      "severity": "high",
+      "defaultState": "suspected",
+      "rationale": "workflow_token_write_all",
+      "technicalTerm": "Over-privileged GitHub Actions token (CWE-250)",
+      "plainLanguage": "The workflow asks GitHub for write access to every available repository permission instead of only the operations its jobs need.",
+      "consequence": "If a workflow step or dependency is compromised, its token may be able to change repository content, releases, packages or other protected resources.",
+      "confidenceBoundary": "Checkov rule CKV2_GHA_1 matched top-level permissions: write-all. Event restrictions, job-level reductions, environment protection and actual token use were not evaluated.",
+      "applicability": "Root .github/workflows/*.yml and *.yaml files scanned by caller-installed Checkov 3.3.9. Reusable workflows outside that path are not claimed.",
+      "detection": {
+        "type": "external_policy_adapter",
+        "engine": "checkov",
+        "externalRuleId": "CKV2_GHA_1",
+        "frameworks": [
+          "github_actions"
+        ],
+        "matchState": "suspected"
+      },
+      "standards": [
+        {
+          "id": "CWE-250",
+          "url": "https://cwe.mitre.org/data/definitions/250.html"
+        },
+        {
+          "id": "OWASP-TOP10-2025-A03",
+          "url": "https://owasp.org/Top10/2025/A03_2025-Software_Supply_Chain_Failures/"
+        }
+      ],
+      "falsePositiveCauses": [
+        "A tightly protected release workflow genuinely needs several write permissions, though write-all is still broader than necessary.",
+        "A reusable workflow receives an already restricted token from its caller."
+      ],
+      "proposal": {
+        "status": "review_required",
+        "summary": "Set top-level permissions to read-only or none, then grant each job only the named write permissions it demonstrably uses."
+      },
+      "proposalRisks": [
+        "Release, package publication, deployment, pull-request comments or provenance jobs can fail when a required permission is omitted."
+      ],
+      "sideEffects": [
+        "Existing release, publish and deploy jobs may return 403 errors until their exact contents, packages, deployments, id-token or pull-requests permissions are declared."
+      ],
+      "securityRetest": "Rerun CKV2_GHA_1 and inspect the effective token permissions for every triggered job and reusable workflow boundary.",
+      "functionalRetest": "Run representative pull-request, branch, release, package-publish and deployment workflows in a safe test path and verify all intended writes still succeed.",
+      "rollback": "Restore only the specific permission required by a failing job; do not return to write-all without recording an owner, reason and review date.",
+      "helpUri": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adapter-protocol.md",
+      "fixtures": {
+        "positive": [
+          {
+            "id": "checkov-write-all-positive",
+            "path": "test/fixtures/checkov-rules/vulnerable/.github/workflows/ci.yml"
+          }
+        ],
+        "negative": [
+          {
+            "id": "checkov-write-all-safe",
+            "path": "test/fixtures/checkov-rules/safe/.github/workflows/ci.yml"
           }
         ]
       }

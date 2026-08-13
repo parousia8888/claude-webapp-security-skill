@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 for (const [script, expected] of [
-  ['generate-launch-evidence.mjs', /8 stable detection, 1 planned detection, 5 journeys, 5 studies/],
+  ['generate-launch-evidence.mjs', /9 stable detection, 0 planned detection, 5 journeys, 5 studies/],
   ['check-p7-surfaces.mjs', /tutorials, agent lifecycle, 21 capabilities, 5 journeys, 5 studies/],
 ]) {
   const args = [join(ROOT, 'scripts', script)];

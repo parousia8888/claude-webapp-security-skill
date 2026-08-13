@@ -18,7 +18,7 @@ inputs:
     description: "Project directory in source mode"
     default: "."
   adapters:
-    description: "Comma-separated source adapters: builtin, gitleaks, opengrep, osv, or all"
+    description: "Comma-separated source/deployment adapters: builtin, checkov, gitleaks, opengrep, osv, or all"
     default: "builtin"
   adapter-timeout:
     description: "External source adapter timeout in seconds"

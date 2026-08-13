@@ -1,0 +1,8 @@
+name: vulnerable fixture
+on: push
+permissions: write-all
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo fixture

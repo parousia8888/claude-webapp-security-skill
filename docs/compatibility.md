@@ -11,6 +11,7 @@
 | Codex | Skill directory under `~/.codex/skills/` | `agents/openai.yaml`, Skill validator and isolated lifecycle tests |
 | Ordinary CLI | `~/.local/share/web-app-security` plus `~/.local/bin/webapp-security` | Extracted-release lifecycle under a network-denied isolated home |
 | GitHub Actions | Linux runner; composite Action crawl and source modes | Local entrypoint regression plus manually dispatched real `@v1` consumer workflow |
+| Checkov | Exactly 3.3.9 when selected; root Dockerfile and root GitHub Actions YAML only | Pinned Linux real-tool positive/safe fixtures plus parser/failure/redaction/suppression regressions |
 | Gitleaks | Exactly 8.30.1 when selected | Pinned Linux real-tool fixture plus parser/failure/redaction regressions |
 | Opengrep | Exactly 1.27.0 when selected | Pinned Linux real-tool positive/safe fixtures plus parser/failure/redaction regressions |
 | OSV-Scanner | Exactly 2.5.0 when selected | Pinned Linux real-tool fixture plus parser/failure/severity regressions |
@@ -27,10 +28,12 @@ The deterministic source audit currently runs 20 bounded built-in risk rules acr
 configuration, JavaScript/TypeScript and Python, plus two evidence-integrity rules. Opt-in Gitleaks
 checks Git history and the working tree; opt-in
 Opengrep checks JavaScript/TypeScript and Python with the bundled local ruleset and performs no
-network request. OSV-Scanner checks recorded lockfiles and may query the public OSV database. None is
-downloaded automatically or executes project dependencies. JSON, Markdown, HTML, SARIF 2.1.0 and
-JUnit render from one report object. Other security domains remain agent-guided until a specific
-deterministic adapter ships.
+network request. Checkov checks only the three fixed root Dockerfile/GitHub Actions rules documented
+in the adapter protocol; it uses `--skip-download` but may query PyPI for version metadata and never
+uploads project source. OSV-Scanner checks recorded lockfiles and may query the public OSV database.
+None is downloaded automatically or executes project dependencies. JSON, Markdown, HTML, SARIF
+2.1.0 and JUnit render from one report object. Compose, Terraform, Kubernetes and other security
+domains remain unavailable or agent-guided until a specific deterministic adapter ships.
 
 Node 20 or earlier may run some scripts but is not a supported release target. TLS results vary by curl TLS
 backend; protocol checks are capability-tested and stop with `unknown` if they cannot be proven.

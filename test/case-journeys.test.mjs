@@ -6,7 +6,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { GITLEAKS_RULES, OPENGREP_RULES, OSV_RULES } from '../scripts/lib/adapter-definitions.mjs';
+import {
+  CHECKOV_RULES, GITLEAKS_RULES, OPENGREP_RULES, OSV_RULES,
+} from '../scripts/lib/adapter-definitions.mjs';
 import { SOURCE_RULES, sourceRuleset } from '../scripts/lib/source-rules.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -31,7 +33,7 @@ function git(directory, args) {
 }
 
 const emptyFindingDigest = createHash('sha256').update('[]').digest('hex');
-const currentRuleset = sourceRuleset(['builtin', 'gitleaks', 'opengrep', 'osv']);
+const currentRuleset = sourceRuleset(['builtin', 'checkov', 'gitleaks', 'opengrep', 'osv']);
 const adapter = (id, status, findingDigests = false) => {
   const identity = currentRuleset.adapters.find((item) => item.id === id);
   return {
@@ -43,9 +45,10 @@ const adapter = (id, status, findingDigests = false) => {
   };
 };
 const currentCoverage = Object.fromEntries([
-  ...SOURCE_RULES, ...GITLEAKS_RULES, ...OPENGREP_RULES, ...OSV_RULES,
+  ...SOURCE_RULES, ...CHECKOV_RULES, ...GITLEAKS_RULES, ...OPENGREP_RULES, ...OSV_RULES,
 ].map((rule) => [rule.id, 'completed']));
 currentCoverage['opengrep-python-request-command-flow'] = 'not_applicable';
+for (const rule of CHECKOV_RULES) currentCoverage[rule.id] = 'not_applicable';
 
 try {
   let result = spawnSync(process.execPath, [CHECK], { encoding: 'utf8' });
@@ -94,10 +97,14 @@ try {
   git(checkout, ['commit', '-q', '-m', 'fixture']);
   const commit = git(checkout, ['rev-parse', 'HEAD']);
   const fakeGitleaks = join(temp, 'fake-gitleaks.mjs');
+  const fakeCheckov = join(temp, 'fake-checkov.mjs');
   const fakeOpengrep = join(temp, 'fake-opengrep.mjs');
   const fakeOsv = join(temp, 'fake-osv.mjs');
   writeFileSync(fakeGitleaks, `#!/usr/bin/env node
 if (process.argv[2] === 'version') console.log('8.30.1'); else console.log('[]');
+`);
+  writeFileSync(fakeCheckov, `#!/usr/bin/env node
+if (process.argv[2] === '--version') console.log('3.3.9'); else console.log('{}');
 `);
   writeFileSync(fakeOsv, `#!/usr/bin/env node
 if (process.argv[2] === '--version') console.log('osv-scanner version: 2.5.0');
@@ -107,6 +114,7 @@ else console.log('{"results":[]}');
 if (process.argv[2] === '--version') console.log('1.27.0');
 else console.log('{"version":"1.27.0","results":[],"errors":[],"paths":{"scanned":["source.js"]}}');
 `);
+  chmodSync(fakeCheckov, 0o755);
   chmodSync(fakeGitleaks, 0o755);
   chmodSync(fakeOpengrep, 0o755);
   chmodSync(fakeOsv, 0o755);
@@ -127,6 +135,7 @@ else console.log('{"version":"1.27.0","results":[],"errors":[],"paths":{"scanned
         rulesetDigest: currentRuleset.digest,
         adapters: [
           adapter('builtin-source', 'built_in', true),
+          adapter('checkov', 'not_applicable', true),
           adapter('gitleaks', 'available', true),
           adapter('opengrep', 'available', true),
           adapter('osv', 'available'),
@@ -141,6 +150,7 @@ else console.log('{"version":"1.27.0","results":[],"errors":[],"paths":{"scanned
   const journeyOut = join(temp, 'journey-output');
   const runnerEnv = {
     ...process.env,
+    WEBAPP_SECURITY_CHECKOV_BIN: fakeCheckov,
     WEBAPP_SECURITY_GITLEAKS_BIN: fakeGitleaks,
     WEBAPP_SECURITY_OPENGREP_BIN: fakeOpengrep,
     WEBAPP_SECURITY_OSV_SCANNER_BIN: fakeOsv,
@@ -164,7 +174,7 @@ else console.log('{"version":"1.27.0","results":[],"errors":[],"paths":{"scanned
 
   result = spawnSync(process.execPath, [RUN_JOURNEY, 'local-case', checkout, '--out', join(temp, 'missing-binary-output'), '--catalog', catalogPath], { encoding: 'utf8' });
   assert.equal(result.status, 2);
-  assert.match(result.stderr, /set WEBAPP_SECURITY_GITLEAKS_BIN/);
+  assert.match(result.stderr, /set WEBAPP_SECURITY_CHECKOV_BIN.*WEBAPP_SECURITY_GITLEAKS_BIN/);
 
   writeFileSync(join(checkout, 'dirty.txt'), 'uncommitted\n');
   result = spawnSync(process.execPath, [RUN_JOURNEY, 'local-case', checkout, '--out', join(temp, 'dirty-output'), '--catalog', catalogPath], { encoding: 'utf8', env: runnerEnv });

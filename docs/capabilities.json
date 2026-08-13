@@ -85,12 +85,11 @@
     },
     {
       "id": "deployment-iac-adapter",
-      "name": "Deployment and IaC policy adapter",
+      "name": "Bounded Checkov deployment-policy adapter",
       "category": "detection",
-      "maturity": "planned",
-      "plannedFor": "0.5.0",
-      "scope": "Planned evidence-gated selection between Trivy and Checkov for explicitly tested Docker, workflow and optional IaC inputs. No stable adapter is promised before benchmark gates pass.",
-      "evidence": []
+      "maturity": "stable",
+      "scope": "Opt-in Checkov 3.3.9 adapter limited to CKV_DOCKER_8 and CKV_DOCKER_2 on the root Dockerfile plus CKV2_GHA_1 on root .github/workflows YAML. Matches remain suspected deployment-policy leads. Compose, Terraform, Kubernetes and the rest of Checkov are not stable coverage.",
+      "evidence": ["scripts/lib/external-adapters.mjs", "docs/iac-adapter-benchmark.md", "test/external-adapters.test.mjs", "test/real-adapters.test.mjs"]
     },
     {
       "id": "local-before-after-demo",
