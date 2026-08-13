@@ -52,6 +52,8 @@ implementation and regression evidence.
 | Issue-state contract CodeQL | [31657298751](https://github.com/parousia8888/web-app-security-skill/actions/runs/31657298751), passed |
 | Release-state contract CI | [31658167450](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658167450), Ubuntu/macOS on Node 20/22, passed |
 | Release-state contract CodeQL | [31658167426](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658167426), passed |
+| Release-promotion CI | [31658906142](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658906142), Ubuntu/macOS on Node 20/22, passed |
+| Release-promotion CodeQL | [31658906192](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658906192), passed |
 | Live GitHub metadata contract | passed after #1/#2/#5 closed; open and closed issue states match source |
 | Marketplace | HTTP 200; Web App Security Skill listed; latest public version remains `v0.3.0` |
 | Existing tag signature | `v0.3.0` verifies against `.github/release-signers` |

@@ -443,7 +443,11 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   signed tag/source-commit agreement and provenance. A local tamper regression passes, and a
   read-only run against `v0.3.0` reproduced all existing asset digests and trust anchors. The release
   workflow stores `local_candidate` promotion evidence separately from the four public assets;
-  implementation commit and CI evidence remain pending this phase commit.
+  implementation `7acf543`; CI
+  [31658906142](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658906142)
+  passed Ubuntu/macOS on Node 20/22 and CodeQL
+  [31658906192](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658906192)
+  passed.
 - Remaining risks: `VERSION` is still the already-published `0.3.0`; rebuilding HEAD under that
   identity is mechanism evidence, not a valid new release candidate. Selecting the next version,
   aligning its exact tree/evidence, publishing it, recording the resulting asset digests in a later
