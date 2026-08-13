@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-installer_commit='11eee876cf94640f5604514c74053729b335b6c2'
-installer_sha256='023ae51318b73fbfee6099e5d5249389df3f0ee2a89c840facf5aca812b4e547'
+installer_commit='d52dd727fdd3e8e80037aba0693451399332b71e'
+installer_sha256='5452b587c5af3787cb10818a77fb9f8c9777789277fb241a021a46933e87fc40'
 installer_url="https://raw.githubusercontent.com/parousia8888/web-app-security-skill/${installer_commit}/scripts/install-verified.mjs?immutable=${installer_commit}"
 
 if test -n "${WEB_APP_SECURITY_INSTALLER_URL:-}" || test -n "${WEB_APP_SECURITY_INSTALLER_SHA256:-}"; then
@@ -41,7 +41,7 @@ case "$installer_url" in
 esac
 
 if ! command -v node >/dev/null 2>&1; then
-  echo 'error: Node.js 20 or 22 is required' >&2
+  echo 'error: Node.js 22 or 24 is required' >&2
   exit 2
 fi
 if ! command -v curl >/dev/null 2>&1; then
