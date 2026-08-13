@@ -101,7 +101,7 @@ export function createFindingV2({
     baseline: emptyBaseline(),
   };
   const fingerprint = findingFingerprint(core);
-  return { ...core, id: `${rule.id}-${fingerprint.slice(0, 12)}`, fingerprint };
+  return { ...core, id: `${rule.id}-f${fingerprint.slice(0, 12)}`, fingerprint };
 }
 
 export function sourceFindingV2(legacyFinding, ruleset = sourceRuleset()) {

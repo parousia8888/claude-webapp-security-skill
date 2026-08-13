@@ -22,7 +22,9 @@ Execution follows this sequence:
    internal errors to `unknown`/unavailable coverage, never a clean result.
 
 Raw stdout and stderr are not persisted. Adapter implementations must discard secret values,
-credentials and unnecessary personal data before constructing a finding.
+credentials and unnecessary personal data before constructing a finding. Scanner matches are
+`suspected` leads: Gitleaks does not establish credential validity or exposure, and OSV does not
+establish reachability or production impact.
 
 ## Supported adapters
 

@@ -1,11 +1,14 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "method": {
     "sourceOnly": true,
     "hostedInstancesProbed": false,
-    "networkDeniedDuringAudit": true,
+    "projectDependenciesExecuted": false,
+    "osvPublicAdvisoryNetwork": true,
+    "externalMatchesAreLeads": true,
     "starsUsedAsEvidence": false
   },
+  "regressionInventory": "docs/regression-inventory.md",
   "journeys": [
     {
       "id": "linkwarden",
@@ -18,19 +21,66 @@
       "discovery": {
         "status": "supported",
         "layout": "monorepo",
-        "frameworks": ["React@apps/mobile", "Next.js@apps/web", "React@apps/web", "Next.js@packages/router", "React@packages/router"],
+        "frameworks": [
+          "React@apps/mobile",
+          "Next.js@apps/web",
+          "React@apps/web",
+          "Next.js@packages/router",
+          "React@packages/router"
+        ],
         "packageManagers": ["yarn@."],
         "lockfiles": ["yarn.lock"]
       },
-      "deterministicAudit": {
-        "total": 0,
-        "confirmed": 0,
-        "suspected": 0,
-        "rules": []
+      "corpus": {
+        "runDate": "2026-08-14T00:00:00.000Z",
+        "reportSchemaVersion": 2,
+        "rulesetDigest": "17e89541f7080fd0f2a09296ca257be515dae43feead8a9f0c620690e6168def",
+        "adapters": [
+          {
+            "id": "builtin-source",
+            "version": "1.1.0",
+            "status": "built_in",
+            "rulesetDigest": "e27dc95907ab5cd1f2809078f8f05e5356b9808b5b42da2c7ba3bd480fc0f7b6",
+            "deterministicFindingIdsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "deterministicFindingContentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          {
+            "id": "gitleaks",
+            "version": "8.30.1",
+            "status": "available",
+            "rulesetDigest": "47225f84fc2d1eac9899a182d700e4713a13accd561c7da91250dca94b52c0d6",
+            "deterministicFindingIdsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "deterministicFindingContentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          {
+            "id": "osv",
+            "version": "2.5.0",
+            "status": "available",
+            "rulesetDigest": "0e0d7d61d9a883eef12ffceb296d1fe706c38f1139efb76dea67b82b259dbbe2"
+          }
+        ],
+        "coverage": {
+          "dependency-lockfile-missing": "completed",
+          "sensitive-env-file-present": "completed",
+          "node-inspector-public-bind": "completed",
+          "production-source-map-enabled": "completed",
+          "source-stack-unsupported": "completed",
+          "source-evidence-incomplete": "completed",
+          "gitleaks-committed-secret": "completed",
+          "gitleaks-working-tree-secret": "completed",
+          "osv-known-vulnerability": "completed"
+        },
+        "snapshot": {
+          "summary": { "total": 270, "confirmed": 0, "suspected": 270, "unknown": 0 },
+          "byRule": { "osv-known-vulnerability": 270 },
+          "externalStates": ["suspected"]
+        },
+        "confirmedFindingIds": []
       },
       "falsePositiveClosures": [
         "Root yarn.lock covers package.json files selected by declared apps/* and packages/* workspaces.",
-        ".env.sample and .env.example are documented templates, not secret-bearing environment files by filename alone."
+        ".env.sample and .env.example are documented templates, not secret-bearing environment files by filename alone.",
+        "OSV advisory matches remain suspected package/version leads; the corpus does not infer reachability, deployed versions, or exploitability."
       ],
       "manualTrace": {
         "classification": "not_applicable",
@@ -45,12 +95,12 @@
       },
       "repair": {
         "type": "tool-regression",
-        "summary": "The audit rule was repaired so declared workspace packages inherit the workspace lockfile; no upstream patch was fabricated."
+        "summary": "The built-in audit rule was repaired so declared workspace packages inherit the workspace lockfile; no upstream patch was fabricated. External advisory leads were retained for triage rather than patched automatically."
       },
       "unreached": [
         "Proxy-mode DNS and destination enforcement",
         "Authorization boundaries on every URL-ingestion route",
-        "The deployed egress policy and hosted artifact set"
+        "Dependency reachability, deployment package versions, hosted artifacts and runtime egress"
       ]
     },
     {
@@ -68,15 +118,59 @@
         "packageManagers": ["pip@."],
         "lockfiles": []
       },
-      "deterministicAudit": {
-        "total": 0,
-        "confirmed": 0,
-        "suspected": 0,
-        "rules": []
+      "corpus": {
+        "runDate": "2026-08-14T00:00:00.000Z",
+        "reportSchemaVersion": 2,
+        "rulesetDigest": "17e89541f7080fd0f2a09296ca257be515dae43feead8a9f0c620690e6168def",
+        "adapters": [
+          {
+            "id": "builtin-source",
+            "version": "1.1.0",
+            "status": "built_in",
+            "rulesetDigest": "e27dc95907ab5cd1f2809078f8f05e5356b9808b5b42da2c7ba3bd480fc0f7b6",
+            "deterministicFindingIdsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "deterministicFindingContentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          {
+            "id": "gitleaks",
+            "version": "8.30.1",
+            "status": "available",
+            "rulesetDigest": "47225f84fc2d1eac9899a182d700e4713a13accd561c7da91250dca94b52c0d6",
+            "deterministicFindingIdsDigest": "567d5e1fa9f3a63b9eaa66d60653f7313fd38ca4d4979fa6e8c81e640c9e0358",
+            "deterministicFindingContentDigest": "28cb1e18d52de2399e4e7329175dbb18d3f0459cdf7260eff7e83248ca14e068"
+          },
+          {
+            "id": "osv",
+            "version": "2.5.0",
+            "status": "not_applicable",
+            "rulesetDigest": "0e0d7d61d9a883eef12ffceb296d1fe706c38f1139efb76dea67b82b259dbbe2"
+          }
+        ],
+        "coverage": {
+          "dependency-lockfile-missing": "completed",
+          "sensitive-env-file-present": "completed",
+          "node-inspector-public-bind": "completed",
+          "production-source-map-enabled": "completed",
+          "source-stack-unsupported": "completed",
+          "source-evidence-incomplete": "completed",
+          "gitleaks-committed-secret": "completed",
+          "gitleaks-working-tree-secret": "completed",
+          "osv-known-vulnerability": "not_applicable"
+        },
+        "snapshot": {
+          "summary": { "total": 98, "confirmed": 0, "suspected": 98, "unknown": 0 },
+          "byRule": {
+            "gitleaks-committed-secret": 49,
+            "gitleaks-working-tree-secret": 49
+          },
+          "externalStates": ["suspected"]
+        },
+        "confirmedFindingIds": []
       },
       "falsePositiveClosures": [
         "Pinned requirements.txt is a deployment dependency input and is not evidence of a missing adjacent lockfile.",
-        "docker/.env.example is a documented template; the audit did not read its values."
+        "docker/.env.example is a documented template; the audit did not read its values.",
+        "Gitleaks matches in documentation, migrations and tests remain suspected until credential validity and exposure are established."
       ],
       "manualTrace": {
         "classification": "unknown",
@@ -91,12 +185,12 @@
       },
       "repair": {
         "type": "tool-regression",
-        "summary": "The audit rule was repaired so requirements files are not automatically treated as manifests requiring another lockfile; no upstream patch was needed."
+        "summary": "The built-in rule was repaired so requirements files are not treated as manifests requiring another lockfile. Scanner leads were not promoted or automatically patched."
       },
       "unreached": [
         "Actual production environment values",
         "Reverse-proxy TLS and header configuration",
-        "Authenticated integration and tenant boundaries"
+        "Credential validity/exposure and authenticated integration or tenant boundaries"
       ]
     },
     {
@@ -114,23 +208,59 @@
         "packageManagers": ["pip@backend", "npm@.", "uv@."],
         "lockfiles": ["package-lock.json", "uv.lock"]
       },
-      "deterministicAudit": {
-        "total": 1,
-        "confirmed": 0,
-        "suspected": 1,
-        "rules": [
+      "corpus": {
+        "runDate": "2026-08-14T00:00:00.000Z",
+        "reportSchemaVersion": 2,
+        "rulesetDigest": "17e89541f7080fd0f2a09296ca257be515dae43feead8a9f0c620690e6168def",
+        "adapters": [
           {
-            "ruleId": "production-source-map-enabled",
-            "severity": "medium",
-            "state": "suspected",
-            "path": "vite.config.ts",
-            "line": 24
+            "id": "builtin-source",
+            "version": "1.1.0",
+            "status": "built_in",
+            "rulesetDigest": "e27dc95907ab5cd1f2809078f8f05e5356b9808b5b42da2c7ba3bd480fc0f7b6",
+            "deterministicFindingIdsDigest": "bd5abcaa0185f28283150643422dd82bdfdb933c17bf80324eab3ebc6c1fe76b",
+            "deterministicFindingContentDigest": "29545d672a60fd70c3dadc4330fe6a026db91f77abf8a4b5013dd79e753a5f96"
+          },
+          {
+            "id": "gitleaks",
+            "version": "8.30.1",
+            "status": "available",
+            "rulesetDigest": "47225f84fc2d1eac9899a182d700e4713a13accd561c7da91250dca94b52c0d6",
+            "deterministicFindingIdsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "deterministicFindingContentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          {
+            "id": "osv",
+            "version": "2.5.0",
+            "status": "available",
+            "rulesetDigest": "0e0d7d61d9a883eef12ffceb296d1fe706c38f1139efb76dea67b82b259dbbe2"
           }
-        ]
+        ],
+        "coverage": {
+          "dependency-lockfile-missing": "completed",
+          "sensitive-env-file-present": "completed",
+          "node-inspector-public-bind": "completed",
+          "production-source-map-enabled": "completed",
+          "source-stack-unsupported": "completed",
+          "source-evidence-incomplete": "completed",
+          "gitleaks-committed-secret": "completed",
+          "gitleaks-working-tree-secret": "completed",
+          "osv-known-vulnerability": "completed"
+        },
+        "snapshot": {
+          "summary": { "total": 144, "confirmed": 0, "suspected": 144, "unknown": 0 },
+          "byRule": {
+            "production-source-map-enabled": 1,
+            "osv-known-vulnerability": 143
+          },
+          "externalStates": ["suspected"]
+        },
+        "confirmedFindingIds": []
       },
       "falsePositiveClosures": [
         "Root .env.example is a template and is not treated as a secret-bearing file by filename alone.",
-        "backend/requirements.txt is not reported as missing a second adjacent lockfile; root pyproject.toml is covered by uv.lock."
+        "backend/requirements.txt is not reported as missing a second adjacent lockfile; root pyproject.toml is covered by uv.lock.",
+        "OSV advisory matches remain suspected until dependency reachability, deployed version and project impact are established."
       ],
       "manualTrace": {
         "classification": "suspected",
@@ -146,13 +276,198 @@
       },
       "repair": {
         "type": "local-representative-patch",
-        "summary": "A minimal local fixture changes sourcemap: true to false; required-baseline retest records the suspected lead as fixed without claiming the upstream or a deployment changed.",
+        "summary": "A minimal local fixture changes sourcemap: true to false; required-baseline retest records the suspected lead as fixed without claiming the upstream or a deployment changed. External advisory leads remain unpatched triage input.",
         "fixture": "test/fixtures/case-open-webui"
       },
       "unreached": [
-        "Whether a release build emits and packages .map files",
-        "Whether any hosted origin serves those artifacts",
+        "Whether a release build emits, packages and serves .map files",
+        "Dependency reachability and deployed package versions",
         "Authentication, LLM, API, plugin, data and deployment boundaries"
+      ]
+    },
+    {
+      "id": "uptime-kuma",
+      "project": "Uptime Kuma",
+      "repository": "louislam/uptime-kuma",
+      "commit": "6b5ea0155793e666666745fb8d6fef1e829543a2",
+      "license": "MIT",
+      "document": "docs/case-studies/journeys/uptime-kuma.md",
+      "stack": "Node/Express + Vue/Vite",
+      "discovery": {
+        "status": "supported",
+        "layout": "single-root",
+        "frameworks": ["Express@.", "Vite@.", "Vue@."],
+        "packageManagers": ["npm@."],
+        "lockfiles": ["package-lock.json"]
+      },
+      "corpus": {
+        "runDate": "2026-08-14T00:00:00.000Z",
+        "reportSchemaVersion": 2,
+        "rulesetDigest": "17e89541f7080fd0f2a09296ca257be515dae43feead8a9f0c620690e6168def",
+        "adapters": [
+          {
+            "id": "builtin-source",
+            "version": "1.1.0",
+            "status": "built_in",
+            "rulesetDigest": "e27dc95907ab5cd1f2809078f8f05e5356b9808b5b42da2c7ba3bd480fc0f7b6",
+            "deterministicFindingIdsDigest": "810b15eb42cd104c0697e6d5a25c84611bde5d5d6aaa8bca6f24434aeefc8d77",
+            "deterministicFindingContentDigest": "7ba89a7ec2e257ad8db12499773fdc3349c0543be359bdafebee611dc9ced0f9"
+          },
+          {
+            "id": "gitleaks",
+            "version": "8.30.1",
+            "status": "available",
+            "rulesetDigest": "47225f84fc2d1eac9899a182d700e4713a13accd561c7da91250dca94b52c0d6",
+            "deterministicFindingIdsDigest": "b2156ac6319a6bd4991bb59fe5d86dbf97e084a0c83c909068c00506e71b77f2",
+            "deterministicFindingContentDigest": "9928999acca0b8ce329790e4a50610616911a57514d9bc11d9b6f52beb347c05"
+          },
+          {
+            "id": "osv",
+            "version": "2.5.0",
+            "status": "available",
+            "rulesetDigest": "0e0d7d61d9a883eef12ffceb296d1fe706c38f1139efb76dea67b82b259dbbe2"
+          }
+        ],
+        "coverage": {
+          "dependency-lockfile-missing": "completed",
+          "sensitive-env-file-present": "completed",
+          "node-inspector-public-bind": "completed",
+          "production-source-map-enabled": "completed",
+          "source-stack-unsupported": "completed",
+          "source-evidence-incomplete": "completed",
+          "gitleaks-committed-secret": "completed",
+          "gitleaks-working-tree-secret": "completed",
+          "osv-known-vulnerability": "completed"
+        },
+        "snapshot": {
+          "summary": { "total": 97, "confirmed": 4, "suspected": 93, "unknown": 0 },
+          "byRule": {
+            "dependency-lockfile-missing": 4,
+            "gitleaks-committed-secret": 1,
+            "gitleaks-working-tree-secret": 1,
+            "osv-known-vulnerability": 91
+          },
+          "externalStates": ["suspected"]
+        },
+        "confirmedFindingIds": [
+          "dependency-lockfile-missing-f260fc0cc410d",
+          "dependency-lockfile-missing-fb2a2e7802b84",
+          "dependency-lockfile-missing-fd19a7ef391f0",
+          "dependency-lockfile-missing-fef12c7017a8a"
+        ]
+      },
+      "falsePositiveClosures": [
+        "Four built-in confirmations describe lockfile absence in independent extra/example tool directories; they are reproducible hygiene findings, not four application vulnerabilities.",
+        "The Gitleaks private-key match is retained as suspected in a manual TLS fixture; the corpus does not infer credential reuse or exposure.",
+        "OSV advisory matches remain suspected until dependency reachability, deployed version and project impact are established."
+      ],
+      "manualTrace": {
+        "classification": "not_applicable",
+        "lead": "Operator-configured webhook URL fetching",
+        "conclusion": "Outbound requests to operator-selected endpoints are core monitoring behavior, and the upstream disclosure policy excludes SSRF reports without a distinct trust-boundary bypass.",
+        "evidence": [
+          "https://github.com/louislam/uptime-kuma/blob/6b5ea0155793e666666745fb8d6fef1e829543a2/server/notification-providers/webhook.js#L11-L64",
+          "https://github.com/louislam/uptime-kuma/blob/6b5ea0155793e666666745fb8d6fef1e829543a2/SECURITY.md#L6-L18"
+        ]
+      },
+      "repair": {
+        "type": "no-upstream-patch",
+        "summary": "The four lockfile facts and all external leads remain visible. No patch was applied because the corpus did not establish an application vulnerability or permission to change upstream source."
+      },
+      "unreached": [
+        "Whether the four extra/example tools are independently released or CI-enforced",
+        "Private-key validity/reuse and dependency reachability",
+        "Authenticated role boundaries, deployment egress and hosted runtime behavior"
+      ]
+    },
+    {
+      "id": "mealie",
+      "project": "Mealie",
+      "repository": "mealie-recipes/mealie",
+      "commit": "2fc22cea43f2978533f3a89a1ddeb1e6a18b245f",
+      "license": "AGPL-3.0",
+      "document": "docs/case-studies/journeys/mealie.md",
+      "stack": "Nuxt/Vue + Python/FastAPI split stack",
+      "discovery": {
+        "status": "supported",
+        "layout": "split-stack",
+        "frameworks": ["Nuxt@frontend", "Vue@frontend", "FastAPI@."],
+        "packageManagers": ["yarn@frontend", "yarn@tests/e2e", "uv@."],
+        "lockfiles": ["frontend/yarn.lock", "tests/e2e/yarn.lock", "uv.lock"]
+      },
+      "corpus": {
+        "runDate": "2026-08-14T00:00:00.000Z",
+        "reportSchemaVersion": 2,
+        "rulesetDigest": "17e89541f7080fd0f2a09296ca257be515dae43feead8a9f0c620690e6168def",
+        "adapters": [
+          {
+            "id": "builtin-source",
+            "version": "1.1.0",
+            "status": "built_in",
+            "rulesetDigest": "e27dc95907ab5cd1f2809078f8f05e5356b9808b5b42da2c7ba3bd480fc0f7b6",
+            "deterministicFindingIdsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "deterministicFindingContentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          {
+            "id": "gitleaks",
+            "version": "8.30.1",
+            "status": "available",
+            "rulesetDigest": "47225f84fc2d1eac9899a182d700e4713a13accd561c7da91250dca94b52c0d6",
+            "deterministicFindingIdsDigest": "aba5768ddf4f05b4a58eb4673044e15b01661d2c137918c36da450b6cb8883f0",
+            "deterministicFindingContentDigest": "45709d6a6abe2a3bd73e9bf438757b71e1b060f4df77b7fd2a0f86e041b4b757"
+          },
+          {
+            "id": "osv",
+            "version": "2.5.0",
+            "status": "available",
+            "rulesetDigest": "0e0d7d61d9a883eef12ffceb296d1fe706c38f1139efb76dea67b82b259dbbe2"
+          }
+        ],
+        "coverage": {
+          "dependency-lockfile-missing": "completed",
+          "sensitive-env-file-present": "completed",
+          "node-inspector-public-bind": "completed",
+          "production-source-map-enabled": "completed",
+          "source-stack-unsupported": "completed",
+          "source-evidence-incomplete": "completed",
+          "gitleaks-committed-secret": "completed",
+          "gitleaks-working-tree-secret": "completed",
+          "osv-known-vulnerability": "completed"
+        },
+        "snapshot": {
+          "summary": { "total": 30, "confirmed": 0, "suspected": 30, "unknown": 0 },
+          "byRule": {
+            "gitleaks-committed-secret": 15,
+            "gitleaks-working-tree-secret": 15
+          },
+          "externalStates": ["suspected"]
+        },
+        "confirmedFindingIds": []
+      },
+      "falsePositiveClosures": [
+        "The traced recipe-image URL path reaches an authenticated route and private-IP transport guard, so that limited sink-only lead is not a vulnerability finding.",
+        "Gitleaks matches are in test HTML and auth-cache test paths; they remain suspected because the corpus did not establish credential validity or exposure.",
+        "No external scanner match was promoted to confirmed or silently suppressed."
+      ],
+      "manualTrace": {
+        "classification": "not_applicable",
+        "lead": "Authenticated recipe image URL fetching",
+        "conclusion": "The limited path reaches AsyncSafeTransport, which resolves the hostname and rejects private addresses before the request; broader redirect, DNS-rebinding and deployment behavior remains unknown.",
+        "evidence": [
+          "https://github.com/mealie-recipes/mealie/blob/2fc22cea43f2978533f3a89a1ddeb1e6a18b245f/mealie/routes/recipe/recipe_crud_routes.py#L758-L774",
+          "https://github.com/mealie-recipes/mealie/blob/2fc22cea43f2978533f3a89a1ddeb1e6a18b245f/mealie/pkgs/safehttp/transport.py#L25-L74",
+          "https://github.com/mealie-recipes/mealie/blob/2fc22cea43f2978533f3a89a1ddeb1e6a18b245f/mealie/core/dependencies/dependencies.py#L88-L123",
+          "https://github.com/mealie-recipes/mealie/blob/2fc22cea43f2978533f3a89a1ddeb1e6a18b245f/mealie/core/security/hasher.py#L23-L45"
+        ]
+      },
+      "repair": {
+        "type": "no-upstream-patch",
+        "summary": "The traced URL-fetch lead was closed for the limited source path; Gitleaks leads remain visible as suspected. No upstream patch or scanner suppression was fabricated."
+      },
+      "unreached": [
+        "Credential validity/exposure for scanner matches",
+        "DNS rebinding, redirects, proxy/Flaresolverr behavior and deployment egress",
+        "Role permissions, hosted runtime behavior and other HTTP-client paths"
       ]
     }
   ]

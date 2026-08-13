@@ -62,7 +62,7 @@ try {
     '## Ordinary project journeys',
     '',
     ...journeys.journeys.map((journey) =>
-      `- [${journey.project}](${journey.document.replace(/^docs\//, '')}) at \`${journey.commit}\`: ${journey.deterministicAudit.total} deterministic finding(s), manual result \`${journey.manualTrace.classification}\`; false-positive closures and unreached surfaces are recorded.`),
+      `- [${journey.project}](${journey.document.replace(/^docs\//, '')}) at \`${journey.commit}\`: ${journey.corpus.snapshot.summary.confirmed} confirmed and ${journey.corpus.snapshot.summary.suspected} suspected in the dated v2 snapshot; manual result \`${journey.manualTrace.classification}\`; closures and unreached surfaces are recorded.`),
     '',
     '## Source methodology studies',
     '',

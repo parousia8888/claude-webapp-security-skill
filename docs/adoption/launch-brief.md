@@ -20,7 +20,7 @@ The current source contract lists **7 stable narrow detection families** and **0
 
 [Review every capability and its evidence](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md).
 
-The evidence corpus also records **3 ordinary fixed-commit project journeys** and **5 separate source-methodology studies**. No hosted instance was probed in the ordinary journeys, and zero-finding, false-positive and unknown outcomes remain visible.
+The evidence corpus also records **5 ordinary fixed-commit project journeys** and **5 separate source-methodology studies**. No hosted instance was probed in the ordinary journeys, and zero-finding, false-positive and unknown outcomes remain visible.
 
 [Review the journey method and exact boundaries](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md).
 

@@ -12,15 +12,17 @@ artifacts and reproduced local behavior; they do not claim universal scanner cov
 | Detection contract | 7 stable narrow detection families; 0 planned detection adapters | [Generated matrix](capabilities.md) |
 | Supporting contract | 4 evidence/reporting, 1 lifecycle/distribution and 6 agent-guided capabilities; none are counted as detection coverage | [Generated matrix](capabilities.md) |
 | Local before/after demo | 2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM -> 0 active HIGH / 0 active MEDIUM | [Generated demo evidence](demo-evidence.md) |
-| Ordinary project journeys | 3 fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |
+| Ordinary project journeys | 5 fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |
 | Source methodology studies | 5 fixed-commit studies, kept separate from CLI precision claims | [Study method](case-studies/README.md) |
 | Release | v0.3.0 signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance | [v0.3.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0) |
 
 ## Ordinary project journeys
 
-- [Linkwarden](case-studies/journeys/linkwarden.md) at `62f1b81ff7f66001b0f5f613202f87771f3186ee`: 0 deterministic finding(s), manual result `not_applicable`; false-positive closures and unreached surfaces are recorded.
-- [Healthchecks](case-studies/journeys/healthchecks.md) at `49653c350cddc47fc00a471bd1b08b5771a7967c`: 0 deterministic finding(s), manual result `unknown`; false-positive closures and unreached surfaces are recorded.
-- [Open WebUI](case-studies/journeys/open-webui.md) at `01f4282f1ffe0d6212f58d3afbeae21fffd0c4be`: 1 deterministic finding(s), manual result `suspected`; false-positive closures and unreached surfaces are recorded.
+- [Linkwarden](case-studies/journeys/linkwarden.md) at `62f1b81ff7f66001b0f5f613202f87771f3186ee`: 0 confirmed and 270 suspected in the dated v2 snapshot; manual result `not_applicable`; closures and unreached surfaces are recorded.
+- [Healthchecks](case-studies/journeys/healthchecks.md) at `49653c350cddc47fc00a471bd1b08b5771a7967c`: 0 confirmed and 98 suspected in the dated v2 snapshot; manual result `unknown`; closures and unreached surfaces are recorded.
+- [Open WebUI](case-studies/journeys/open-webui.md) at `01f4282f1ffe0d6212f58d3afbeae21fffd0c4be`: 0 confirmed and 144 suspected in the dated v2 snapshot; manual result `suspected`; closures and unreached surfaces are recorded.
+- [Uptime Kuma](case-studies/journeys/uptime-kuma.md) at `6b5ea0155793e666666745fb8d6fef1e829543a2`: 4 confirmed and 93 suspected in the dated v2 snapshot; manual result `not_applicable`; closures and unreached surfaces are recorded.
+- [Mealie](case-studies/journeys/mealie.md) at `2fc22cea43f2978533f3a89a1ddeb1e6a18b245f`: 0 confirmed and 30 suspected in the dated v2 snapshot; manual result `not_applicable`; closures and unreached surfaces are recorded.
 
 ## Source methodology studies
 

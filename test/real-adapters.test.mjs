@@ -59,6 +59,7 @@ try {
   assert.ok(report.findings.some((finding) => finding.rule.id === 'gitleaks-committed-secret'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'gitleaks-working-tree-secret'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'osv-known-vulnerability'));
+  assert.ok(report.findings.every((finding) => finding.state === 'suspected'));
   assert.ok(report.findings.some((finding) => finding.evidence.advisoryIds?.includes('GHSA-29mw-wpgm-hmr9')));
   for (const name of readdirSync(vulnerableOut)) {
     assert.equal(readFileSync(join(vulnerableOut, name), 'utf8').includes(plantedToken), false);

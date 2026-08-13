@@ -12,7 +12,7 @@ I am working on [Web App Security Skill](https://github.com/parousia8888/web-app
 
 The reproducible owned-fixture demo currently shows 2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM -> 0 active HIGH / 0 active MEDIUM and keeps the reports and patch in the repository. The public contract identifies 7 stable narrow detection families and 6 agent-guided methods without counting reports or distribution as detection.
 
-I kept the 3 ordinary-project source journeys at immutable commits and included zero-finding, false-positive and unknown results. No hosted instance was probed. Release v0.3.0 adds a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
+I kept the 5 ordinary-project source journeys at immutable commits and included zero-finding, false-positive and unknown results. No hosted instance was probed. Release v0.3.0 adds a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
 
 Evidence inventory: https://github.com/parousia8888/web-app-security-skill/blob/main/docs/launch-evidence.md
 

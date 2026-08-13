@@ -7,7 +7,9 @@
   "projectJourneys": [
     "docs/case-studies/journeys/linkwarden.md",
     "docs/case-studies/journeys/healthchecks.md",
-    "docs/case-studies/journeys/open-webui.md"
+    "docs/case-studies/journeys/open-webui.md",
+    "docs/case-studies/journeys/uptime-kuma.md",
+    "docs/case-studies/journeys/mealie.md"
   ],
   "methodStudies": [
     "docs/case-studies/juice-shop.md",

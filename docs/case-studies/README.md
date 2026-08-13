@@ -33,3 +33,8 @@ git clone https://github.com/mealie-recipes/mealie.git && git -C mealie checkout
 
 The production-project rows deliberately include closed leads. A corpus containing only known
 vulnerable applications measures recall against easy ground truth but says little about precision.
+
+Uptime Kuma and Mealie also appear at the same commits in the five-project
+[ordinary v2 journey corpus](journeys/README.md). The studies on this page exercise manual
+source-to-boundary reasoning; the journeys exercise built-in, Gitleaks and OSV adapter evidence.
+They are overlapping evidence views, not ten distinct projects.

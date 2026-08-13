@@ -15,7 +15,7 @@
   <a href="#执行第一个项目">首个项目</a> ·
   <a href="docs/tutorial.zh-CN.md">完整教程</a> ·
   <a href="#github-action">GitHub Action</a> ·
-  <a href="#3-个普通项目旅程">项目旅程</a> ·
+  <a href="#5-个普通项目旅程">项目旅程</a> ·
   <a href="README.md">English</a>
 </p>
 
@@ -265,19 +265,23 @@ gh attestation verify web-app-security-skill-*.tar.gz \
 git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.3.0
 ```
 
-## 3 个普通项目旅程
+## 5 个普通项目旅程
 
-普通项目集先运行当前确定性路径，再记录人工追踪、误报关闭、修复/复测及未覆盖面。所有源码固定到
-不可变 commit；未探测任何线上实例。
+普通项目集运行完整 v2 源码路径：built-in、Gitleaks `8.30.1` 与 OSV-Scanner `2.5.0`，再记录人工
+追踪、误报关闭、修复/复测及未覆盖面。所有源码固定到不可变 commit；未探测线上实例，也不执行项目
+依赖。只有 OSV 可查询公共 advisory 服务，因此它的 dated match 数量可能漂移。
 
-| 项目 | 确定性结果 | 人工结论 |
+| 项目 | 证据结果 | 人工结论 |
 |---|---|---|
-| [Linkwarden](docs/case-studies/journeys/linkwarden.md) | 修正 workspace/template 精度后 0 finding | URL fetch 路径追踪到 scheme、DNS/IP 与 redirect 控制；局部归类 `not_applicable` |
-| [Healthchecks](docs/case-studies/journeys/healthchecks.md) | 修正 requirements/template 精度后 0 finding | 仅从源码无法确认生产环境值，保留 `unknown` |
-| [Open WebUI](docs/case-studies/journeys/open-webui.md) | 1 个 medium `suspected` source-map lead | 本地代表性补丁复测为 `fixed`；公开交付仍未知 |
+| [Linkwarden](docs/case-studies/journeys/linkwarden.md) | 0 confirmed；OSV match 保持 suspected | direct URL fetch 局部归类 `not_applicable`；proxy 路径未覆盖 |
+| [Healthchecks](docs/case-studies/journeys/healthchecks.md) | 0 confirmed；Gitleaks 文档/测试 match 为 suspected；OSV 不适用 | 生产环境值保持 `unknown` |
+| [Open WebUI](docs/case-studies/journeys/open-webui.md) | source-map 与 OSV match 为 suspected | 本地 source-map fixture 复测为 `fixed`；公开交付仍未知 |
+| [Uptime Kuma](docs/case-studies/journeys/uptime-kuma.md) | 4 个 confirmed lockfile 事实；外部 match 为 suspected | 没有边界绕过证据时，operator webhook sink 不算漏洞 |
+| [Mealie](docs/case-studies/journeys/mealie.md) | 0 confirmed；Gitleaks 测试材料 match 为 suspected | 局部 URL fetch 路径为 `not_applicable`；其他路径未知 |
 
 阅读[结构化旅程、精确命令与证据边界](docs/case-studies/journeys/README.md)。零 finding 与误报关闭
-同样保留；这里不计算 precision 分数。
+同样保留；这里不计算 precision 分数。Uptime Kuma 与 Mealie 和下方方法论 corpus 使用相同 commit，
+因此是两种证据视图，不是 10 个互不重复的项目。
 
 另有 **5 个既有源码方法论案例**：三个故意脆弱基准与两个生产项目，作为独立 corpus 保留。
 

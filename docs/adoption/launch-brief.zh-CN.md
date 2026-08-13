@@ -20,7 +20,7 @@
 
 [逐项查看能力与证据](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md)。
 
-证据集还记录了 **3 个固定 commit 的普通项目旅程**，以及独立维护的 **5 个源码方法论案例**。普通项目旅程未探测托管实例，并保留零 finding、误报关闭与 unknown 结果。
+证据集还记录了 **5 个固定 commit 的普通项目旅程**，以及独立维护的 **5 个源码方法论案例**。普通项目旅程未探测托管实例，并保留零 finding、误报关闭与 unknown 结果。
 
 [查看旅程方法、命令和边界](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md)。
 

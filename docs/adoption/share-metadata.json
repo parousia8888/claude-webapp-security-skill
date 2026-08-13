@@ -49,7 +49,7 @@
     "evidence": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md"
   },
   "caseEvidence": {
-    "ordinaryFixedCommitJourneys": 3,
+    "ordinaryFixedCommitJourneys": 5,
     "methodologyStudies": 5,
     "hostedInstancesProbedInOrdinaryJourneys": false,
     "upstreamValidationClaimed": false,

@@ -91,24 +91,25 @@ export function parseGitleaksJson(stdout, projectRoot, scanMode) {
   let parsed;
   try { parsed = JSON.parse(stdout || '[]'); } catch { throw new Error('malformed_json'); }
   if (!Array.isArray(parsed)) throw new Error('malformed_output');
-  return parsed.map((item) => {
+  const findings = parsed.map((item) => {
     if (!item || typeof item.RuleID !== 'string' || !item.RuleID
         || !Number.isInteger(item.StartLine) || item.StartLine < 1) throw new Error('malformed_output');
     const path = safeProjectPath(projectRoot, item.File);
     if (!path) throw new Error('unsafe_path');
+    const toolFingerprintDigest = digest(item.Fingerprint || `${path}:${item.StartLine}:${item.RuleID}`);
     return {
       adapterId: GITLEAKS_ADAPTER.id,
       ruleId: scanMode === 'history' ? GITLEAKS_RULES[0].id : GITLEAKS_RULES[1].id,
-      title: `Secret pattern detected by ${item.RuleID}`,
+      title: `Secret pattern lead from ${item.RuleID}`,
       severity: 'high',
-      state: 'confirmed',
-      summary: `Gitleaks detected rule ${item.RuleID} in ${scanMode === 'history' ? 'committed history' : 'the working tree'}.`,
+      state: 'suspected',
+      summary: `Gitleaks matched rule ${item.RuleID} in ${scanMode === 'history' ? 'committed history' : 'the working tree'}; credential validity and exposure were not inferred.`,
       location: { path, line: item.StartLine },
       evidence: {
-        subject: `${scanMode}:${path}:${item.StartLine}:${item.RuleID}`,
+        subject: `${scanMode}:${path}:${item.StartLine}:${item.RuleID}:${toolFingerprintDigest}`,
         scanMode,
         externalRuleId: item.RuleID,
-        toolFingerprintDigest: digest(item.Fingerprint || `${path}:${item.StartLine}:${item.RuleID}`),
+        toolFingerprintDigest,
         ...(scanMode === 'history' && /^[a-f0-9]{40,64}$/i.test(item.Commit || '')
           ? { commit: item.Commit.toLowerCase() } : {}),
       },
@@ -116,6 +117,7 @@ export function parseGitleaksJson(stdout, projectRoot, scanMode) {
       retest: `Rerun the Gitleaks ${scanMode} adapter and confirm this fingerprint is absent or covered by an approved suppression.`,
     };
   });
+  return [...new Map(findings.map((finding) => [finding.evidence.subject, finding])).values()];
 }
 
 function unavailable(adapter, rules, reasonCode, detail = {}) {
@@ -219,9 +221,9 @@ export function parseOsvJson(stdout, projectRoot) {
         findings.push({
           adapterId: OSV_ADAPTER.id,
           ruleId: OSV_RULES[0].id,
-          title: `Known vulnerability in ${pkg.ecosystem}:${pkg.name}`,
+          title: `OSV advisory match for ${pkg.ecosystem}:${pkg.name}`,
           severity: 'info',
-          state: 'confirmed',
+          state: 'suspected',
           summary: `OSV-Scanner matched ${pkg.ecosystem}:${pkg.name}@${pkg.version} to ${advisoryIds.join(', ')}. Local impact and priority were not inferred.`,
           location: { path: sourcePath, line: null },
           evidence: {

@@ -43,7 +43,9 @@ requireFact(Number.isInteger(demo.before?.byDomain?.security_exposure?.confirmed
 requireFact(journeys.journeys?.length === contract.projectJourneys?.length, 'ordinary journey sources disagree');
 requireFact(contract.methodStudies?.length > 0, 'method studies are missing');
 requireFact(journeys.journeys.every((journey) => /^[a-f0-9]{40}$/.test(journey.commit || '')), 'journeys must pin immutable commits');
-requireFact(journeys.method?.hostedInstancesProbed === false && journeys.method?.networkDeniedDuringAudit === true,
+requireFact(journeys.method?.hostedInstancesProbed === false
+  && journeys.method?.projectDependenciesExecuted === false
+  && journeys.method?.osvPublicAdvisoryNetwork === true,
   'journey source/network boundary drifted');
 
 const capabilityCount = (category, maturity) => capabilities.capabilities.filter((item) =>
@@ -197,7 +199,7 @@ add('docs/adoption/channels/technical-long-form.md', [
   '',
   `The current contract names ${facts.stableDetection} stable narrow detection families and keeps ${facts.evidenceReporting} evidence/reporting plus ${facts.lifecycleDistribution} lifecycle/distribution capabilities outside that detection count. Context-heavy API, identity, data and cloud review still depends on ${facts.guided} agent-guided methods and human review. [The full category-by-maturity matrix links each claim to evidence](${capabilityLink}).`,
   '',
-  `I also ran ${facts.journeys} ordinary projects at immutable commits with network denied. Those journeys retain zero findings, false-positive closures, suspected and unknown results rather than presenting only successful detections. A separate ${facts.studies}-project corpus exercises the broader source-review method. [Method and reproduction commands](${journeysLink}).`,
+  `I also ran ${facts.journeys} ordinary projects at immutable commits through the v2 source path. No hosted project was contacted or dependency executed; OSV-Scanner alone may query its public advisory service. The journeys retain confirmed facts, false-positive closures, suspected and unknown results rather than presenting only successful detections. A separate ${facts.studies}-study corpus exercises broader source review, with two projects overlapping by design. [Method and reproduction commands](${journeysLink}).`,
   '',
   `Distribution is part of the threat model. [v${facts.publishedVersion}](${facts.release}) includes a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. The recommended installer verifies an immutable bootstrap before execution, then verifies the release it installs.`,
   '',
@@ -333,7 +335,7 @@ add('docs/adoption/channels/chinese-developer-community.md', [
   '',
   `当前能力合同按 category 与 maturity 分开记录：${facts.stableDetection} 个 stable 窄检测家族、${facts.plannedDetection} 个 planned 检测 adapter、${facts.evidenceReporting} 项证据/报告能力、${facts.lifecycleDistribution} 项生命周期/分发能力和 ${facts.guided} 项 agent-guided 方法。这个分层避免把 demo、报告、安装器或强上下文审查描述成检测覆盖。`,
   '',
-  `案例证据包括 ${facts.journeys} 个固定 commit 的普通项目旅程和独立的 ${facts.studies} 个源码方法论案例。普通项目旅程在 deny-network 边界内工作，不探测托管实例，并公开零 finding、误报关闭、suspected 与 unknown。`,
+  `案例证据包括 ${facts.journeys} 个固定 commit 的普通项目旅程和 ${facts.studies} 个源码方法论案例，其中两个项目按设计重叠。普通项目旅程不探测托管实例、不执行项目依赖；仅 OSV-Scanner 可查询公共 advisory 服务，并公开 confirmed 事实、误报关闭、suspected 与 unknown。`,
   '',
   `供应链方面，v${facts.publishedVersion} 提供签名 tag、可复现源码包、SPDX SBOM、SHA-256 校验和、release manifest 与构建 provenance；推荐安装路径在执行前校验固定 bootstrap，再验证 release。`,
   '',

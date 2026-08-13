@@ -15,7 +15,7 @@
   <a href="#run-the-first-project">First project</a> ·
   <a href="docs/tutorial.md">Tutorial</a> ·
   <a href="#github-action">GitHub Action</a> ·
-  <a href="#3-ordinary-project-journeys">Project journeys</a> ·
+  <a href="#5-ordinary-project-journeys">Project journeys</a> ·
   <a href="README.zh-CN.md">中文</a>
 </p>
 
@@ -282,20 +282,25 @@ gh attestation verify web-app-security-skill-*.tar.gz \
 git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.3.0
 ```
 
-## 3 ordinary project journeys
+## 5 ordinary project journeys
 
-The ordinary-project set runs the current deterministic path, then records manual trace,
-false-positive closure, repair/retest and unreached surfaces. All source is pinned to immutable
-commits; no hosted instance was probed.
+The ordinary-project set runs the complete v2 source path: built-in rules, Gitleaks `8.30.1`, and
+OSV-Scanner `2.5.0`, then records manual trace, false-positive closure, repair/retest and unreached
+surfaces. All source is pinned to immutable commits; no hosted instance or project dependency was
+executed. OSV alone may query its public advisory service, so its dated match counts can drift.
 
-| Project | Deterministic result | Manual outcome |
+| Project | Evidence outcome | Manual outcome |
 |---|---|---|
-| [Linkwarden](docs/case-studies/journeys/linkwarden.md) | 0 findings after workspace/template precision fixes | URL-fetch path traced to scheme, DNS/IP and redirect controls; scoped `not_applicable` |
-| [Healthchecks](docs/case-studies/journeys/healthchecks.md) | 0 findings after requirements/template precision fixes | Production environment values remain `unknown` from source |
-| [Open WebUI](docs/case-studies/journeys/open-webui.md) | 1 medium `suspected` source-map lead | Local representative patch retests `fixed`; public delivery remains unknown |
+| [Linkwarden](docs/case-studies/journeys/linkwarden.md) | 0 confirmed; OSV matches remain suspected | Direct URL-fetch path scoped `not_applicable`; proxy path unreached |
+| [Healthchecks](docs/case-studies/journeys/healthchecks.md) | 0 confirmed; Gitleaks doc/test matches suspected; OSV not applicable | Production environment values remain `unknown` |
+| [Open WebUI](docs/case-studies/journeys/open-webui.md) | Source-map and OSV matches suspected | Local source-map fixture retests `fixed`; public delivery remains unknown |
+| [Uptime Kuma](docs/case-studies/journeys/uptime-kuma.md) | 4 confirmed lockfile facts; external matches suspected | Operator webhook sink is not a vulnerability without a boundary bypass |
+| [Mealie](docs/case-studies/journeys/mealie.md) | 0 confirmed; Gitleaks test-material matches suspected | Limited URL-fetch path scoped `not_applicable`; broader paths unknown |
 
 Read the [structured journeys, exact commands and evidence boundary](docs/case-studies/journeys/README.md).
-Zero-finding and false-positive outcomes are kept visible; this is not a precision score.
+Confirmed source facts, scanner leads and false-positive outcomes are kept visible; this is not a
+precision score. Uptime Kuma and Mealie overlap with the methodology corpus below at the same
+commits, so these are two evidence views rather than ten distinct projects.
 
 The **5 earlier source methodology studies** remain as a separate corpus: three intentionally
 vulnerable benchmarks and two production projects.

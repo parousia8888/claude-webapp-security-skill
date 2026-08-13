@@ -10,6 +10,9 @@ import { fileURLToPath } from 'node:url';
 import {
   parseGitleaksJson, parseOsvJson, runGitleaks, runOsv,
 } from '../scripts/lib/external-adapters.mjs';
+import { createFindingV2 } from '../scripts/lib/evidence-v2.mjs';
+import { sanitizeEvidence } from '../scripts/lib/evidence-writer.mjs';
+import { sourceRuleForAdapter, sourceRuleset } from '../scripts/lib/source-rules.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const CLI = join(ROOT, 'scripts', 'webapp-security.mjs');
@@ -104,6 +107,29 @@ try {
   assert.equal(parsedSecret.length, 1);
   assert.equal(JSON.stringify(parsedSecret).includes(secret), false);
   assert.equal(parsedSecret[0].evidence.externalRuleId, 'github-pat');
+  const deduplicatedSecrets = parseGitleaksJson(JSON.stringify([
+    { RuleID: 'github-pat', StartLine: 2, File: 'config.txt', Fingerprint: 'same' },
+    { RuleID: 'github-pat', StartLine: 2, File: 'config.txt', Fingerprint: 'same' },
+    { RuleID: 'github-pat', StartLine: 2, File: 'config.txt', Fingerprint: 'different' },
+  ]), project, 'history');
+  assert.equal(deduplicatedSecrets.length, 2);
+  assert.notEqual(deduplicatedSecrets[0].evidence.subject, deduplicatedSecrets[1].evidence.subject);
+
+  const ruleset = sourceRuleset(['builtin', 'gitleaks']);
+  const gitleaksRule = sourceRuleForAdapter('gitleaks', 'gitleaks-committed-secret', ['builtin', 'gitleaks']);
+  let numericDigestFinding = null;
+  for (let index = 0; index < 10000 && !numericDigestFinding; index += 1) {
+    const candidate = createFindingV2({
+      ruleset, adapterId: 'gitleaks', rule: gitleaksRule, title: 'lead', severity: 'high',
+      state: 'suspected', summary: 'lead', evidence: { subject: `numeric-id-${index}` },
+      remediation: 'review', retest: 'rerun',
+    });
+    if (/\d{12}$/.test(candidate.fingerprint.slice(0, 12))) numericDigestFinding = candidate;
+  }
+  assert.ok(numericDigestFinding, 'fixture must find a numeric fingerprint prefix');
+  assert.match(numericDigestFinding.id, /-f\d{12}$/);
+  assert.equal(sanitizeEvidence(numericDigestFinding).id, numericDigestFinding.id,
+    'finding ID must not be rewritten as an AWS account number');
 
   let result = withEnv({ FAKE_GITLEAKS_MODE: 'clean' }, () => runGitleaks(project, {
     binary: fakeGitleaks, timeoutSeconds: 1,
@@ -143,6 +169,7 @@ try {
     binary: fakeOsv, timeoutSeconds: 1,
   }));
   assert.equal(conflicting.findings[0].severity, 'info');
+  assert.equal(conflicting.findings[0].state, 'suspected');
   assert.equal(missingSeverity.findings[0].severity, 'info');
   assert.equal(conflicting.findings[0].evidence.upstreamMaxSeverity, '9.9', JSON.stringify(conflicting));
   assert.equal(missingSeverity.findings[0].evidence.upstreamMaxSeverity, null);
@@ -187,6 +214,9 @@ try {
   assert.deepEqual(report.ruleset.adapters.map((adapter) => adapter.id), ['builtin-source', 'gitleaks', 'osv']);
   assert.ok(report.findings.some((finding) => finding.rule.id === 'gitleaks-committed-secret'));
   assert.ok(report.findings.some((finding) => finding.rule.id === 'osv-known-vulnerability'));
+  assert.ok(report.findings.filter((finding) => ['gitleaks-committed-secret', 'gitleaks-working-tree-secret', 'osv-known-vulnerability'].includes(finding.rule.id))
+    .every((finding) => finding.state === 'suspected'));
+  assert.ok(report.findings.every((finding) => /-f[a-f0-9]{12}$/.test(finding.id)));
   assert.equal(report.findings.find((finding) => finding.rule.id === 'osv-known-vulnerability').severity, 'info');
   assert.equal(report.scope.networkAccessPerformed, true);
   for (const name of readdirSync(reportDir)) {
