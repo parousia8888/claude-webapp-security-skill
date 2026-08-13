@@ -33,14 +33,17 @@ try {
   assert.match(result.stdout, /3 projects/);
 
   cpSync(join(ROOT, 'test', 'fixtures', 'case-open-webui'), project, { recursive: true });
-  const baselineDir = join(temp, 'baseline');
-  result = run(['audit', project, '--out', baselineDir, '--name', 'report', '--fail-on', 'never']);
+  const runRoot = join(temp, 'representative-runs');
+  result = run(['start', project, '--out', runRoot, '--run-id', 'baseline']);
+  assert.equal(result.status, 0, result.stderr);
+  const baselineDir = join(runRoot, 'baseline');
+  result = run(['audit', baselineDir, '--name', 'report', '--fail-on', 'never']);
   assert.equal(result.status, 0, result.stderr);
   const baselinePath = join(baselineDir, 'report.json');
   const baseline = JSON.parse(readFileSync(baselinePath, 'utf8'));
   assert.equal(baseline.summary.total, 1);
   const finding = baseline.findings[0];
-  assert.equal(finding.ruleId, 'production-source-map-enabled');
+  assert.equal(finding.rule.id, 'production-source-map-enabled');
   assert.equal(finding.severity, 'medium');
   assert.equal(finding.state, 'suspected');
   assert.equal(finding.location.path, 'vite.config.ts');
@@ -48,13 +51,15 @@ try {
 
   const configPath = join(project, 'vite.config.ts');
   writeFileSync(configPath, readFileSync(configPath, 'utf8').replace('sourcemap: true', 'sourcemap: false'));
-  const retestDir = join(temp, 'retest');
-  result = run(['retest', project, '--out', retestDir, '--name', 'report', '--baseline', baselinePath, '--fail-on', 'low']);
+  result = run(['start', project, '--out', runRoot, '--run-id', 'retest']);
+  assert.equal(result.status, 0, result.stderr);
+  const retestDir = join(runRoot, 'retest');
+  result = run(['retest', retestDir, '--name', 'report', '--baseline', baselinePath, '--fail-on', 'low']);
   assert.equal(result.status, 0, result.stderr);
   const retest = JSON.parse(readFileSync(join(retestDir, 'report.json'), 'utf8'));
   assert.equal(retest.summary.byBaseline.fixed, 1);
   assert.equal(retest.findings[0].state, 'suspected');
-  assert.equal(retest.findings[0].baselineState, 'fixed');
+  assert.equal(retest.findings[0].baseline.state, 'fixed');
   assert.equal(JSON.parse(readFileSync(join(retestDir, 'report.sarif'), 'utf8')).runs[0].results.length, 0);
 
   const checkout = join(temp, 'checkout');
@@ -86,9 +91,10 @@ try {
   const journeyOut = join(temp, 'journey-output');
   result = spawnSync(process.execPath, [RUN_JOURNEY, 'local-case', checkout, '--out', journeyOut, '--catalog', catalogPath], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /checkout:\s+clean/);
+  assert.match(result.stdout, /checkout:\s+clean and unchanged/);
   assert.match(result.stdout, /network:\s+none/);
   assert.match(result.stdout, /catalog:\s+matched/);
+  assert.equal(git(checkout, ['status', '--porcelain', '--untracked-files=normal']), '');
 
   writeFileSync(join(checkout, 'dirty.txt'), 'uncommitted\n');
   result = spawnSync(process.execPath, [RUN_JOURNEY, 'local-case', checkout, '--out', join(temp, 'dirty-output'), '--catalog', catalogPath], { encoding: 'utf8' });

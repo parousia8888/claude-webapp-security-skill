@@ -119,9 +119,12 @@ export function validateReportV2(report) {
   const coverageIds = new Set();
   for (const [index, coverage] of (report?.coverage || []).entries()) {
     const label = `report.coverage[${index}]`;
-    if (!requiredObject(coverage, ['id', 'adapterId', 'status', 'counts', 'reasons'], label, errors)) continue;
+    if (!requiredObject(coverage, ['id', 'adapterId', 'ruleId', 'ruleRevision', 'status', 'counts', 'reasons'], label, errors)) continue;
     if (!ID.test(coverage.id || '') || coverageIds.has(coverage.id)) errors.push(`${label}.id is invalid or duplicate`);
     coverageIds.add(coverage.id);
+    if (!ID.test(coverage.adapterId || '') || !ID.test(coverage.ruleId || '') || !coverage.ruleRevision) {
+      errors.push(`${label} rule identity is invalid`);
+    }
     if (!V2_COVERAGE_STATES.includes(coverage.status)) errors.push(`${label}.status is invalid`);
     if (requiredObject(coverage.counts,
       ['discovered', 'eligible', 'scanned', 'excluded', 'skipped', 'truncated', 'errors'],
@@ -144,6 +147,24 @@ export function validateReportV2(report) {
   }
   if (!object(report?.policy) || report.policy.precedence !== 'confirmed_threshold_before_incomplete') {
     errors.push('report.policy precedence is invalid');
+  } else {
+    const policyDomains = new Set();
+    if (!Array.isArray(report.policy.thresholds)) {
+      errors.push('report.policy.thresholds must be an array');
+    } else {
+      for (const [index, threshold] of report.policy.thresholds.entries()) {
+        if (!object(threshold) || !V2_DOMAINS.includes(threshold.domain)
+            || !['critical', 'high', 'medium', 'low', 'never'].includes(threshold.failOn)) {
+          errors.push(`report.policy.thresholds[${index}] is invalid`);
+          continue;
+        }
+        if (policyDomains.has(threshold.domain)) errors.push(`report.policy has duplicate domain ${threshold.domain}`);
+        policyDomains.add(threshold.domain);
+      }
+      for (const domain of V2_DOMAINS) {
+        if (!policyDomains.has(domain)) errors.push(`report.policy is missing domain ${domain}`);
+      }
+    }
   }
   if (report?.mode === 'retest' && !object(report?.baseline)) errors.push('retest requires baseline metadata');
   if (object(report?.baseline)) {
@@ -164,6 +185,9 @@ export function validateReportV2(report) {
   if (object(report?.migration)) {
     if (report.migration.sourceSchemaVersion !== 1
       || !SHA256.test(report.migration.sourceDigest || '')
+      || report.migration.sourceTool?.name !== 'Web App Security Skill'
+      || typeof report.migration.sourceTool?.version !== 'string'
+      || !report.migration.sourceTool.version
       || report.migration.boundBy !== 'explicit_user_binding') {
       errors.push('report.migration is invalid');
     }

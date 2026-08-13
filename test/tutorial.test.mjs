@@ -23,7 +23,7 @@ try {
   assert.equal(evidence.baseline.byState.confirmed, 1);
   assert.equal(evidence.baseline.byState.suspected, 3);
   assert.equal(evidence.retest.byBaseline.fixed, 4);
-  assert.match(readFileSync(join(output, 'audit', 'proposed.patch'), 'utf8'), /does not prove a fix/);
+  assert.match(readFileSync(join(output, 'runs', 'first-project', 'proposed.patch'), 'utf8'), /does not prove a fix/);
   assert.match(readFileSync(join(output, 'finding-explanation.md'), 'utf8'), /Evidence state: suspected/);
   console.log('tutorial ok: isolated install, scope, report, explain, patch, retest, upgrade, uninstall');
 } finally {

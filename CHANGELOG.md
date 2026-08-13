@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - Report/finding v2 design schemas and migration contract define privacy-preserving subject identity,
   scope/ruleset compatibility, risk domains, coverage accounting, affirmative `fixed` evidence and
-  explicit non-comparable migration from v1. The current v0.3 runtime still writes v1 until the v2
-  implementation milestones land.
+  explicit non-comparable migration from v1.
+- The deterministic source runtime now writes v2 evidence with persisted or explicit ephemeral
+  subject identity, scope/ruleset digests, rule revisions, per-rule coverage, report sidecars,
+  explicit v1 migration and moved-project rebind commands.
 - Regression contracts reject fixed results without a completed compatible check, silent v1
   comparison, unreconciled coverage, and capability metadata that counts demos, renderers or
   distribution as vulnerability detection.
@@ -24,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   parser/external-tool failure and partial report disclosure.
 
 ### Fixed
+- Source retest rejects cross-project, replaced-identity, malformed, digest-mismatched and internally
+  forged baselines before writing output. Missing, unavailable or revision-incompatible rules become
+  `unretested` or `not_comparable`; only a completed compatible check can produce `fixed`.
 - Crawler range evidence now rejects missing, non-array, empty, invalid-CIDR, future and stale
   vendor data. The claimed product's own validated list is still authoritative; a sibling product
   cannot verify or convict it. `unverifiable` now exits `3`, while traffic remains subject to normal

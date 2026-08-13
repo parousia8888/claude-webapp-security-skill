@@ -52,8 +52,8 @@ match or scanner lead directly to `confirmed`, and never convert unavailable evi
 
 ## How to run this
 
-1. **Always start at Phase 0.** Run `webapp-security start <project>` to create the versioned
-   `security-scope.yml`, then complete its authorization fields before remote work. If the CLI is
+1. **Always start at Phase 0.** Run `webapp-security start <project>` to persist a private subject
+   identity and create the versioned `security-scope.yml`, then complete its authorization fields before remote work. If the CLI is
    unavailable, copy `assets/scope-template.md` into the workspace as `scope.md`. Source discovery
    does not prove deployment ownership.
 2. **Do the free work first.** Phases 1, 4, X-1, X-4, X-5 and the read-only half of X-3 need no permission gate and usually surface the highest-severity findings, because misconfiguration beats exploitation.
@@ -85,9 +85,17 @@ S="${HOME}/.claude/skills/web-app-security"
 node "$S/scripts/webapp-security.mjs" start /path/to/project
 
 # Deterministic source evidence, explanation and baseline retest
-node "$S/scripts/webapp-security.mjs" audit /path/to/project --fail-on high
+node "$S/scripts/webapp-security.mjs" audit /path/to/project/.webapp-security/runs/<run-id> --fail-on high
 node "$S/scripts/webapp-security.mjs" explain <finding-id> --report <report.json>
-node "$S/scripts/webapp-security.mjs" retest /path/to/project --baseline <report.json>
+node "$S/scripts/webapp-security.mjs" start /path/to/project --run-id <retest-run-id>
+node "$S/scripts/webapp-security.mjs" retest \
+  /path/to/project/.webapp-security/runs/<retest-run-id> --baseline <report.json>
+
+# Explicit historical/moved-project lineage; never infer identity from a path or finding overlap
+node "$S/scripts/webapp-security.mjs" migrate-report <v1-report.json> \
+  --scope <security-scope.yml> --acknowledge-subject <subject-id> --out <new-directory>
+node "$S/scripts/webapp-security.mjs" rebind <moved-project> \
+  --scope <security-scope.yml> --acknowledge-subject <subject-id>
 
 # Passive crawl boundary + crawler UA matrix
 node "$S/scripts/crawl-surface-audit.mjs" --site https://example.com --out ./reports/security
@@ -141,6 +149,8 @@ Every audit deliverable states:
 - **priority plan**: this-week / high / medium / continuous, with blast-radius notes for anything that could break live traffic or crawling
 - **retest plan**: how each fix will be verified, and by whom
 
-When structured output is required, use `docs/finding.schema.json` and `docs/report.schema.json`.
-Preserve `confirmed`, `suspected`, `unknown`, and `not_applicable` in every renderer. A patch is
-review evidence only; set baseline state to `fixed` only after the check disappears on retest.
+For deterministic source output, use `docs/finding-v2.schema.json` and `docs/report-v2.schema.json`.
+The current crawl/demo/AWS surfaces still use their existing contracts until the shared-runtime
+milestone. Preserve `confirmed`, `suspected`, `unknown`, and `not_applicable` in every renderer. A
+patch is review evidence only. Set baseline state to `fixed` only when persisted subject/scope and
+rule identity are compatible, current coverage completed, and the condition is affirmatively absent.

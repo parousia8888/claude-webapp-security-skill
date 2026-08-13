@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import {
-  existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync,
+  cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -180,8 +180,10 @@ try {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout.trim(), `Web App Security Skill ${readFileSync(join(ROOT, 'VERSION'), 'utf8').trim()}`);
   const installedStartOut = join(temp, 'installed-start');
+  const installedProject = join(temp, 'installed-project');
+  cpSync(join(ROOT, 'test', 'fixtures', 'next-app'), installedProject, { recursive: true });
   result = await run(launcher, [
-    'start', join(ROOT, 'test', 'fixtures', 'next-app'),
+    'start', installedProject,
     '--out', installedStartOut, '--run-id', 'installed', '--origin', 'https://example.com/path?token=redacted',
   ], { env: { ...process.env, HOME: allHome, SOURCE_DATE_EPOCH: '0' } });
   assert.equal(result.status, 0, result.stderr);
@@ -196,7 +198,9 @@ try {
   ], { env: { ...process.env, HOME: allHome, SOURCE_DATE_EPOCH: '0' } });
   assert.equal(result.status, 0, result.stderr);
   const installedReport = JSON.parse(readFileSync(join(installedAuditOut, 'installed.json'), 'utf8'));
-  assert.equal(installedReport.schemaVersion, 1);
+  assert.equal(installedReport.schemaVersion, 2);
+  assert.equal(installedReport.subject.binding, 'ephemeral');
+  assert.equal(JSON.stringify(installedReport).includes(installedAuditOut), false);
   assert.equal(installedReport.summary.byState.confirmed, 1);
   assert.equal(installedReport.summary.byState.suspected, 3);
   assert.ok(existsSync(join(installedAuditOut, 'installed.html')));

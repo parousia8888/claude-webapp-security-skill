@@ -1,0 +1,453 @@
+import { createHash } from 'node:crypto';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
+import { digestValue, stableValue } from './project-identity.mjs';
+import {
+  sha256, validateReportV2,
+  V2_BASELINE_STATES, V2_DOMAINS, V2_RESULT_STATES,
+} from './report-v2-contract.mjs';
+import {
+  adapterRulesetDigest, BUILTIN_SOURCE_ADAPTER, sourceRule, sourceRuleset,
+} from './source-rules.mjs';
+
+export const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'];
+const severityRank = new Map(SEVERITIES.map((severity, index) => [severity, index]));
+
+export const DEFAULT_POLICY = {
+  thresholds: [
+    { domain: 'security_exposure', failOn: 'high' },
+    { domain: 'supply_chain', failOn: 'high' },
+    { domain: 'search_discoverability', failOn: 'never' },
+    { domain: 'reliability', failOn: 'never' },
+    { domain: 'evidence_integrity', failOn: 'never' },
+  ],
+  precedence: 'confirmed_threshold_before_incomplete',
+};
+
+export function policyForFailOn(failOn) {
+  if (!['critical', 'high', 'medium', 'low', 'never'].includes(failOn)) {
+    throw new Error(`invalid fail-on threshold: ${failOn}`);
+  }
+  return {
+    thresholds: DEFAULT_POLICY.thresholds.map((threshold) => ({
+      ...threshold,
+      failOn: ['security_exposure', 'supply_chain'].includes(threshold.domain)
+        ? failOn
+        : threshold.failOn,
+    })),
+    precedence: DEFAULT_POLICY.precedence,
+  };
+}
+
+function findingFingerprint({ rule, location, evidence }) {
+  return digestValue({
+    version: 2,
+    ruleId: rule.id,
+    ruleRevision: rule.revision,
+    location: location?.path || null,
+    discriminator: evidence?.subject || null,
+  });
+}
+
+function emptyBaseline(state = 'new') {
+  return {
+    state,
+    priorFingerprint: null,
+    compatibility: state === 'new' ? 'not_attempted' : 'compatible',
+    currentCheck: 'completed',
+    coverageRef: null,
+    reasonCode: state === 'new' ? 'no_comparable_prior_finding' : null,
+  };
+}
+
+export function sourceFindingV2(legacyFinding, ruleset = sourceRuleset()) {
+  const rule = sourceRule(legacyFinding.ruleId);
+  const adapter = ruleset.adapters.find((item) => item.id === BUILTIN_SOURCE_ADAPTER.id);
+  const core = {
+    schemaVersion: 2,
+    fingerprintVersion: 2,
+    rule: { id: rule.id, revision: rule.revision },
+    adapter: { id: adapter.id, version: adapter.version, rulesetDigest: adapter.rulesetDigest },
+    domain: rule.domain,
+    title: legacyFinding.title,
+    severity: legacyFinding.severity,
+    state: legacyFinding.state,
+    summary: legacyFinding.summary,
+    location: legacyFinding.location || null,
+    evidence: stableValue(legacyFinding.evidence || {}),
+    remediation: legacyFinding.remediation,
+    retest: legacyFinding.retest,
+    baseline: emptyBaseline(),
+  };
+  const fingerprint = findingFingerprint(core);
+  return { ...core, id: `${rule.id}-${fingerprint.slice(0, 12)}`, fingerprint };
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function coverageMap(coverage) {
+  return new Map(coverage.map((entry) => [entry.ruleId, entry]));
+}
+
+function completed(entry) {
+  return entry?.status === 'completed';
+}
+
+function baselineFor(state, previous, coverage, reasonCode) {
+  if (state === 'new') return {
+    ...emptyBaseline('new'),
+    coverageRef: coverage?.id || null,
+  };
+  if (state === 'unchanged' || state === 'regressed') return {
+    state,
+    priorFingerprint: previous.fingerprint,
+    compatibility: 'compatible',
+    currentCheck: 'completed',
+    coverageRef: coverage.id,
+    reasonCode: state === 'regressed' ? 'condition_reappeared_after_fixed' : 'same_condition_still_present',
+  };
+  if (state === 'fixed') return {
+    state,
+    priorFingerprint: previous.fingerprint,
+    compatibility: 'compatible',
+    currentCheck: 'completed',
+    coverageRef: coverage.id,
+    reasonCode: 'condition_absent_after_completed_check',
+  };
+  if (state === 'unretested') return {
+    state,
+    priorFingerprint: previous.fingerprint,
+    compatibility: 'compatible',
+    currentCheck: coverage ? 'incomplete' : 'not_run',
+    coverageRef: coverage?.id || null,
+    reasonCode,
+  };
+  return {
+    state: 'not_comparable',
+    priorFingerprint: previous?.fingerprint || null,
+    compatibility: 'not_comparable',
+    currentCheck: completed(coverage) ? 'completed' : coverage ? 'incomplete' : 'not_run',
+    coverageRef: coverage?.id || null,
+    reasonCode,
+  };
+}
+
+export function compareFindingsV2(currentFindings, currentCoverage, baselineReport) {
+  const coverage = coverageMap(currentCoverage);
+  const currentRuleset = sourceRuleset();
+  const previousByFingerprint = new Map(baselineReport.findings.map((finding) => [finding.fingerprint, finding]));
+  const previousCoverage = coverageMap(baselineReport.coverage);
+  const currentFingerprints = new Set(currentFindings.map((finding) => finding.fingerprint));
+  const compared = currentFindings.map((finding) => {
+    const check = coverage.get(finding.rule.id);
+    const oldCheck = previousCoverage.get(finding.rule.id);
+    const previous = previousByFingerprint.get(finding.fingerprint);
+    const currentAdapter = currentRuleset.adapters.find((item) => item.id === check?.adapterId);
+    const previousAdapter = baselineReport.ruleset.adapters.find((item) => item.id === oldCheck?.adapterId);
+    if (!oldCheck) return { ...clone(finding), baseline: baselineFor('new', null, check) };
+    if (!currentAdapter || !previousAdapter || currentAdapter.version !== previousAdapter.version) {
+      return { ...clone(finding), baseline: baselineFor('not_comparable', previous, check, 'adapter_version_changed') };
+    }
+    if (oldCheck.ruleRevision !== check?.ruleRevision) {
+      return { ...clone(finding), baseline: baselineFor('not_comparable', previous, check, 'rule_revision_changed') };
+    }
+    if (!completed(check)) {
+      return { ...clone(finding), baseline: previous
+        ? baselineFor('unretested', previous, check, 'current_check_incomplete')
+        : baselineFor('not_comparable', null, check, 'current_check_incomplete') };
+    }
+    if (!previous) return { ...clone(finding), baseline: baselineFor('new', null, check) };
+    const state = previous.baseline?.state === 'fixed' ? 'regressed' : 'unchanged';
+    return { ...clone(finding), baseline: baselineFor(state, previous, check) };
+  });
+
+  for (const previous of baselineReport.findings) {
+    if (currentFingerprints.has(previous.fingerprint)) continue;
+    const check = coverage.get(previous.rule.id);
+    const oldCheck = previousCoverage.get(previous.rule.id);
+    const currentAdapter = currentRuleset.adapters.find((item) => item.id === check?.adapterId);
+    const previousAdapter = baselineReport.ruleset.adapters.find((item) => item.id === oldCheck?.adapterId);
+    const retained = clone(previous);
+    if (!check) {
+      retained.baseline = baselineFor('unretested', previous, null, 'rule_not_run');
+    } else if (!currentAdapter || !previousAdapter || currentAdapter.version !== previousAdapter.version) {
+      retained.baseline = baselineFor('not_comparable', previous, check, 'adapter_version_changed');
+    } else if (!oldCheck || oldCheck.ruleRevision !== check.ruleRevision) {
+      retained.baseline = baselineFor('not_comparable', previous, check, 'rule_revision_changed');
+    } else if (!completed(check)) {
+      retained.baseline = baselineFor('unretested', previous, check, 'current_check_incomplete');
+    } else {
+      const adapter = sourceRuleset().adapters.find((item) => item.id === check.adapterId);
+      if (adapter) retained.adapter = {
+        id: adapter.id, version: adapter.version, rulesetDigest: adapter.rulesetDigest,
+      };
+      retained.baseline = baselineFor('fixed', previous, check);
+    }
+    compared.push(retained);
+  }
+  return compared;
+}
+
+export function initializeFindingsV2(currentFindings, currentCoverage) {
+  const coverage = coverageMap(currentCoverage);
+  return currentFindings.map((finding) => {
+    const check = coverage.get(finding.rule.id);
+    if (!completed(check) || check.ruleRevision !== finding.rule.revision) {
+      throw new Error(`cannot initialize finding without completed compatible coverage: ${finding.rule.id}`);
+    }
+    return { ...clone(finding), baseline: baselineFor('new', null, check) };
+  });
+}
+
+export function assertComparableBaseline(currentSubject, baselineReport, rawBytes) {
+  const errors = validateRuntimeReportV2(baselineReport);
+  if (errors.length) throw new Error(`invalid v2 baseline ${errors.join('; ')}`);
+  if (baselineReport.subject.binding !== 'persisted') throw new Error('baseline subject is not persisted and cannot be compared');
+  if (currentSubject.binding !== 'persisted') throw new Error('retest requires a persisted current subject');
+  if (baselineReport.subject.id !== currentSubject.id) throw new Error('baseline subject does not match the current project');
+  if (baselineReport.subject.scopeDigest !== currentSubject.scopeDigest) throw new Error('baseline scope does not match the current scope');
+  return {
+    sourceDigest: sha256(rawBytes),
+    sourceSchemaVersion: 2,
+    subjectId: baselineReport.subject.id,
+    scopeDigest: baselineReport.subject.scopeDigest,
+    rulesetDigest: baselineReport.ruleset.digest,
+    compatibility: 'compatible',
+    reasonCode: null,
+  };
+}
+
+export function summarizeV2(findings) {
+  const bySeverity = Object.fromEntries(SEVERITIES.map((severity) => [severity, 0]));
+  const byState = Object.fromEntries(V2_RESULT_STATES.map((state) => [state, 0]));
+  const byBaseline = Object.fromEntries(V2_BASELINE_STATES.map((state) => [state, 0]));
+  const byDomain = Object.fromEntries(V2_DOMAINS.map((domain) => [domain, 0]));
+  for (const finding of findings) {
+    bySeverity[finding.severity] += 1;
+    byState[finding.state] += 1;
+    byDomain[finding.domain] += 1;
+    if (finding.baseline.state) byBaseline[finding.baseline.state] += 1;
+  }
+  return { total: findings.length, byDomain, bySeverity, byState, byBaseline };
+}
+
+export function createReportV2({
+  version, generatedAt, mode, subject, ruleset, scope, coverage, findings, limitations,
+  baseline = null, migration = null, policy = DEFAULT_POLICY,
+}) {
+  const report = {
+    schemaVersion: 2,
+    tool: { name: 'Web App Security Skill', version },
+    generatedAt,
+    mode,
+    subject,
+    ruleset,
+    scope,
+    policy,
+    coverage,
+    summary: summarizeV2(findings),
+    findings: [...findings].sort((left, right) =>
+      (severityRank.get(left.severity) - severityRank.get(right.severity)) || left.id.localeCompare(right.id)),
+    limitations,
+    baseline,
+    migration,
+  };
+  const errors = validateRuntimeReportV2(report);
+  if (errors.length) throw new Error(`invalid v2 report:\n${errors.map((error) => `- ${error}`).join('\n')}`);
+  return report;
+}
+
+function expectedRuleset(report) {
+  const adapters = report.ruleset.adapters.map((adapter) => {
+    const rules = report.coverage.filter((entry) => entry.adapterId === adapter.id)
+      .map((entry) => ({ id: entry.ruleId, revision: entry.ruleRevision }));
+    return { ...adapter, rulesetDigest: adapterRulesetDigest(adapter, rules) };
+  });
+  return { digest: digestValue({ fingerprintVersion: 2, adapters }), adapters };
+}
+
+export function validateRuntimeReportV2(report) {
+  const errors = validateReportV2(report);
+  if (report?.tool?.name !== 'Web App Security Skill' || typeof report?.tool?.version !== 'string') errors.push('report.tool is invalid');
+  if (Number.isNaN(Date.parse(report?.generatedAt))) errors.push('report.generatedAt is invalid');
+  if (!Array.isArray(report?.limitations)) errors.push('report.limitations must be an array');
+  const coverageKeys = new Set();
+  for (const entry of report?.coverage || []) {
+    if (!entry.ruleId || !entry.ruleRevision) errors.push('coverage requires rule identity');
+    const key = `${entry.adapterId}:${entry.ruleId}`;
+    if (coverageKeys.has(key)) errors.push(`duplicate coverage rule ${key}`);
+    coverageKeys.add(key);
+  }
+  if (report?.ruleset?.adapters && report?.coverage) {
+    const expected = expectedRuleset(report);
+    for (const adapter of report.ruleset.adapters) {
+      const calculated = expected.adapters.find((item) => item.id === adapter.id)?.rulesetDigest;
+      if (adapter.rulesetDigest !== calculated) errors.push(`adapter ruleset digest is invalid: ${adapter.id}`);
+    }
+    if (report.ruleset.digest !== expected.digest) errors.push('report ruleset digest is invalid');
+  }
+  const ids = new Set();
+  const fingerprints = new Set();
+  for (const finding of report?.findings || []) {
+    if (ids.has(finding.id)) errors.push(`duplicate finding id ${finding.id}`);
+    ids.add(finding.id);
+    if (fingerprints.has(finding.fingerprint)) errors.push(`duplicate finding fingerprint ${finding.fingerprint}`);
+    fingerprints.add(finding.fingerprint);
+    if (finding.fingerprint !== findingFingerprint(finding)) errors.push(`finding fingerprint is invalid: ${finding.id}`);
+    const adapter = report.ruleset?.adapters?.find((item) => item.id === finding.adapter?.id);
+    const check = report.coverage?.find((item) => item.adapterId === finding.adapter?.id && item.ruleId === finding.rule?.id);
+    const retained = ['unretested', 'not_comparable'].includes(finding.baseline?.state);
+    if (!adapter && !retained) errors.push(`finding adapter is absent from ruleset: ${finding.id}`);
+    if (adapter && finding.adapter.rulesetDigest !== adapter.rulesetDigest && !retained) {
+      errors.push(`finding adapter digest is inconsistent: ${finding.id}`);
+    }
+    if (check && check.ruleRevision !== finding.rule.revision && !retained) {
+      errors.push(`finding rule revision is inconsistent: ${finding.id}`);
+    }
+  }
+  if (report?.findings && JSON.stringify(report.summary) !== JSON.stringify(summarizeV2(report.findings))) {
+    errors.push('report summary is inconsistent');
+  }
+  return [...new Set(errors)];
+}
+
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+})[character]);
+const escapeXml = escapeHtml;
+
+export function renderMarkdownV2(report) {
+  const lines = [
+    '# Web App Security report', '',
+    `- Schema: \`v${report.schemaVersion}\``,
+    `- Mode: \`${report.mode}\``,
+    `- Subject: \`${report.subject.id}\` (${report.subject.binding})`,
+    `- Generated: ${report.generatedAt}`,
+    `- Findings: ${report.summary.total}`,
+    `- Evidence states: ${V2_RESULT_STATES.map((state) => `${state}=${report.summary.byState[state]}`).join(', ')}`,
+    '', '## Findings', '',
+  ];
+  if (!report.findings.length) lines.push('No findings were produced by the checks that ran.', '');
+  for (const finding of report.findings) {
+    lines.push(
+      `### ${finding.id}: ${finding.title}`, '',
+      `**${finding.domain} / ${finding.severity} / ${finding.state} / ${finding.baseline.state || 'none'}**`, '',
+      finding.summary, '',
+      finding.location ? `Location: \`${finding.location.path}${finding.location.line ? `:${finding.location.line}` : ''}\`` : 'Location: project-wide', '',
+      `Evidence: \`${JSON.stringify(finding.evidence)}\``, '',
+      `Remediation: ${finding.remediation}`, '',
+      `Retest: ${finding.retest}`, '',
+    );
+  }
+  lines.push('## Limitations', '', ...report.limitations.map((item) => `- ${item}`), '');
+  return `${lines.join('\n')}\n`;
+}
+
+export function renderHtmlV2(report) {
+  const rows = report.findings.map((finding) => `<article data-finding-id="${escapeHtml(finding.id)}">
+<h2>${escapeHtml(finding.title)}</h2>
+<p><strong>${escapeHtml(`${finding.domain} / ${finding.severity} / ${finding.state} / ${finding.baseline.state || 'none'}`)}</strong></p>
+<p>${escapeHtml(finding.summary)}</p>
+<dl><dt>ID</dt><dd><code>${escapeHtml(finding.id)}</code></dd><dt>Location</dt><dd><code>${escapeHtml(finding.location ? `${finding.location.path}${finding.location.line ? `:${finding.location.line}` : ''}` : 'project-wide')}</code></dd><dt>Evidence</dt><dd><code>${escapeHtml(JSON.stringify(finding.evidence))}</code></dd><dt>Remediation</dt><dd>${escapeHtml(finding.remediation)}</dd><dt>Retest</dt><dd>${escapeHtml(finding.retest)}</dd></dl>
+</article>`).join('\n');
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:8px}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><p>Subject: <code>${escapeHtml(report.subject.id)}</code></p>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
+}
+
+export function renderSarifV2(report) {
+  const rules = [...new Map(report.findings.map((finding) => [finding.rule.id, {
+    id: finding.rule.id,
+    shortDescription: { text: finding.title },
+    help: { text: `${finding.remediation}\n\nRetest: ${finding.retest}` },
+  }])).values()];
+  const level = { critical: 'error', high: 'error', medium: 'warning', low: 'note', info: 'note' };
+  return `${JSON.stringify({
+    version: '2.1.0',
+    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+    runs: [{
+      tool: { driver: { name: 'Web App Security Skill', version: report.tool.version, rules } },
+      results: report.findings.filter((finding) => finding.baseline.state !== 'fixed').map((finding) => ({
+        ruleId: finding.rule.id,
+        level: level[finding.severity],
+        message: { text: `[${finding.state}] ${finding.summary}` },
+        fingerprints: { webAppSecurityFingerprint: finding.fingerprint },
+        properties: { domain: finding.domain, evidenceState: finding.state, baselineState: finding.baseline.state },
+        ...(finding.location ? { locations: [{ physicalLocation: {
+          artifactLocation: { uri: finding.location.path },
+          ...(finding.location.line ? { region: { startLine: finding.location.line } } : {}),
+        } }] } : {}),
+      })),
+    }],
+  }, null, 2)}\n`;
+}
+
+export function renderJunitV2(report) {
+  const failures = report.findings.filter((finding) => finding.state === 'confirmed' && finding.baseline.state !== 'fixed').length;
+  const skipped = report.findings.length - failures;
+  const cases = report.findings.map((finding) => {
+    const attrs = `classname="web-app-security.${escapeXml(finding.rule.id)}" name="${escapeXml(finding.id)}"`;
+    if (finding.baseline.state === 'fixed') return `<testcase ${attrs}><skipped message="fixed in retest"/></testcase>`;
+    if (finding.state !== 'confirmed') return `<testcase ${attrs}><skipped message="${escapeXml(finding.state)}"/></testcase>`;
+    return `<testcase ${attrs}><failure message="${escapeXml(`${finding.severity}: ${finding.title}`)}">${escapeXml(finding.summary)}</failure></testcase>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><testsuite name="Web App Security Skill" tests="${report.findings.length}" failures="${failures}" skipped="${skipped}">${cases}</testsuite>\n`;
+}
+
+export function writeReportBundleV2(report, directory, name = 'report') {
+  mkdirSync(directory, { recursive: true, mode: 0o700 });
+  const files = {
+    json: join(directory, `${name}.json`),
+    markdown: join(directory, `${name}.md`),
+    html: join(directory, `${name}.html`),
+    sarif: join(directory, `${name}.sarif`),
+    junit: join(directory, `${name}.junit.xml`),
+    digest: join(directory, `${name}.sha256`),
+  };
+  const jsonBytes = `${JSON.stringify(report, null, 2)}\n`;
+  writeFileSync(files.json, jsonBytes, { mode: 0o600, flag: 'wx' });
+  writeFileSync(files.markdown, renderMarkdownV2(report), { mode: 0o600, flag: 'wx' });
+  writeFileSync(files.html, renderHtmlV2(report), { mode: 0o600, flag: 'wx' });
+  writeFileSync(files.sarif, renderSarifV2(report), { mode: 0o600, flag: 'wx' });
+  writeFileSync(files.junit, renderJunitV2(report), { mode: 0o600, flag: 'wx' });
+  writeFileSync(files.digest, `${sha256(jsonBytes)}  ${name}.json\n`, { mode: 0o600, flag: 'wx' });
+  return files;
+}
+
+export function readReportV2(path) {
+  const rawBytes = readFileSync(path);
+  let report;
+  try { report = JSON.parse(rawBytes.toString('utf8')); } catch { throw new Error(`invalid report JSON: ${basename(path)}`); }
+  const errors = validateRuntimeReportV2(report);
+  if (errors.length) throw new Error(`invalid v2 report ${basename(path)}:\n${errors.join('\n')}`);
+  return { report, rawBytes };
+}
+
+export function readBaselineV2(path) {
+  const loaded = readReportV2(path);
+  const digestPath = join(dirname(path), `${basename(path, '.json')}.sha256`);
+  let recorded;
+  try {
+    const line = readFileSync(digestPath, 'utf8').trim();
+    const match = /^([a-f0-9]{64})  ([a-zA-Z0-9._-]+\.json)$/.exec(line);
+    if (!match || match[2] !== basename(path)) throw new Error();
+    recorded = match[1];
+  } catch {
+    throw new Error(`baseline digest sidecar is missing or invalid: ${basename(digestPath)}`);
+  }
+  if (sha256(loaded.rawBytes) !== recorded) throw new Error('baseline bytes do not match the recorded digest');
+  return { ...loaded, sourceDigest: recorded };
+}
+
+export function failsThresholdV2(report) {
+  const thresholds = new Map(report.policy.thresholds.map((entry) => [entry.domain, entry.failOn]));
+  return report.findings.some((finding) => {
+    const failOn = thresholds.get(finding.domain) || 'never';
+    if (failOn === 'never' || finding.state !== 'confirmed' || finding.baseline.state === 'fixed') return false;
+    return severityRank.get(finding.severity) <= severityRank.get(failOn);
+  });
+}
+
+export function reportDigest(report) {
+  return createHash('sha256').update(`${JSON.stringify(report, null, 2)}\n`).digest('hex');
+}

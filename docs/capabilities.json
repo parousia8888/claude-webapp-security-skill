@@ -98,16 +98,16 @@
       "name": "Stable multi-format finding reports",
       "category": "evidence_reporting",
       "maturity": "stable",
-      "scope": "Renders the current finding/report contract as JSON, Markdown, escaped HTML, SARIF 2.1.0 and JUnit while preserving evidence states and stable fingerprints.",
-      "evidence": ["docs/finding.schema.json", "docs/report.schema.json", "scripts/lib/evidence.mjs", "test/evidence-loop.test.mjs"]
+      "scope": "Renders source v2 and remaining crawl/demo/AWS v1 contracts as JSON, Markdown, escaped HTML, SARIF 2.1.0 and JUnit while preserving evidence states and fingerprints. Shared v2 runtime migration is not complete.",
+      "evidence": ["docs/finding-v2.schema.json", "docs/report-v2.schema.json", "docs/finding.schema.json", "docs/report.schema.json", "scripts/lib/evidence-v2.mjs", "scripts/lib/evidence.mjs", "test/evidence-loop.test.mjs"]
     },
     {
       "id": "patch-retest-loop",
       "name": "Patch and baseline retest evidence loop",
       "category": "evidence_reporting",
       "maturity": "stable",
-      "scope": "Writes patch-only proposals, explains findings and compares required retest baselines as new/fixed/unchanged/regressed. v0.4.0 identity hardening is planned separately.",
-      "evidence": ["scripts/project-audit.mjs", "scripts/lib/evidence.mjs", "scripts/explain-finding.mjs", "test/evidence-loop.test.mjs"]
+      "scope": "Writes patch-only proposals, explains source findings and compares persisted v2 baselines with subject/scope/rule identity, per-rule coverage and honest new/fixed/unchanged/regressed/unretested/not_comparable states.",
+      "evidence": ["scripts/project-audit.mjs", "scripts/lib/evidence-v2.mjs", "scripts/explain-finding.mjs", "test/evidence-loop.test.mjs", "test/baseline-identity.test.mjs"]
     },
     {
       "id": "distribution-surfaces",

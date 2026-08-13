@@ -62,7 +62,7 @@ for (const [label, baseline, expected] of [
 }
 
 const coverage = {
-  id: 'coverage-fixture', adapterId: 'fixture-adapter', status: 'completed',
+  id: 'coverage-fixture', adapterId: 'fixture-adapter', ruleId: 'fixture-rule', ruleRevision: '1', status: 'completed',
   counts: { discovered: 1, eligible: 1, scanned: 1, excluded: 0, skipped: 0, truncated: 0, errors: 0 },
   reasons: [],
 };
@@ -74,7 +74,16 @@ const report = (overrides = {}) => ({
   subject: { id: 'project-0123456789abcdef', binding: 'persisted', scopeDigest: digest, localPathIncluded: false },
   ruleset: { digest, fingerprintVersion: 2, adapters: [{ id: 'fixture-adapter', version: '1.0.0', rulesetDigest: digest, maturity: 'stable' }] },
   scope: { modes: ['source'] },
-  policy: { thresholds: [{ domain: 'security_exposure', failOn: 'high' }], precedence: 'confirmed_threshold_before_incomplete' },
+  policy: {
+    thresholds: [
+      { domain: 'security_exposure', failOn: 'high' },
+      { domain: 'supply_chain', failOn: 'high' },
+      { domain: 'search_discoverability', failOn: 'never' },
+      { domain: 'reliability', failOn: 'never' },
+      { domain: 'evidence_integrity', failOn: 'never' },
+    ],
+    precedence: 'confirmed_threshold_before_incomplete',
+  },
   coverage: [coverage],
   summary: {},
   findings: [finding()],
@@ -85,6 +94,12 @@ const report = (overrides = {}) => ({
 });
 
 assert.deepEqual(validateReportV2(report()), []);
+assert.match(validateReportV2(report({
+  policy: { ...report().policy, thresholds: report().policy.thresholds.slice(0, 4) },
+})).join('\n'), /missing domain/);
+assert.match(validateReportV2(report({
+  policy: { ...report().policy, thresholds: [...report().policy.thresholds, report().policy.thresholds[0]] },
+})).join('\n'), /duplicate domain/);
 assert.match(validateReportV2(report({ subject: { ...report().subject, binding: 'ephemeral' } })).join('\n'), /persisted subject/);
 assert.match(validateReportV2(report({ coverage: [{ ...coverage, counts: { ...coverage.counts, scanned: 0 } }] })).join('\n'), /not reconciled/);
 assert.match(validateReportV2(report({ findings: [finding({ baseline: { ...finding().baseline, coverageRef: 'missing-coverage' } })] })).join('\n'), /missing coverage/);
@@ -92,10 +107,19 @@ assert.match(validateReportV2(report({ findings: [finding({ baseline: { ...findi
 const migrated = report({
   subject: { ...report().subject, binding: 'migrated' },
   baseline: { ...report().baseline, sourceSchemaVersion: 1, compatibility: 'not_comparable', reasonCode: 'v1_missing_identity' },
-  migration: { sourceSchemaVersion: 1, sourceDigest: digest, boundBy: 'explicit_user_binding', boundAt: '1970-01-01T00:00:00.000Z' },
+  migration: {
+    sourceSchemaVersion: 1,
+    sourceDigest: digest,
+    sourceTool: { name: 'Web App Security Skill', version: '0.3.0' },
+    boundBy: 'explicit_user_binding',
+    boundAt: '1970-01-01T00:00:00.000Z',
+  },
   findings: [finding({ baseline: { state: 'not_comparable', priorFingerprint: digest, compatibility: 'not_comparable', currentCheck: 'not_run', coverageRef: null, reasonCode: 'v1_missing_identity' } })],
 });
 assert.deepEqual(validateReportV2(migrated), []);
+assert.match(validateReportV2({
+  ...migrated, migration: { ...migrated.migration, sourceTool: null },
+}).join('\n'), /migration is invalid/);
 assert.match(validateReportV2({ ...migrated, migration: null }).join('\n'), /explicit migration lineage/);
 assert.match(validateReportV2({ ...migrated, baseline: { ...migrated.baseline, compatibility: 'compatible' } }).join('\n'), /v1 baseline cannot be comparable/);
 

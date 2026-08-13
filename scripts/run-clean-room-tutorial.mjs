@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import {
-  existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync,
+  cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -35,10 +35,11 @@ try {
     SOURCE_DATE_EPOCH: '0',
   };
   const cliSource = join(ROOT, 'scripts', 'webapp-security.mjs');
-  const before = join(ROOT, 'examples', 'quickstart', 'before');
-  const after = join(ROOT, 'examples', 'quickstart', 'after');
+  const before = join(output, 'project-before');
+  const after = join(output, 'project-after');
+  cpSync(join(ROOT, 'examples', 'quickstart', 'before'), before, { recursive: true });
+  cpSync(join(ROOT, 'examples', 'quickstart', 'after'), after, { recursive: true });
   const runs = join(output, 'runs');
-  const audit = join(output, 'audit');
   const retest = join(output, 'retest');
 
   run(process.execPath, [cliSource, 'install', '--target', 'cli'], { cwd: ROOT, env });
@@ -46,7 +47,8 @@ try {
   const versionOutput = run(launcher, ['version'], { cwd: ROOT, env }).stdout.trim();
   assert.equal(versionOutput, `Web App Security Skill ${readFileSync(join(ROOT, 'VERSION'), 'utf8').trim()}`);
   run(launcher, ['start', before, '--out', runs, '--run-id', 'first-project'], { cwd: ROOT, env });
-  run(launcher, ['audit', before, '--out', audit, '--name', 'report', '--fail-on', 'never'], {
+  const audit = join(runs, 'first-project');
+  run(launcher, ['audit', audit, '--name', 'report', '--fail-on', 'never'], {
     cwd: ROOT, env,
   });
   const baselinePath = join(audit, 'report.json');
@@ -61,7 +63,7 @@ try {
   assert.ok(existsSync(join(audit, 'report.junit.xml')));
   assert.match(readFileSync(join(audit, 'proposed.patch'), 'utf8'), /Proposed changes only/);
 
-  const finding = baseline.findings.find((item) => item.ruleId === 'production-source-map-enabled');
+  const finding = baseline.findings.find((item) => item.rule.id === 'production-source-map-enabled');
   assert.ok(finding);
   const explanation = run(launcher, ['explain', finding.id, '--report', baselinePath], {
     cwd: ROOT, env,
@@ -70,7 +72,12 @@ try {
   assert.match(explanation, /Evidence state: suspected/);
 
   run(launcher, [
-    'retest', after, '--out', retest, '--name', 'report', '--baseline', baselinePath,
+    'rebind', after, '--scope', join(audit, 'security-scope.yml'),
+    '--acknowledge-subject', baseline.subject.id,
+  ], { cwd: ROOT, env });
+  run(launcher, ['start', after, '--out', runs, '--run-id', 'hardened-project'], { cwd: ROOT, env });
+  run(launcher, [
+    'retest', join(runs, 'hardened-project'), '--out', retest, '--name', 'report', '--baseline', baselinePath,
     '--fail-on', 'low',
   ], { cwd: ROOT, env });
   const retested = JSON.parse(readFileSync(join(retest, 'report.json'), 'utf8'));
@@ -84,7 +91,7 @@ try {
   assert.equal(existsSync(launcher), false);
 
   const result = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     durationBudgetSeconds: 600,
     elapsedMilliseconds: Date.now() - started,
     networkAccessPerformed: false,
@@ -92,9 +99,9 @@ try {
     retest: retested.summary,
     outputs: {
       scope: 'runs/first-project/security-scope.yml',
-      report: 'audit/report.json',
-      markdown: 'audit/report.md',
-      patch: 'audit/proposed.patch',
+      report: 'runs/first-project/report.json',
+      markdown: 'runs/first-project/report.md',
+      patch: 'runs/first-project/proposed.patch',
       explanation: 'finding-explanation.md',
       retest: 'retest/report.json',
     },

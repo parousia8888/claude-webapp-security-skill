@@ -192,7 +192,9 @@ try {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout.trim(), `Web App Security Skill ${version}`);
   const runOut = join(temp, 'first-run');
-  result = await run(launcher, ['start', join(ROOT, 'test', 'fixtures', 'audit-app'), '--out', runOut,
+  const firstProject = join(temp, 'first-project');
+  cpSync(join(ROOT, 'test', 'fixtures', 'audit-app'), firstProject, { recursive: true });
+  result = await run(launcher, ['start', firstProject, '--out', runOut,
     '--run-id', 'verified'], { env: { ...process.env, HOME: home, SOURCE_DATE_EPOCH: '0' } });
   assert.equal(result.status, 0, result.stderr);
   const scope = join(runOut, 'verified');

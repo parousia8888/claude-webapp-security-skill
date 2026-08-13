@@ -100,9 +100,9 @@ Open the target repository in Claude Code or Codex and send this prompt:
 webapp-security start .
 ```
 
-This creates `.webapp-security/runs/<run-id>/security-scope.yml`, records detected framework,
-package manager, lockfile and deployment/config paths, and performs no network access. Review the
-scope, then send:
+This creates a private project identity plus `.webapp-security/runs/<run-id>/security-scope.yml`,
+records detected framework, package manager, lockfile and deployment/config paths, and performs no
+network access. Review the scope, then send:
 
 ```text
 Use $web-app-security on this repository. Start with source and local checks only. Record scope and assumptions. Classify every result as confirmed, suspected, unknown, or not_applicable. Prepare the smallest reviewable hardening patch, do not apply risky or production changes without approval, retest every applied fix, and finish with fixed, remaining, and unreached risks.
@@ -111,15 +111,18 @@ Use $web-app-security on this repository. Start with source and local checks onl
 The deterministic source path can then run as:
 
 ```bash
-webapp-security audit . --fail-on high
+webapp-security audit .webapp-security/runs/<run-id> --fail-on high
 webapp-security explain <finding-id> --report .webapp-security/runs/<run-id>/report.json
-webapp-security retest . --baseline .webapp-security/runs/<run-id>/report.json
+webapp-security start . --run-id <retest-run-id>
+webapp-security retest .webapp-security/runs/<retest-run-id> \
+  --baseline .webapp-security/runs/<run-id>/report.json
 ```
 
-Each audit writes JSON, Markdown, HTML, SARIF, JUnit and `proposed.patch`. The patch is never applied
-by this command and never counts as fixed until retest evidence removes the finding. The broader
-agent task still delivers recorded scope, sanitized findings, reviewed changes, retest evidence and
-remaining/unreached risks. None of these commands grants permission to probe a deployment.
+Each source audit writes v2 JSON, Markdown, HTML, SARIF, JUnit, a SHA-256 sidecar and
+`proposed.patch`. A direct project audit is allowed for one-off review but has ephemeral identity and
+cannot be a retest baseline. `fixed` requires the same persisted subject and scope, a compatible
+rule, completed current coverage and affirmative absence of the condition. The patch is never
+applied by this command. None of these commands grants permission to probe a deployment.
 
 ## Capability boundary
 
@@ -152,9 +155,17 @@ directly:
 webapp-security start .
 
 # Source-only audit, explain and required-baseline retest
-webapp-security audit . --fail-on high
+webapp-security audit .webapp-security/runs/<run-id> --fail-on high
 webapp-security explain <finding-id> --report <report.json>
-webapp-security retest . --baseline <report.json> --fail-on high
+webapp-security start . --run-id <retest-run-id>
+webapp-security retest .webapp-security/runs/<retest-run-id> \
+  --baseline <report.json> --fail-on high
+
+# Historical v1 reports stay non-comparable; moved/cloned projects require explicit binding
+webapp-security migrate-report <v1-report.json> --scope <security-scope.yml> \
+  --acknowledge-subject <subject-id> --out <new-directory>
+webapp-security rebind <moved-project> --scope <security-scope.yml> \
+  --acknowledge-subject <subject-id>
 
 # Passive crawl-boundary and crawler accessibility audit
 webapp-security crawl --site https://example.com --out ./security-report
@@ -175,6 +186,10 @@ webapp-security aws --profile default --region us-east-1 --out ./security-report
 
 Active rate-limit verification also requires `--acknowledge-authorization`. Network or evidence
 failure is `unknown` and exits non-zero; it is never rendered as safe.
+
+The v2 runtime currently covers the deterministic source audit. Crawl, demo, crawler identity,
+edge and AWS surfaces retain their existing formats until the shared-runtime milestone; their
+results must not be described as v2 merely because the source path is v2.
 
 ## GitHub Action
 

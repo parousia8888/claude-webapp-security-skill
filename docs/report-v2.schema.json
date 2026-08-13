@@ -60,6 +60,8 @@
       "properties": {
         "thresholds": {
           "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -78,10 +80,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "adapterId", "status", "counts", "reasons"],
+        "required": ["id", "adapterId", "ruleId", "ruleRevision", "status", "counts", "reasons"],
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
           "adapterId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+          "ruleId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+          "ruleRevision": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$" },
           "status": { "enum": ["completed", "partial", "unavailable", "not_applicable"] },
           "counts": {
             "type": "object",
@@ -141,10 +145,19 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["sourceSchemaVersion", "sourceDigest", "boundBy", "boundAt"],
+          "required": ["sourceSchemaVersion", "sourceDigest", "sourceTool", "boundBy", "boundAt"],
           "properties": {
             "sourceSchemaVersion": { "const": 1 },
             "sourceDigest": { "$ref": "#/$defs/sha256" },
+            "sourceTool": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "version"],
+              "properties": {
+                "name": { "const": "Web App Security Skill" },
+                "version": { "type": "string", "minLength": 1 }
+              }
+            },
             "boundBy": { "const": "explicit_user_binding" },
             "boundAt": { "type": "string", "format": "date-time" }
           }

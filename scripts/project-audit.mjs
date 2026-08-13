@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  applyBaseline, createReport, failsThreshold, readReport, validateReport, writeReportBundle,
-} from './lib/evidence.mjs';
+  assertComparableBaseline, compareFindingsV2, createReportV2, failsThresholdV2,
+  initializeFindingsV2, policyForFailOn, readBaselineV2, sourceFindingV2, writeReportBundleV2,
+} from './lib/evidence-v2.mjs';
 import { auditSource, renderPatch } from './lib/source-audit.mjs';
 import { buildScope, discoverProject } from './lib/project-discovery.mjs';
+import {
+  ephemeralSubject, readProjectIdentity, sourceAuditBoundary, validatePersistedScope,
+} from './lib/project-identity.mjs';
+import { sourceCoverage, sourceRuleset } from './lib/source-rules.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
@@ -53,10 +58,10 @@ function timestamp() {
   return now;
 }
 
-function evidenceConflicts(output, name) {
+function evidenceConflicts(output, reportName) {
   return [
-    `${name}.json`, `${name}.md`, `${name}.html`, `${name}.sarif`, `${name}.junit.xml`,
-    'proposed.patch',
+    `${reportName}.json`, `${reportName}.md`, `${reportName}.html`, `${reportName}.sarif`,
+    `${reportName}.junit.xml`, `${reportName}.sha256`, 'proposed.patch',
   ].map((file) => join(output, file)).filter((file) => existsSync(file));
 }
 
@@ -65,63 +70,93 @@ try {
   if (!existsSync(target) || !statSync(target).isDirectory()) throw new Error(`target must be an existing directory: ${targetArg}`);
   const scopePath = join(target, 'security-scope.yml');
   const now = timestamp();
-  let scope;
+  let localScope;
   let projectRoot;
   let output;
+  let subject;
+  let persistScope = false;
+
   if (existsSync(scopePath)) {
-    scope = JSON.parse(readFileSync(scopePath, 'utf8'));
-    projectRoot = resolve(scope.target.projectRoot);
+    localScope = validatePersistedScope(JSON.parse(readFileSync(scopePath, 'utf8')));
+    projectRoot = resolve(localScope.target.projectRoot);
+    const identity = readProjectIdentity(projectRoot);
+    if (!identity || identity.subjectId !== localScope.subject.id) {
+      throw new Error('scope subject does not match the current project identity');
+    }
+    subject = localScope.subject;
     output = resolve(outArg || target);
-    const conflicts = evidenceConflicts(output, name);
-    if (conflicts.length) throw new Error(`refusing to overwrite existing evidence: ${conflicts.join(', ')}`);
   } else {
+    if (mode === 'retest' || baselinePath) {
+      throw new Error('baseline comparison requires a persisted run created by webapp-security start');
+    }
     const discovery = discoverProject(target);
     projectRoot = discovery.projectRoot;
     output = resolve(outArg || join(projectRoot, '.webapp-security', 'runs', `audit-${now.toISOString().replace(/[:.]/g, '-')}`));
-    const conflicts = evidenceConflicts(output, name);
-    if (conflicts.length) throw new Error(`refusing to overwrite existing evidence: ${conflicts.join(', ')}`);
-    scope = buildScope(discovery, {
+    subject = ephemeralSubject(sourceAuditBoundary());
+    localScope = buildScope(discovery, {
       version: readFileSync(join(ROOT, 'VERSION'), 'utf8').trim(),
       generatedAt: now.toISOString(),
       runId: basename(output),
       runDirectory: output,
+      subject,
     });
-    mkdirSync(output, { recursive: true, mode: 0o700 });
-    writeFileSync(join(output, 'security-scope.yml'), `${JSON.stringify(scope, null, 2)}\n`, { mode: 0o600 });
+    persistScope = true;
   }
+
   if (!existsSync(projectRoot) || !statSync(projectRoot).isDirectory()) throw new Error('scope projectRoot no longer exists');
-  const baseline = baselinePath ? readReport(resolve(baselinePath)) : null;
+  const conflicts = evidenceConflicts(output, name);
+  if (conflicts.length) throw new Error(`refusing to overwrite existing evidence: ${conflicts.join(', ')}`);
+
+  const ruleset = sourceRuleset();
   const rawFindings = auditSource(projectRoot);
-  const findings = baseline ? applyBaseline(rawFindings, baseline) : rawFindings.map((finding) => ({ ...finding, baselineState: 'new' }));
-  const report = createReport({
+  const coverage = sourceCoverage(rawFindings);
+  const current = rawFindings.map((finding) => sourceFindingV2(finding, ruleset));
+  let baseline = null;
+  let findings;
+  if (baselinePath) {
+    const loaded = readBaselineV2(resolve(baselinePath));
+    baseline = assertComparableBaseline(subject, loaded.report, loaded.rawBytes);
+    if (baseline.sourceDigest !== loaded.sourceDigest) throw new Error('baseline digest metadata is inconsistent');
+    findings = compareFindingsV2(current, coverage, loaded.report);
+  } else {
+    findings = initializeFindingsV2(current, coverage);
+  }
+
+  const report = createReportV2({
     version: readFileSync(join(ROOT, 'VERSION'), 'utf8').trim(),
     generatedAt: now.toISOString(),
     mode,
+    subject,
+    ruleset,
     scope: {
-      projectRoot,
-      runId: scope.run?.id || null,
-      authorizationStatus: scope.authorization?.status || 'pending',
+      auditBoundary: localScope.auditBoundary,
+      authorizationStatus: localScope.authorization?.status || 'pending',
       checkModes: ['source', 'local'],
       networkAccessPerformed: false,
+      runId: localScope.run?.id || null,
     },
+    coverage,
     findings,
-    baseline: baseline ? { path: resolve(baselinePath), generatedAt: baseline.generatedAt } : null,
+    baseline,
+    policy: policyForFailOn(failOn),
     limitations: [
       'Only deterministic source rules ran; agent-guided API, identity, LLM, data-layer and deployment review did not run.',
       'No network request or dependency execution was performed.',
       'Suspected findings require deployment or runtime evidence before confirmation.',
     ],
   });
-  const errors = validateReport(report);
-  if (errors.length) throw new Error(errors.join('\n'));
-  const files = writeReportBundle(report, output, name);
-  writeFileSync(join(output, 'proposed.patch'), renderPatch(report.findings), { mode: 0o600 });
+
+  mkdirSync(output, { recursive: true, mode: 0o700 });
+  if (persistScope) writeFileSync(join(output, 'security-scope.yml'), `${JSON.stringify(localScope, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+  const files = writeReportBundleV2(report, output, name);
+  writeFileSync(join(output, 'proposed.patch'), renderPatch(rawFindings), { mode: 0o600, flag: 'wx' });
   console.log(`report:    ${files.json}`);
   console.log(`findings:  ${report.summary.total}`);
+  console.log(`subject:   ${report.subject.id} (${report.subject.binding})`);
   console.log(`states:    confirmed=${report.summary.byState.confirmed}, suspected=${report.summary.byState.suspected}, unknown=${report.summary.byState.unknown}`);
-  console.log(`baseline:  new=${report.summary.byBaseline.new}, fixed=${report.summary.byBaseline.fixed}, unchanged=${report.summary.byBaseline.unchanged}, regressed=${report.summary.byBaseline.regressed}`);
+  console.log(`baseline:  new=${report.summary.byBaseline.new}, fixed=${report.summary.byBaseline.fixed}, unchanged=${report.summary.byBaseline.unchanged}, regressed=${report.summary.byBaseline.regressed}, unretested=${report.summary.byBaseline.unretested}, not_comparable=${report.summary.byBaseline.not_comparable}`);
   console.log('network:   none');
-  process.exit(failsThreshold(report, failOn) ? 1 : 0);
+  process.exit(failsThresholdV2(report) ? 1 : 0);
 } catch (error) {
   usage(2, error.message);
 }

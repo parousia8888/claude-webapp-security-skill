@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
+import { sourceAuditBoundary } from './project-identity.mjs';
 
 const IGNORED_DIRECTORIES = new Set([
   '.git', '.hg', '.svn', '.next', '.nuxt', '.output', '.webapp-security',
@@ -193,10 +194,13 @@ export function discoverProject(projectPath, options = {}) {
 
 export function buildScope(discovery, metadata) {
   const hasOrigin = discovery.publicOrigins.length > 0;
+  if (!metadata.subject) throw new Error('scope subject identity is required');
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedBy: { product: 'Web App Security Skill', version: metadata.version },
     generatedAt: metadata.generatedAt,
+    subject: metadata.subject,
+    auditBoundary: sourceAuditBoundary(),
     run: { id: metadata.runId, directory: metadata.runDirectory },
     target: {
       projectRoot: discovery.projectRoot,

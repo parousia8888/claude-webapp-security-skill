@@ -61,10 +61,10 @@ node scripts/run-clean-room-tutorial.mjs --out "$tutorial_output"
 cat "$tutorial_output/tutorial-result.json"
 ```
 
-The runner creates an isolated home, installs the CLI, denies network access, creates a scope,
-audits the `before` fixture, explains one lead, retests the hardened fixture, upgrades and
-uninstalls. The expected baseline is four findings: one `confirmed` and three `suspected`. The
-retest must record all four as `fixed` within the ten-minute budget.
+The runner creates an isolated home, installs the CLI, denies network access, creates a persisted
+scope, audits the `before` fixture, explains one lead, explicitly rebinds the hardened fixture,
+retests it, upgrades and uninstalls. The expected baseline is four findings: one `confirmed` and
+three `suspected`. The retest must record all four as `fixed` within the ten-minute budget.
 
 ## Start your project
 
@@ -75,9 +75,10 @@ cd /path/to/your-project
 webapp-security start . --run-id first-review
 ```
 
-Review `.webapp-security/runs/first-review/security-scope.yml`. It records discovered frameworks,
-package managers, lockfiles, deployment/config paths, assumptions and blocked remote modes. It does
-not read secret values or grant authorization to contact a deployment.
+Review `.webapp-security/runs/first-review/security-scope.yml`. It records a privacy-preserving
+persisted subject ID, scope digest, discovered frameworks, package managers, lockfiles,
+deployment/config paths, assumptions and blocked remote modes. The private identity record lives
+under `.webapp-security/project.json`. Neither file grants authorization to contact a deployment.
 
 Run the source audit into that scoped directory:
 
@@ -86,9 +87,9 @@ webapp-security audit .webapp-security/runs/first-review \
   --name report --fail-on never
 ```
 
-The output includes `report.json`, `report.md`, `report.html`, `report.sarif`, `report.junit.xml`
-and `proposed.patch`. Use JSON for automation, Markdown/HTML for review, SARIF/JUnit for CI, and the
-patch file only as a proposed change.
+The output includes `report.json`, `report.sha256`, `report.md`, `report.html`, `report.sarif`,
+`report.junit.xml` and `proposed.patch`. Use JSON for automation, the sidecar for local integrity
+checking, Markdown/HTML for review, SARIF/JUnit for CI, and the patch file only as a proposal.
 
 ## Interpret results
 
@@ -129,19 +130,33 @@ patch-only evidence. High-risk and production changes require explicit approval.
 
 ## Retest
 
-After reviewing and applying the chosen change, write new evidence to a different directory:
+After reviewing and applying the chosen change, create a new run and write new evidence there:
 
 ```bash
-webapp-security retest . \
-  --out .webapp-security/runs/first-review-retest \
+webapp-security start . --run-id first-review-retest
+webapp-security retest .webapp-security/runs/first-review-retest \
   --name report \
   --baseline .webapp-security/runs/first-review/report.json \
   --fail-on high
 ```
 
-Inspect `summary.byBaseline` in the new JSON report. A finding is `fixed` only when the same rule and
-location no longer reproduce. `unchanged`, `regressed` and newly introduced findings stay visible.
-Keep runtime or deployment verification requirements for any source-only `suspected` result.
+Inspect `summary.byBaseline` in the new JSON report. A finding is `fixed` only when subject and
+scope match, the rule identity is compatible, current coverage completed and the condition is
+affirmatively absent. Removed or unavailable checks become `unretested`; incompatible revisions
+become `not_comparable`. Keep runtime or deployment verification requirements for source-only
+`suspected` results.
+
+For a moved or fresh clone, first review a prior scope, then explicitly bind the clone:
+
+```bash
+webapp-security rebind /path/to/moved-project \
+  --scope /path/to/prior/security-scope.yml \
+  --acknowledge-subject <exact-subject-id>
+```
+
+Historical v1 reports cannot become comparable. `migrate-report` preserves their byte digest and
+explicit lineage in a new v2 document, while leaving the original unchanged. Establish a new v2
+audit as the first comparable baseline.
 
 ## Authorization boundary
 

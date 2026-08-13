@@ -98,8 +98,8 @@ webapp-security uninstall
 webapp-security start .
 ```
 
-命令会创建 `.webapp-security/runs/<run-id>/security-scope.yml`，记录检测到的框架、包管理器、
-lockfile 与部署/配置路径，全程不访问网络。检查 scope 后，再发送：
+命令会创建私有项目身份及 `.webapp-security/runs/<run-id>/security-scope.yml`，记录检测到的框架、
+包管理器、lockfile 与部署/配置路径，全程不访问网络。检查 scope 后，再发送：
 
 ```text
 在这个仓库使用 $web-app-security。先只执行源码与本地检查，记录范围和假设；把每项结果标为 confirmed、suspected、unknown 或 not_applicable；准备最小且可审查的加固补丁，未经批准不应用高风险或生产变更；复测每项已应用修复，最后列出已修复、仍存在和未覆盖的风险。
@@ -108,14 +108,17 @@ lockfile 与部署/配置路径，全程不访问网络。检查 scope 后，再
 随后可运行确定性源码路径：
 
 ```bash
-webapp-security audit . --fail-on high
+webapp-security audit .webapp-security/runs/<run-id> --fail-on high
 webapp-security explain <finding-id> --report .webapp-security/runs/<run-id>/report.json
-webapp-security retest . --baseline .webapp-security/runs/<run-id>/report.json
+webapp-security start . --run-id <retest-run-id>
+webapp-security retest .webapp-security/runs/<retest-run-id> \
+  --baseline .webapp-security/runs/<run-id>/report.json
 ```
 
-每次 audit 会写出 JSON、Markdown、HTML、SARIF、JUnit 和 `proposed.patch`。该命令不会应用补丁；
-只有复测证据消除 finding 后才记为 fixed。更广的 Agent 任务仍需交付 scope、脱敏 finding、已审查
-变更、复测证据及剩余/未覆盖风险。这些命令都不授予部署探测权限。
+每次源码 audit 会写出 v2 JSON、Markdown、HTML、SARIF、JUnit、SHA-256 sidecar 和
+`proposed.patch`。直接对项目执行的一次性 audit 使用 ephemeral identity，不能作为复测 baseline。
+`fixed` 必须同时满足 persisted subject/scope 相同、rule 兼容、本次 coverage 已完成且条件明确不存在。
+命令不会应用补丁，也不授予部署探测权限。
 
 ## 能力边界
 
@@ -142,9 +145,17 @@ Action 虽然都有测试，但不构成更多 detector 家族。Gitleaks 与 OS
 webapp-security start .
 
 # 只读源码 audit、finding 解释与强制 baseline 复测
-webapp-security audit . --fail-on high
+webapp-security audit .webapp-security/runs/<run-id> --fail-on high
 webapp-security explain <finding-id> --report <report.json>
-webapp-security retest . --baseline <report.json> --fail-on high
+webapp-security start . --run-id <retest-run-id>
+webapp-security retest .webapp-security/runs/<retest-run-id> \
+  --baseline <report.json> --fail-on high
+
+# 历史 v1 报告保持不可比较；移动/clone 的项目必须显式绑定
+webapp-security migrate-report <v1-report.json> --scope <security-scope.yml> \
+  --acknowledge-subject <subject-id> --out <new-directory>
+webapp-security rebind <moved-project> --scope <security-scope.yml> \
+  --acknowledge-subject <subject-id>
 
 # 默认被动：爬取边界与 crawler 可达性
 webapp-security crawl --site https://example.com --out ./security-report
@@ -165,6 +176,9 @@ webapp-security aws --profile default --region us-east-1 --out ./security-report
 
 主动限流复测同样要求 `--acknowledge-authorization`。网络或证据源失败会得到 `unknown` 和非零退出，
 不会被描述成安全。
+
+当前 v2 runtime 只覆盖确定性源码 audit。Crawl、demo、crawler identity、edge 与 AWS surface
+在统一 runtime milestone 前仍保留现有格式；不能因为源码路径已使用 v2 就把它们描述成 v2。
 
 ## GitHub Action
 

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import {
   cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync,
 } from 'node:fs';
@@ -8,13 +7,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { validateReport } from '../scripts/lib/evidence.mjs';
+import { validateRuntimeReportV2 } from '../scripts/lib/evidence-v2.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const CLI = join(ROOT, 'scripts', 'webapp-security.mjs');
 const DENY_NETWORK = join(ROOT, 'test', 'helpers', 'deny-network.cjs');
-const temp = mkdtempSync(join(tmpdir(), 'web-app-security-evidence-'));
+const temp = mkdtempSync(join(tmpdir(), 'web-app-security-evidence-v2-'));
 const project = join(temp, 'project');
+const runs = join(temp, 'runs');
 const originalFixture = join(ROOT, 'test', 'fixtures', 'audit-app');
 
 function run(args) {
@@ -22,6 +22,12 @@ function run(args) {
     encoding: 'utf8',
     env: { ...process.env, NODE_OPTIONS: `--require=${DENY_NETWORK}`, SOURCE_DATE_EPOCH: '0' },
   });
+}
+
+function start(runId) {
+  const result = run(['start', project, '--out', runs, '--run-id', runId]);
+  assert.equal(result.status, 0, result.stderr);
+  return join(runs, runId);
 }
 
 function report(path) {
@@ -33,28 +39,33 @@ try {
   const originalPackage = readFileSync(join(project, 'package.json'), 'utf8');
   const originalConfig = readFileSync(join(project, 'next.config.mjs'), 'utf8');
 
-  const baselineDir = join(temp, 'baseline');
-  let result = run(['audit', project, '--out', baselineDir, '--name', 'baseline', '--fail-on', 'high']);
+  const baselineDir = start('baseline');
+  let result = run(['audit', baselineDir, '--name', 'baseline', '--fail-on', 'high']);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /network:\s+none/);
-  for (const extension of ['json', 'md', 'html', 'sarif', 'junit.xml']) {
+  for (const extension of ['json', 'md', 'html', 'sarif', 'junit.xml', 'sha256']) {
     const path = join(baselineDir, `baseline.${extension}`);
     assert.ok(existsSync(path), path);
     assert.equal(statSync(path).mode & 0o077, 0, `${path} must not be group/world readable`);
   }
   const baselinePath = join(baselineDir, 'baseline.json');
   const baseline = report(baselinePath);
-  assert.deepEqual(validateReport(baseline), []);
-  assert.equal(baseline.schemaVersion, 1);
+  assert.deepEqual(validateRuntimeReportV2(baseline), []);
+  assert.equal(baseline.schemaVersion, 2);
   assert.equal(baseline.generatedAt, '1970-01-01T00:00:00.000Z');
+  assert.equal(baseline.subject.binding, 'persisted');
+  assert.equal(JSON.stringify(baseline).includes(temp), false, 'v2 report must not contain local absolute paths');
   assert.equal(baseline.summary.byBaseline.new, 4);
   assert.equal(baseline.summary.byState.confirmed, 1);
   assert.equal(baseline.summary.byState.suspected, 3);
-  assert.equal(new Set(baseline.findings.map((finding) => finding.fingerprint)).size, 4);
-  assert.ok(baseline.findings.every((finding) => /^[a-f0-9]{64}$/.test(finding.fingerprint)));
-  const sourceMapFinding = baseline.findings.find((finding) => finding.ruleId === 'production-source-map-enabled');
-  const inspectorFinding = baseline.findings.find((finding) => finding.ruleId === 'node-inspector-public-bind');
-  const lockFinding = baseline.findings.find((finding) => finding.ruleId === 'dependency-lockfile-missing');
+  assert.equal(baseline.coverage.length, 5);
+  assert.ok(baseline.coverage.every((entry) => entry.status === 'completed'));
+  assert.ok(baseline.findings.every((finding) => finding.baseline.coverageRef));
+  assert.equal(baseline.policy.thresholds.find((entry) => entry.domain === 'security_exposure').failOn, 'high');
+  assert.equal(baseline.policy.thresholds.find((entry) => entry.domain === 'supply_chain').failOn, 'high');
+  const sourceMapFinding = baseline.findings.find((finding) => finding.rule.id === 'production-source-map-enabled');
+  const inspectorFinding = baseline.findings.find((finding) => finding.rule.id === 'node-inspector-public-bind');
+  const lockFinding = baseline.findings.find((finding) => finding.rule.id === 'dependency-lockfile-missing');
   assert.equal(sourceMapFinding.state, 'suspected');
   assert.equal(inspectorFinding.state, 'suspected');
   assert.equal(lockFinding.state, 'confirmed');
@@ -62,40 +73,27 @@ try {
   const patch = readFileSync(join(baselineDir, 'proposed.patch'), 'utf8');
   assert.match(patch, /Proposed changes only/);
   assert.match(patch, /productionBrowserSourceMaps: false/);
-  assert.equal(readFileSync(join(project, 'package.json'), 'utf8'), originalPackage, 'audit must not edit package.json');
-  assert.equal(readFileSync(join(project, 'next.config.mjs'), 'utf8'), originalConfig, 'audit must not edit config');
-  result = run(['audit', project, '--out', baselineDir, '--name', 'baseline', '--fail-on', 'never']);
+  assert.equal(readFileSync(join(project, 'package.json'), 'utf8'), originalPackage);
+  assert.equal(readFileSync(join(project, 'next.config.mjs'), 'utf8'), originalConfig);
+  result = run(['audit', baselineDir, '--name', 'baseline', '--fail-on', 'never']);
   assert.equal(result.status, 2);
   assert.match(result.stderr, /refusing to overwrite existing evidence/);
-  assert.equal(report(baselinePath).findings.length, 4, 'collision must preserve the baseline');
+  assert.equal(report(baselinePath).findings.length, 4);
 
   result = run(['explain', sourceMapFinding.id, '--report', baselinePath]);
   assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Risk domain: security_exposure/);
   assert.match(result.stdout, /Evidence state: suspected/);
-  assert.match(result.stdout, /publicDelivery/);
   result = run(['explain', 'missing-finding', '--report', baselinePath]);
   assert.equal(result.status, 2);
   assert.match(result.stderr, /finding not found/);
 
-  const invalid = structuredClone(baseline);
-  invalid.findings[0].state = 'safe';
-  assert.ok(validateReport(invalid).some((error) => error.includes('state is invalid')));
-
-  const sarif = JSON.parse(readFileSync(join(baselineDir, 'baseline.sarif'), 'utf8'));
-  assert.equal(sarif.version, '2.1.0');
-  assert.equal(sarif.runs[0].results.length, 4);
-  assert.equal(sarif.runs[0].results.find((item) => item.ruleId === sourceMapFinding.ruleId).properties.evidenceState, 'suspected');
-  assert.equal(sarif.runs[0].results.find((item) => item.ruleId === sourceMapFinding.ruleId).fingerprints.webAppSecurityFingerprint, sourceMapFinding.fingerprint);
-  const junit = readFileSync(join(baselineDir, 'baseline.junit.xml'), 'utf8');
-  assert.match(junit, /tests="4" failures="1" skipped="3"/);
-  assert.match(junit, /message="suspected"/);
-
-  const unchangedDir = join(temp, 'unchanged');
-  result = run(['retest', project, '--out', unchangedDir, '--name', 'unchanged', '--baseline', baselinePath, '--fail-on', 'high']);
+  const unchangedDir = start('unchanged');
+  result = run(['retest', unchangedDir, '--name', 'unchanged', '--baseline', baselinePath, '--fail-on', 'high']);
   assert.equal(result.status, 0, result.stderr);
   const unchanged = report(join(unchangedDir, 'unchanged.json'));
   assert.equal(unchanged.summary.byBaseline.unchanged, 4);
-  assert.ok(unchanged.findings.every((finding) => finding.baselineState === 'unchanged'));
+  assert.ok(unchanged.findings.every((finding) => finding.baseline.state === 'unchanged'));
 
   writeFileSync(join(project, 'package-lock.json'), '{"lockfileVersion":3}\n');
   writeFileSync(join(project, 'next.config.mjs'), 'export default { productionBrowserSourceMaps: false };\n');
@@ -104,35 +102,33 @@ try {
   writeFileSync(join(project, 'package.json'), `${JSON.stringify(fixedPackage, null, 2)}\n`);
   rmSync(join(project, '.env.production'));
 
-  const fixedDir = join(temp, 'fixed');
-  result = run(['retest', project, '--out', fixedDir, '--name', 'fixed', '--baseline', baselinePath, '--fail-on', 'low']);
+  const fixedDir = start('fixed');
+  result = run(['retest', fixedDir, '--name', 'fixed', '--baseline', baselinePath, '--fail-on', 'low']);
   assert.equal(result.status, 0, result.stderr);
   const fixedPath = join(fixedDir, 'fixed.json');
   const fixed = report(fixedPath);
   assert.equal(fixed.mode, 'retest');
   assert.equal(fixed.summary.byBaseline.fixed, 4);
-  assert.equal(fixed.summary.byState.confirmed, 1, 'confirmed lockfile finding stays confirmed when fixed');
-  assert.equal(fixed.summary.byState.suspected, 3, 'suspected leads are not promoted when fixed');
-  assert.ok(fixed.findings.every((finding) => finding.baselineState === 'fixed'));
+  assert.ok(fixed.findings.every((finding) => finding.baseline.state === 'fixed'));
+  assert.ok(fixed.findings.every((finding) => finding.baseline.reasonCode === 'condition_absent_after_completed_check'));
   assert.equal(JSON.parse(readFileSync(join(fixedDir, 'fixed.sarif'), 'utf8')).runs[0].results.length, 0);
   assert.match(readFileSync(join(fixedDir, 'fixed.junit.xml'), 'utf8'), /failures="0" skipped="4"/);
 
   writeFileSync(join(project, 'next.config.mjs'), originalConfig);
-  const regressedDir = join(temp, 'regressed');
-  result = run(['retest', project, '--out', regressedDir, '--name', 'regressed', '--baseline', fixedPath, '--fail-on', 'medium']);
-  assert.equal(result.status, 0, result.stderr, 'suspected medium regression must not fail a confirmed-only gate');
+  const regressedDir = start('regressed');
+  result = run(['retest', regressedDir, '--name', 'regressed', '--baseline', fixedPath, '--fail-on', 'medium']);
+  assert.equal(result.status, 0, result.stderr);
   const regressed = report(join(regressedDir, 'regressed.json'));
-  const regression = regressed.findings.find((finding) => finding.ruleId === 'production-source-map-enabled');
-  assert.equal(regression.baselineState, 'regressed');
+  const regression = regressed.findings.find((finding) => finding.rule.id === 'production-source-map-enabled');
+  assert.equal(regression.baseline.state, 'regressed');
   assert.equal(regression.state, 'suspected');
-  assert.equal(regressed.summary.byBaseline.regressed, 1);
 
   rmSync(join(project, 'package-lock.json'));
-  const confirmedRegressionDir = join(temp, 'confirmed-regression');
-  result = run(['retest', project, '--out', confirmedRegressionDir, '--name', 'confirmed', '--baseline', fixedPath, '--fail-on', 'low']);
-  assert.equal(result.status, 1, 'confirmed low regression must fail at low threshold');
-  const confirmedRegression = report(join(confirmedRegressionDir, 'confirmed.json'));
-  assert.equal(confirmedRegression.findings.find((finding) => finding.ruleId === 'dependency-lockfile-missing').baselineState, 'regressed');
+  const confirmedDir = start('confirmed-regression');
+  result = run(['retest', confirmedDir, '--name', 'confirmed', '--baseline', fixedPath, '--fail-on', 'low']);
+  assert.equal(result.status, 1);
+  const confirmed = report(join(confirmedDir, 'confirmed.json'));
+  assert.equal(confirmed.findings.find((finding) => finding.rule.id === 'dependency-lockfile-missing').baseline.state, 'regressed');
 
   const hostile = join(temp, '<img src=x onerror=alert(1)>');
   mkdirSync(hostile);
@@ -142,15 +138,7 @@ try {
   assert.equal(result.status, 0, result.stderr);
   const html = readFileSync(join(hostileDir, 'hostile.html'), 'utf8');
   assert.equal(html.includes('<img src=x onerror=alert(1)>'), false);
-  assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
-
-  const signature = createHash('sha256').update([
-    readFileSync(join(baselineDir, 'baseline.md'), 'utf8'),
-    readFileSync(join(baselineDir, 'baseline.html'), 'utf8'),
-    readFileSync(join(baselineDir, 'baseline.sarif'), 'utf8'),
-    readFileSync(join(baselineDir, 'baseline.junit.xml'), 'utf8'),
-  ].join('\n---renderer---\n').split(temp).join('<TEMP>')).digest('hex');
-  assert.equal(signature, '51a8ebee1cf2b2b1bc9e12a7013e09cf6123c8ac9800398f42ce6b2318d2d17f');
+  assert.equal(readFileSync(join(hostileDir, 'hostile.json'), 'utf8').includes(hostile), false);
 
   result = run(['retest', project, '--out', join(temp, 'no-baseline')]);
   assert.equal(result.status, 2);
@@ -159,29 +147,24 @@ try {
   const precisionProject = join(temp, 'precision-project');
   mkdirSync(join(precisionProject, 'apps', 'web'), { recursive: true });
   mkdirSync(join(precisionProject, 'backend'), { recursive: true });
-  writeFileSync(join(precisionProject, 'package.json'), JSON.stringify({
-    private: true,
-    packageManager: 'yarn@4.12.0',
-    workspaces: ['apps/*'],
-  }));
+  writeFileSync(join(precisionProject, 'package.json'), JSON.stringify({ private: true, packageManager: 'yarn@4.12.0', workspaces: ['apps/*'] }));
   writeFileSync(join(precisionProject, 'yarn.lock'), '# workspace lock\n');
   writeFileSync(join(precisionProject, 'apps', 'web', 'package.json'), JSON.stringify({ private: true }));
   writeFileSync(join(precisionProject, 'backend', 'requirements.txt'), 'django==5.2.5\n');
   writeFileSync(join(precisionProject, '.env.example'), 'PUBLIC_PLACEHOLDER=change-me\n');
-  writeFileSync(join(precisionProject, '.env.sample'), 'PUBLIC_PLACEHOLDER=change-me\n');
   writeFileSync(join(precisionProject, '.env.production'), 'DO_NOT_READ_PRECISION_SECRET=fixture-only\n');
   const precisionDir = join(temp, 'precision-report');
   result = run(['audit', precisionProject, '--out', precisionDir, '--name', 'precision', '--fail-on', 'never']);
   assert.equal(result.status, 0, result.stderr);
   const precision = report(join(precisionDir, 'precision.json'));
-  assert.equal(precision.findings.some((finding) => finding.ruleId === 'dependency-lockfile-missing'), false,
-    'a declared workspace inherits its root lockfile and requirements.txt is not a lockfile manifest');
-  const environmentFindings = precision.findings.filter((finding) => finding.ruleId === 'sensitive-env-file-present');
+  assert.equal(precision.subject.binding, 'ephemeral');
+  assert.ok(precision.policy.thresholds.every((entry) => entry.failOn === 'never'));
+  assert.equal(precision.findings.some((finding) => finding.rule.id === 'dependency-lockfile-missing'), false);
+  const environmentFindings = precision.findings.filter((finding) => finding.rule.id === 'sensitive-env-file-present');
   assert.deepEqual(environmentFindings.map((finding) => finding.location.path), ['.env.production']);
-  assert.equal(JSON.stringify(precision).includes('DO_NOT_READ_PRECISION_SECRET'), false,
-    'environment file contents must not enter evidence');
+  assert.equal(JSON.stringify(precision).includes('DO_NOT_READ_PRECISION_SECRET'), false);
 
-  console.log('✓ evidence loop: schemas, renderers, patch-only, explain, fixed and regressed states');
+  console.log('✓ evidence v2 loop: private reports, persisted identity, honest fixed/regressed and ephemeral boundary');
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

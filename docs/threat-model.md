@@ -16,7 +16,7 @@ consumers.
 | False `verified` crawler | Attacker gains a rate-limit exemption | Product-specific published ranges or FCrDNS |
 | False `spoofed` crawler | Legitimate search/AI traffic is blocked | Fail open on unavailable evidence; exact source matching |
 | Network failure reported as safe | Missing control is trusted | Explicit `unknown`; non-zero exit |
-| Cross-project or tampered baseline accepted | Unrelated findings are reported as fixed | Persisted subject/scope identity, report digest, ruleset compatibility, reject-before-write |
+| Cross-project or partially tampered baseline accepted | Unrelated findings are reported as fixed | Persisted subject/scope identity, report sidecar, internal digest validation, ruleset compatibility, reject-before-write |
 | Incomplete traversal reported clean | Unscanned source is interpreted as no findings | Coverage ledger; relevant skip/truncation becomes `unknown` and non-zero |
 | Parser or external tool failure reported clean | Missing detection is trusted | Structured adapters; unavailable/malformed evidence becomes `unknown` |
 | Secret leakage in reports | Credential or user-data exposure | Sanitized evidence contract; private reporting |
@@ -43,5 +43,8 @@ identity never grants access to private routes.
 7. Detection coverage must not include demo, reporting, installation or distribution capabilities.
 
 The v0.4.0 design details and v1 migration boundary are recorded in
-[`report-v2-migration.md`](report-v2-migration.md). The current v0.3.0 runtime does not yet satisfy
-that planned contract.
+[`report-v2-migration.md`](report-v2-migration.md). The deterministic source runtime implements the
+M1 identity and comparison subset. Other audit surfaces do not satisfy the shared v2 runtime yet.
+The local report sidecar is an integrity check, not an authenticated signature: a principal that can
+rewrite the project identity, report and sidecar can replace the evidence set. Preserve important
+baselines in access-controlled or signed storage when the local writer is outside the trust boundary.

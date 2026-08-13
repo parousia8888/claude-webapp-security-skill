@@ -59,9 +59,9 @@ node scripts/run-clean-room-tutorial.mjs --out "$tutorial_output"
 cat "$tutorial_output/tutorial-result.json"
 ```
 
-Runner 会创建隔离 HOME、安装 CLI、禁止网络、生成 scope、检查 `before` fixture、解释一个线索、
-复测加固后的 fixture、升级并卸载。预期基线为 4 个 finding：1 个 `confirmed`、3 个 `suspected`；
-复测必须在十分钟预算内把 4 个都记录为 `fixed`。
+Runner 会创建隔离 HOME、安装 CLI、禁止网络、生成 persisted scope、检查 `before` fixture、解释
+一个线索、显式 rebind 加固后的 fixture、复测、升级并卸载。预期基线为 4 个 finding：1 个
+`confirmed`、3 个 `suspected`；复测必须在十分钟预算内把 4 个都记录为 `fixed`。
 
 ## 开始你的项目
 
@@ -72,8 +72,9 @@ cd /path/to/your-project
 webapp-security start . --run-id first-review
 ```
 
-检查 `.webapp-security/runs/first-review/security-scope.yml`。它记录识别到的框架、包管理器、
-lockfile、部署/配置路径、假设以及被阻止的远程模式；它不读取 secret 值，也不授予访问部署实例的权限。
+检查 `.webapp-security/runs/first-review/security-scope.yml`。它记录 privacy-preserving persisted
+subject ID、scope digest、识别到的框架、包管理器、lockfile、部署/配置路径、假设以及被阻止的
+远程模式。私有 identity 保存在 `.webapp-security/project.json`；两者都不授予访问部署实例的权限。
 
 在这个 scope 下运行源码检查：
 
@@ -82,8 +83,9 @@ webapp-security audit .webapp-security/runs/first-review \
   --name report --fail-on never
 ```
 
-输出包括 `report.json`、`report.md`、`report.html`、`report.sarif`、`report.junit.xml` 和
-`proposed.patch`。JSON 用于自动化，Markdown/HTML 用于审查，SARIF/JUnit 用于 CI；patch 只是提案。
+输出包括 `report.json`、`report.sha256`、`report.md`、`report.html`、`report.sarif`、
+`report.junit.xml` 和 `proposed.patch`。JSON 用于自动化，sidecar 用于本地完整性检查，
+Markdown/HTML 用于审查，SARIF/JUnit 用于 CI；patch 只是提案。
 
 ## 解释结果
 
@@ -121,18 +123,30 @@ webapp-security explain <finding-id> \
 
 ## 复测
 
-审查并应用选定修改后，把新证据写到不同目录：
+审查并应用选定修改后，创建新 run 并把新证据写入其中：
 
 ```bash
-webapp-security retest . \
-  --out .webapp-security/runs/first-review-retest \
+webapp-security start . --run-id first-review-retest
+webapp-security retest .webapp-security/runs/first-review-retest \
   --name report \
   --baseline .webapp-security/runs/first-review/report.json \
   --fail-on high
 ```
 
-检查新 JSON 报告中的 `summary.byBaseline`。只有相同 rule 和 location 不再复现时才记为 `fixed`；
-`unchanged`、`regressed` 和新增 finding 继续保留。源码层的 `suspected` 仍需运行时或部署证据。
+检查新 JSON 报告中的 `summary.byBaseline`。只有 subject/scope 相同、rule identity 兼容、本次
+coverage 完成且条件明确不存在时才记为 `fixed`。未执行或不可用检查记为 `unretested`，不兼容
+revision 记为 `not_comparable`。源码层的 `suspected` 仍需运行时或部署证据。
+
+项目移动或 fresh clone 后，先检查原 scope，再显式绑定：
+
+```bash
+webapp-security rebind /path/to/moved-project \
+  --scope /path/to/prior/security-scope.yml \
+  --acknowledge-subject <exact-subject-id>
+```
+
+历史 v1 报告不能变成可比较 baseline。`migrate-report` 只在新的 v2 文档中保留原始字节 digest
+与显式 lineage，且不修改原文件；第一份可信的可比较 baseline 必须来自新的 v2 audit。
 
 ## 授权边界
 

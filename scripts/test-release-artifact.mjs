@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import {
-  existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync,
+  cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, posix, resolve } from 'node:path';
@@ -56,8 +56,10 @@ try {
   result = run(launcher, ['version'], { cwd: root, env });
   assert.equal(result.stdout.trim(), `Web App Security Skill ${version}`);
   const startOut = join(temp, 'scope');
+  const project = join(temp, 'project');
+  cpSync(join(root, 'test', 'fixtures', 'next-app'), project, { recursive: true });
   result = run(launcher, [
-    'start', join(root, 'test', 'fixtures', 'next-app'), '--out', startOut, '--run-id', 'release-artifact',
+    'start', project, '--out', startOut, '--run-id', 'release-artifact',
   ], { cwd: root, env });
   assert.match(result.stdout, /network:\s+none/);
   assert.ok(existsSync(join(startOut, 'release-artifact', 'security-scope.yml')));

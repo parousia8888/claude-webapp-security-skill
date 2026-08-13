@@ -14,6 +14,11 @@ const CLI = join(ROOT, 'scripts', 'webapp-security.mjs');
 const FIXTURES = join(ROOT, 'test', 'fixtures');
 const DENY_NETWORK = join(ROOT, 'test', 'helpers', 'deny-network.cjs');
 const temp = mkdtempSync(join(tmpdir(), 'web-app-security-discovery-'));
+const projects = join(temp, 'projects');
+mkdirSync(projects);
+for (const name of ['next-app', 'fastapi-app', 'split-stack']) {
+  cpSync(join(FIXTURES, name), join(projects, name), { recursive: true });
+}
 
 function start(project, runId, extra = []) {
   const out = join(temp, 'runs');
@@ -26,10 +31,14 @@ function start(project, runId, extra = []) {
 }
 
 try {
-  let result = start(join(FIXTURES, 'next-app'), 'next');
+  let result = start(join(projects, 'next-app'), 'next');
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.scope.schemaVersion, 1);
+  assert.equal(result.scope.schemaVersion, 2);
   assert.equal(result.scope.generatedAt, '1970-01-01T00:00:00.000Z');
+  assert.match(result.scope.subject.id, /^project-[a-f0-9]{32}$/);
+  assert.equal(result.scope.subject.binding, 'persisted');
+  assert.equal(result.scope.subject.localPathIncluded, false);
+  assert.match(result.scope.subject.scopeDigest, /^[a-f0-9]{64}$/);
   assert.equal(result.scope.target.discoveryStatus, 'supported');
   assert.equal(result.scope.target.layout, 'single-root');
   assert.ok(result.scope.target.frameworks.some((item) => item.name === 'Next.js'));
@@ -41,14 +50,21 @@ try {
   assert.equal(result.scope.discoveryEvidence.secretFilesRead, false);
   assert.equal(statSync(result.scopePath).mode & 0o777, 0o600);
   assert.equal(statSync(join(result.out, 'next')).mode & 0o777, 0o700);
+  const identityPath = join(projects, 'next-app', '.webapp-security', 'project.json');
+  assert.equal(statSync(identityPath).mode & 0o777, 0o600);
+  const subjectId = result.scope.subject.id;
 
-  result = start(join(FIXTURES, 'fastapi-app'), 'fastapi');
+  result = start(join(projects, 'next-app'), 'next-second');
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.scope.subject.id, subjectId, 'subsequent scopes must reuse persisted identity');
+
+  result = start(join(projects, 'fastapi-app'), 'fastapi');
   assert.equal(result.status, 0, result.stderr);
   assert.ok(result.scope.target.frameworks.some((item) => item.name === 'FastAPI'));
   assert.ok(result.scope.target.packageManagers.some((item) => item.name === 'uv'));
   assert.deepEqual(result.scope.target.deploymentSurfaces, ['Dockerfile']);
 
-  result = start(join(FIXTURES, 'split-stack'), 'split');
+  result = start(join(projects, 'split-stack'), 'split');
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.scope.target.layout, 'split-stack');
   assert.ok(result.scope.target.frameworks.some((item) => item.name === 'FastAPI' && item.root === 'backend'));
@@ -90,10 +106,12 @@ try {
   assert.equal(existsSync(join(temp, 'missing-out')), false);
 
   const collisionBefore = readFileSync(join(temp, 'runs', 'next', 'security-scope.yml'), 'utf8');
-  result = start(join(FIXTURES, 'next-app'), 'next');
+  result = start(join(projects, 'next-app'), 'next');
   assert.equal(result.status, 2);
   assert.match(result.stderr, /run already exists/);
   assert.equal(readFileSync(join(temp, 'runs', 'next', 'security-scope.yml'), 'utf8'), collisionBefore);
+  assert.equal(existsSync(join(FIXTURES, 'next-app', '.webapp-security')), false,
+    'tests must not persist identity inside repository fixtures');
 
   console.log('✓ project discovery: Node, Python, split stack, no-network, secret and authorization gates');
 } finally {

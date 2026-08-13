@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { basename, dirname, relative, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -29,6 +29,17 @@ function git(checkout, args) {
   const result = spawnSync('git', ['-C', checkout, ...args], { encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.stderr.trim() || `git ${args.join(' ')} failed`);
   return result.stdout.trim();
+}
+
+function extractCommit(checkout, commit, destination, archive) {
+  mkdirSync(destination, { recursive: true, mode: 0o700 });
+  let result = spawnSync('git', ['-C', checkout, 'archive', '--format=tar', '--output', archive, commit], {
+    encoding: 'utf8',
+  });
+  if (result.status !== 0) throw new Error(result.stderr.trim() || 'git archive failed');
+  result = spawnSync('tar', ['-xf', archive, '-C', destination], { encoding: 'utf8' });
+  rmSync(archive, { force: true });
+  if (result.status !== 0) throw new Error(result.stderr.trim() || 'tar extraction failed');
 }
 
 function isInside(parent, child) {
@@ -76,13 +87,15 @@ try {
   }
   if (existsSync(output)) throw new Error(`output already exists: ${output}`);
   mkdirSync(output, { recursive: true, mode: 0o700 });
+  const snapshot = `${output}/source-snapshot`;
+  extractCommit(checkout, head, snapshot, `${output}/source.tar`);
   const env = {
     ...process.env,
     NODE_OPTIONS: `--require=${DENY_NETWORK}`,
     SOURCE_DATE_EPOCH: '0',
   };
-  const startOutput = run(['start', checkout, '--out', `${output}/runs`, '--run-id', id], env);
-  const auditOutput = run(['audit', checkout, '--out', `${output}/audit`, '--name', 'report', '--fail-on', 'never'], env);
+  const startOutput = run(['start', snapshot, '--out', `${output}/runs`, '--run-id', id], env);
+  const auditOutput = run(['audit', `${output}/runs/${id}`, '--out', `${output}/audit`, '--name', 'report', '--fail-on', 'never'], env);
   const scope = JSON.parse(readFileSync(`${output}/runs/${id}/security-scope.yml`, 'utf8'));
   const report = JSON.parse(readFileSync(`${output}/audit/report.json`, 'utf8'));
   const actualDiscovery = {
@@ -94,7 +107,7 @@ try {
   };
   const expected = journey.deterministicAudit;
   const actualRules = report.findings.map((finding) => ({
-    ruleId: finding.ruleId,
+    ruleId: finding.rule.id,
     severity: finding.severity,
     state: finding.state,
     path: finding.location?.path,
@@ -107,9 +120,12 @@ try {
       || JSON.stringify(actualRules) !== JSON.stringify(expected.rules || [])) {
     throw new Error(`observed evidence differs from catalog for ${id}`);
   }
+  if (git(checkout, ['status', '--porcelain', '--untracked-files=normal'])) {
+    throw new Error('source checkout changed while the case journey ran');
+  }
   console.log(`journey:    ${id}`);
   console.log(`commit:     ${head}`);
-  console.log(`checkout:   clean`);
+  console.log(`checkout:   clean and unchanged`);
   console.log(startOutput.trim());
   console.log(auditOutput.trim());
   console.log('catalog:    matched');

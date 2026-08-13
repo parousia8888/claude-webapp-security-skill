@@ -1,7 +1,8 @@
 # Report v2 migration contract
 
-Report v2 is the planned v0.4.0 evidence contract. The current v0.3.0 CLI still writes v1 reports;
-the presence of the v2 design schemas does not make those reports comparable under v2.
+Report v2 is the v0.4.0 evidence contract. The current source `audit` and `retest` commands write v2
+reports and implement the M1 identity/comparison subset. Crawl, demo, crawler identity, edge and AWS
+surfaces still use their existing contracts until the shared-runtime milestone.
 
 ## Identity model
 
@@ -40,10 +41,12 @@ Version 1 remains readable for historical display and release verification. It l
 subject ID, scope digest, ruleset digest, adapter coverage and rule revision, so it must never be
 silently accepted as a comparable v2 baseline.
 
-The planned migration command requires the user to review and explicitly bind the v1 report to a
+The `migrate-report` command requires the user to review and explicitly bind the v1 report to a
 persisted v2 scope. It writes a new v2 document containing:
 
 - the SHA-256 digest of the original v1 bytes;
+- the current migration generator version and original v1 producer name/version as separate
+  provenance fields;
 - `subject.binding=migrated`;
 - `migration.boundBy=explicit_user_binding` and a timestamp;
 - the original v1 file unchanged;
@@ -81,5 +84,12 @@ but required evidence is incomplete, exit `3` applies.
   `unknown` evidence and exit `3` when no confirmed configured threshold is crossed.
 - Confirmed threshold breach: exit `1`, while retaining unrelated incomplete evidence in the report.
 
-The implementation and CLI migration path land in later v0.4.0 milestones. Until then, use v1 only
-with the current v0.3.0 behavior and do not describe it as satisfying this contract.
+`migrate-report` produces lineage evidence, not a comparable baseline. Establish the first trusted
+baseline with a new persisted v2 source audit. Use `rebind` only after reviewing the prior scope and
+acknowledging its exact subject ID; neither command infers identity from a path, repository name or
+finding overlap.
+
+The adjacent SHA-256 sidecar detects accidental or partial report modification, and runtime
+validation recomputes finding, adapter and report ruleset identities. This is not an authenticated
+signature. A principal allowed to rewrite the project identity, report and sidecar can replace the
+whole local evidence set; preserve high-trust baselines in access-controlled or signed storage.

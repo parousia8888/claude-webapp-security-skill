@@ -25,7 +25,10 @@ node scripts/run-case-journey.mjs linkwarden /tmp/linkwarden-case --out /tmp/lin
 ```
 
 The runner refuses a dirty checkout, a mismatched `HEAD`, an existing output path, or an output
-path inside the source checkout. It preloads `test/helpers/deny-network.cjs` for `start` and
-`audit`. Source acquisition itself is outside that deny-network step and remains visible.
+path inside the source checkout. It exports the exact tracked commit to an isolated snapshot under
+the evidence directory, so project identity and audit files never modify the reviewed checkout. It
+preloads `test/helpers/deny-network.cjs` for `start` and `audit`, then verifies that the original
+checkout is still clean. Source acquisition itself is outside that deny-network step and remains
+visible.
 
 No hosted instance was probed. Reproducing a journey does not authorize remote testing.

@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, w
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildScope, discoverProject } from './lib/project-discovery.mjs';
+import { ensureProjectIdentity, persistedSubject, sourceAuditBoundary } from './lib/project-identity.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
@@ -52,11 +53,13 @@ try {
   const stage = mkdtempSync(join(runRoot, '.start-'));
   let runCreated = false;
   try {
+    const identity = ensureProjectIdentity(discovery.projectRoot, now.toISOString());
     const scope = buildScope(discovery, {
       version: readFileSync(join(ROOT, 'VERSION'), 'utf8').trim(),
       generatedAt: now.toISOString(),
       runId,
       runDirectory,
+      subject: persistedSubject(identity, sourceAuditBoundary()),
     });
     writeFileSync(join(stage, 'security-scope.yml'), `${JSON.stringify(scope, null, 2)}\n`, { mode: 0o600 });
     mkdirSync(runDirectory, { mode: 0o700 });
