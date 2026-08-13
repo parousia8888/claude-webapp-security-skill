@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const read = (path) => readFileSync(`${ROOT}/${path}`, 'utf8');
+const version = read('VERSION').trim();
 const workflows = [
   '.github/workflows/ci.yml',
   '.github/workflows/codeql.yml',
@@ -50,6 +51,7 @@ for (const [path, markers] of [
   ]],
   ['.github/workflows/ci.yml', [
     'fetch-depth: 0',
+    "node: ['22', '24']",
   ]],
   ['.github/workflows/action-v1-consumer.yml', [
     'workflow_dispatch:',
@@ -73,8 +75,13 @@ for (const [path, markers] of [
   ['docs/verified-installation.md', [BOOTSTRAP_COMMIT, BOOTSTRAP_SHA256, '--from-dir']],
   ['docs/verified-installation.zh-CN.md', [BOOTSTRAP_COMMIT, BOOTSTRAP_SHA256, '--from-dir']],
   ['.github/release-signers', ['syx627511687@gmail.com ssh-ed25519 ']],
-  ['docs/releases/v0.3.0.md', ['gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.3.0']],
+  [`docs/releases/v${version}.md`, [`gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v${version}`]],
 ]) for (const marker of markers) requireText(path, marker);
+
+for (const marker of [
+  '| Node.js | 22, 24 | Ubuntu and macOS CI |',
+  '| Windows / WSL2 | Not supported |',
+]) requireText('docs/compatibility.md', marker);
 
 if (read('.github/workflows/release.yml').includes('- "v*"')) {
   console.error('release contract: moving major tags must not trigger a versioned release');

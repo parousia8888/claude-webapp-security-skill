@@ -82,8 +82,11 @@ for (const marker of [
 ]) if (!surfaces.launch.includes(marker)) fail(`launch evidence is missing ${marker}`);
 if (/13\s+(?:high|HIGH)/.test(surfaces.launch)) fail('launch evidence combines cross-domain demo severity');
 
-if (!surfaces.roadmap.includes('## Shipped in v0.3.0') || surfaces.roadmap.includes('## v0.4')) {
-  fail('roadmap does not separate shipped v0.3.0 behavior from current backlog');
+if (!surfaces.roadmap.includes('## Shipped in v0.3.0')
+    || !surfaces.roadmap.includes('## Candidate in v0.4.0')
+    || !surfaces.roadmap.includes('publication,')
+    || !surfaces.roadmap.includes('immutable release verification and `v1` promotion remain gated')) {
+  fail('roadmap does not separate published v0.3.0, candidate v0.4.0 and remaining gates');
 }
 for (const [path, text] of [['README.md', surfaces.readme], ['README.zh-CN.md', surfaces.zh], ['docs/launch-evidence.md', surfaces.launch]]) {
   if (/img\.shields\.io\/github\/(?:stars|forks)|\/stargazers|star target/i.test(text)) {

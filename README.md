@@ -262,7 +262,7 @@ review release notes before accepting an update to it.
 
 ## Trust and release evidence
 
-- CI runs Ubuntu/macOS x Node 20/22, deterministic HTTP/HTTPS fixtures and Bash 3.2 smoke tests.
+- CI runs Ubuntu/macOS x Node 22/24, deterministic HTTP/HTTPS fixtures and Bash 3.2 smoke tests.
 - Third-party Actions in release and CodeQL workflows are pinned to full commit SHAs.
 - Tagged releases require matching `VERSION`, changelog and a versioned evidence note. The tag is
   signed and the release records its source commit.

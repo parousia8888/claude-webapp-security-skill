@@ -39,8 +39,11 @@ try {
   }
   const manifest = join(first, `web-app-security-skill-${version}.release.json`);
   const archive = join(first, `web-app-security-skill-${version}.tar.gz`);
+  const previous = join(temp, 'previous');
+  run(process.execPath, [BUILD, '--ref', 'v0.3.0', '--out', previous]);
+  const previousArchive = join(previous, 'web-app-security-skill-0.3.0.tar.gz');
   run(process.execPath, [VERIFY, '--manifest', manifest]);
-  run(process.execPath, [LIFECYCLE, '--archive', archive]);
+  run(process.execPath, [LIFECYCLE, '--archive', archive, '--previous-archive', previousArchive]);
 
   const index = join(temp, 'index');
   const alternateVersion = join(temp, 'VERSION');
@@ -71,7 +74,7 @@ try {
   assert.equal(syntheticManifest.version, '9.8.7');
   assert.equal(syntheticManifest.sourceCommit, syntheticRef);
   assert.equal(syntheticSbom.packages[0].versionInfo, '9.8.7');
-  console.log(`release artifacts ok: reproducible ${version}, clean lifecycle, ref-derived metadata`);
+  console.log(`release artifacts ok: reproducible ${version}, v0.3.0 upgrade lifecycle, ref-derived metadata`);
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

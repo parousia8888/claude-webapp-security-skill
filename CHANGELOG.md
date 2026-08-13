@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-14
+
 ### Added
 - Report/finding v2 design schemas and migration contract define privacy-preserving subject identity,
   scope/ruleset compatibility, risk domains, coverage accounting, affirmative `fixed` evidence and
@@ -17,13 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Regression contracts reject fixed results without a completed compatible check, silent v1
   comparison, unreconciled coverage, and capability metadata that counts demos, renderers or
   distribution as vulnerability detection.
+- Private atomic evidence bundles use restrictive permissions, reject overwrite, sanitize all
+  formats before commit and roll back handled write failures without leaving partial output.
+- Opt-in, exact-version Gitleaks 8.30.1 and OSV-Scanner 2.5.0 adapters expose per-rule coverage and
+  keep every scanner match as a `suspected` lead. Missing, incompatible, timed-out or malformed
+  external tools produce explicit `unknown` evidence.
+- Five fixed-commit ordinary-project journeys exercise the complete v2 built-in/Gitleaks/OSV path,
+  with a release regression inventory for historical correctness failures and detector applicability.
+- Deterministic local fixtures cover crawler range integrity, nested AWS permission denial and
+  sitemap XML/off-origin boundaries without third-party network or cloud access.
 
 ### Changed
 - Capability claims now use independent category and maturity fields. The public matrix identifies
-  five stable narrow detection families and two planned detection adapters separately from evidence,
+  seven stable narrow detection families separately from evidence,
   reporting, lifecycle, distribution and agent-guided capabilities.
 - The threat model now covers cross-project baseline substitution, incomplete traversal,
   parser/external-tool failure and partial report disclosure.
+- Risk summaries and gates are domain-aware: security exposure and supply chain are separated from
+  search discoverability, reliability and evidence integrity. A failed check cannot become a pass.
+- The composite Action retains v0.3 crawl inputs and adds source mode with built-in or
+  caller-provided adapters. Supported Node releases are 22 and 24 on Ubuntu and macOS.
 
 ### Fixed
 - Source retest rejects cross-project, replaced-identity, malformed, digest-mismatched and internally
@@ -40,11 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   declarations and malformed XML, and constrains sitemap indexes and sampled URLs to the audited
   origin. Unknown sitemap evidence still writes a report, queues no URLs from that document, and
   exits `3` independently of `--fail-on`.
-
-### Added
-- Deterministic local fixtures for crawler range integrity, nested AWS permission denial and
-  sitemap XML/off-origin boundaries. The tests prohibit third-party network access and exercise
-  the real CLIs.
+- Gitleaks exact duplicates no longer create duplicate findings, distinct tool fingerprints no
+  longer collide, and numeric fingerprint prefixes cannot be rewritten by evidence sanitization.
 
 ## [0.3.0] — 2026-08-13
 

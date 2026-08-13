@@ -44,6 +44,7 @@ const allowedLegacyFiles = new Set([
   'CHANGELOG.md',
   'docs/PRODUCTIZATION_PLAN.md',
   'docs/releases/v0.3.0.md',
+  'docs/releases/v0.4.0.md',
   'scripts/webapp-security.mjs',
   'test/product-surfaces.test.mjs',
 ]);

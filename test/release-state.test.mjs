@@ -29,21 +29,21 @@ try {
     recursive: true,
     filter: (source) => !source.split('/').includes('.git'),
   });
-  writeFileSync(join(candidate, 'VERSION'), '0.3.1\n');
+  writeFileSync(join(candidate, 'VERSION'), '0.4.1\n');
   const pkgPath = join(candidate, 'package.json');
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-  pkg.version = '0.3.1';
+  pkg.version = '0.4.1';
   writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
   const changelogPath = join(candidate, 'CHANGELOG.md');
   const changelog = readFileSync(changelogPath, 'utf8').replace(
     '## [Unreleased]\n',
-    '## [Unreleased]\n\n## [0.3.1] — 2026-08-13\n',
+    '## [Unreleased]\n\n## [0.4.1] — 2026-08-14\n',
   );
   writeFileSync(changelogPath, changelog);
-  const release030 = readFileSync(join(candidate, 'docs', 'releases', 'v0.3.0.md'), 'utf8');
+  const release040 = readFileSync(join(candidate, 'docs', 'releases', 'v0.4.0.md'), 'utf8');
   writeFileSync(
-    join(candidate, 'docs', 'releases', 'v0.3.1.md'),
-    release030.replaceAll('v0.3.0', 'v0.3.1'),
+    join(candidate, 'docs', 'releases', 'v0.4.1.md'),
+    release040.replaceAll('v0.4.0', 'v0.4.1'),
   );
 
   run(process.execPath, [join(candidate, 'scripts', 'generate-launch-evidence.mjs')], { cwd: candidate });

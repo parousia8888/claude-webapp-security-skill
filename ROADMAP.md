@@ -22,21 +22,21 @@ coverage and adoption.
 See the [v0.3.0 release evidence](docs/releases/v0.3.0.md) and
 [generated capability matrix](docs/capabilities.md) for exact boundaries.
 
-## Target for v0.4.0
+## Candidate in v0.4.0
 
-v0.4.0 is planned as the evidence-integrity and useful-detection release. Its release blockers are
-cross-project baseline isolation, honest incomplete-scan semantics, domain-separated risk reporting,
-private atomic evidence output, stable Gitleaks and OSV-Scanner adapters, and regenerated evidence
-from five fixed-commit ordinary Web projects. It remains an agent-guided hardening skill with narrow
-deterministic automation, not a general SAST/DAST scanner.
+The v0.4.0 candidate implements cross-project baseline isolation, honest incomplete-scan semantics,
+domain-separated risk reporting, private atomic evidence output, stable Gitleaks and OSV-Scanner
+adapters, and regenerated evidence from five fixed-commit ordinary Web projects. It remains an
+agent-guided hardening skill with narrow deterministic automation, not a general SAST/DAST scanner.
 
 The complete milestone sequence, tests, stop conditions and Definition of Done live in the
-[v0.4.0 engineering plan](docs/V0.4.0_ENGINEERING_PLAN.md). Planned items must not be presented as
-shipped until their milestone completion record and release evidence exist.
+[v0.4.0 engineering plan](docs/V0.4.0_ENGINEERING_PLAN.md). M0-M7 are complete; publication,
+immutable release verification and `v1` promotion remain gated in M8. Candidate behavior must not be
+presented as published until the signed release and post-publication evidence exist.
 
 ## Correctness backlog
 
-Completed on `main` after v0.3.0; included in the next patch release only after the release gate:
+Included in the v0.4.0 candidate; public availability still depends on the release gate:
 
 - [x] [#1](https://github.com/parousia8888/web-app-security-skill/issues/1): malformed, empty, stale
   and wrong-product crawler-range fixtures; invalid evidence is `unverifiable` and exit `3`.

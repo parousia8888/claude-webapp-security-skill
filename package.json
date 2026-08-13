@@ -1,11 +1,14 @@
 {
   "name": "web-app-security-skill",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "Check, harden, and retest web projects with an AI coding agent and reproducible evidence.",
   "bin": {
     "webapp-security": "scripts/webapp-security.mjs"
+  },
+  "engines": {
+    "node": ">=22 <25"
   },
   "scripts": {
     "test": "for f in test/*.test.mjs; do echo \"→ $f\"; node \"$f\" || exit 1; done",

@@ -2,7 +2,7 @@
 
 | Surface | Supported | CI / verification |
 |---|---|---|
-| Node.js | 20, 22 | Ubuntu and macOS CI |
+| Node.js | 22, 24 | Ubuntu and macOS CI |
 | Bash | 3.2+ | macOS Bash 3.2 smoke and integration tests |
 | Verified bootstrap | POSIX `sh`, Node.js and curl | Immutable bootstrap digest plus loopback fixture tests |
 | curl | Modern curl with `--tls-max` for full TLS policy | Missing capability becomes `unknown`, never pass |
@@ -14,7 +14,7 @@
 | Gitleaks | Exactly 8.30.1 when selected | Pinned Linux real-tool fixture plus parser/failure/redaction regressions |
 | OSV-Scanner | Exactly 2.5.0 when selected | Pinned Linux real-tool fixture plus parser/failure/severity regressions |
 | AWS CLI | v2 recommended | Optional; missing CLI, permission failures and malformed JSON are v2 `unknown` evidence |
-| Windows | WSL2 only | Native PowerShell is not currently supported |
+| Windows / WSL2 | Not supported | No maintained native-Windows or clean WSL2 verification environment |
 
 Project discovery currently identifies Node projects from `package.json`, common JavaScript
 lockfiles and supported framework dependencies; Python projects from `pyproject.toml` or
@@ -30,7 +30,7 @@ downloaded automatically or executes project dependencies. JSON, Markdown, HTML,
 JUnit render from one report object. Other security domains remain agent-guided until a specific
 deterministic adapter ships.
 
-Node 18 may run some scripts but is not a supported release target. TLS results vary by curl TLS
+Node 20 or earlier may run some scripts but is not a supported release target. TLS results vary by curl TLS
 backend; protocol checks are capability-tested and stop with `unknown` if they cannot be proven.
 
 The low-level lifecycle commands do not fetch remote code. `install` copies the extracted release
@@ -38,4 +38,4 @@ that executes it. The verified bootstrap downloads a pinned verifier and explici
 checks their independent SHA-256 trust anchors, manifest, checksum list, SBOM, commit and archive
 paths, then invokes the same lifecycle command. Replacement and removal require a recognized install
 marker or the documented legacy Skill identity; unknown paths are left untouched. Native Windows,
-PowerShell launchers and a native WSL2 evidence run remain unsupported.
+PowerShell launchers and WSL2 remain unsupported until a maintained verification environment exists.

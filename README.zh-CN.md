@@ -248,7 +248,7 @@ Source mode 默认只用内置 adapter。外部二进制必须由调用方固定
 
 ## 信任与 release 证据
 
-- CI 覆盖 Ubuntu/macOS x Node 20/22、确定性 HTTP/HTTPS fixture 和 Bash 3.2 smoke test。
+- CI 覆盖 Ubuntu/macOS x Node 22/24、确定性 HTTP/HTTPS fixture 和 Bash 3.2 smoke test。
 - release 与 CodeQL workflow 的第三方 Action 使用完整 commit SHA。
 - tag 必须同时匹配 `VERSION`、changelog 和该版本的证据文件；tag 带签名，release 记录来源 commit。
 - release 产物包含可复现源码包、SPDX 2.3 SBOM、`SHA256SUMS` 与 GitHub build provenance attestation。

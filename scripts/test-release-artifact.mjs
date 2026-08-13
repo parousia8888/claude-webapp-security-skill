@@ -9,11 +9,15 @@ import { spawnSync } from 'node:child_process';
 
 const args = process.argv.slice(2);
 const archiveIndex = args.indexOf('--archive');
-if (archiveIndex === -1 || !args[archiveIndex + 1] || args.length !== 2) {
-  console.error('usage: node scripts/test-release-artifact.mjs --archive <tar.gz>');
+const previousIndex = args.indexOf('--previous-archive');
+const expectedArgs = previousIndex === -1 ? 2 : 4;
+if (archiveIndex === -1 || !args[archiveIndex + 1]
+    || (previousIndex !== -1 && !args[previousIndex + 1]) || args.length !== expectedArgs) {
+  console.error('usage: node scripts/test-release-artifact.mjs --archive <tar.gz> [--previous-archive <tar.gz>]');
   process.exit(2);
 }
 const archive = resolve(args[archiveIndex + 1]);
+const previousArchive = previousIndex === -1 ? null : resolve(args[previousIndex + 1]);
 const temp = mkdtempSync(join(tmpdir(), 'web-app-security-release-'));
 const extract = join(temp, 'extract');
 const home = join(temp, 'home');
@@ -24,11 +28,10 @@ function run(program, commandArgs, options = {}) {
   return result;
 }
 
-try {
-  assert.ok(existsSync(archive), archive);
-  mkdirSync(extract);
-  mkdirSync(home);
-  const listing = run('tar', ['-tzf', archive]);
+function extractArchive(path, destination) {
+  assert.ok(existsSync(path), path);
+  mkdirSync(destination);
+  const listing = run('tar', ['-tzf', path]);
   const entries = listing.stdout.trim().split('\n');
   assert.ok(entries.length > 1, 'release archive is empty');
   const topLevels = new Set(entries.map((entry) => entry.split('/')[0]));
@@ -37,10 +40,15 @@ try {
     assert.equal(posix.isAbsolute(entry), false, `archive contains absolute path: ${entry}`);
     assert.equal(entry.split('/').includes('..'), false, `archive contains parent traversal: ${entry}`);
   }
-  run('tar', ['-xzf', archive, '-C', extract]);
-  const roots = readdirSync(extract);
+  run('tar', ['-xzf', path, '-C', destination]);
+  const roots = readdirSync(destination);
   assert.equal(roots.length, 1, 'release archive must have one top-level directory');
-  const root = join(extract, roots[0]);
+  return join(destination, roots[0]);
+}
+
+try {
+  mkdirSync(home);
+  const root = extractArchive(archive, extract);
   const cli = join(root, 'scripts', 'webapp-security.mjs');
   const version = readFileSync(join(root, 'VERSION'), 'utf8').trim();
   const env = {
@@ -50,9 +58,22 @@ try {
     SOURCE_DATE_EPOCH: '0',
   };
 
-  let result = run(process.execPath, [cli, 'install'], { cwd: root, env });
-  assert.match(result.stdout, /installed:/);
   const launcher = join(home, '.local', 'bin', 'webapp-security');
+  let result;
+  if (previousArchive) {
+    const previousRoot = extractArchive(previousArchive, join(temp, 'previous'));
+    const previousCli = join(previousRoot, 'scripts', 'webapp-security.mjs');
+    const previousVersion = readFileSync(join(previousRoot, 'VERSION'), 'utf8').trim();
+    result = run(process.execPath, [previousCli, 'install'], { cwd: previousRoot, env });
+    assert.match(result.stdout, /installed:/);
+    result = run(launcher, ['version'], { cwd: previousRoot, env });
+    assert.equal(result.stdout.trim(), `Web App Security Skill ${previousVersion}`);
+    result = run(process.execPath, [cli, 'upgrade'], { cwd: root, env });
+    assert.match(result.stdout, /upgraded:/);
+  } else {
+    result = run(process.execPath, [cli, 'install'], { cwd: root, env });
+    assert.match(result.stdout, /installed:/);
+  }
   result = run(launcher, ['version'], { cwd: root, env });
   assert.equal(result.stdout.trim(), `Web App Security Skill ${version}`);
   const startOut = join(temp, 'scope');
@@ -79,7 +100,7 @@ try {
   assert.equal(existsSync(join(home, '.local', 'share', 'web-app-security')), false);
   assert.equal(existsSync(launcher), false);
   assert.ok(backups.length >= 3, 'uninstall must not remove upgrade backups');
-  console.log(`release artifact lifecycle ok: ${basename(archive)} (${version})`);
+  console.log(`release artifact lifecycle ok: ${basename(archive)} (${version})${previousArchive ? ' with prior-version upgrade' : ''}`);
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }
