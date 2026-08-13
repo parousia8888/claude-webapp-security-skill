@@ -20,7 +20,7 @@ function run(value) {
 try {
   let result = run(source);
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /7 stable detection, 0 planned detection/);
+  assert.match(result.stdout, /7 stable detection, 3 planned detection/);
 
   const demoAsDetection = structuredClone(source);
   demoAsDetection.capabilities.find((item) => item.id === 'local-before-after-demo').category = 'detection';

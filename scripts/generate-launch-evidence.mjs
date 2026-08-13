@@ -52,7 +52,7 @@ try {
     '',
     '| Surface | Reproduced evidence | Source |',
     '|---|---|---|',
-    `| Detection contract | ${stableDetection} stable narrow detection families; ${plannedDetection} planned detection adapters | [Generated matrix](capabilities.md) |`,
+    `| Detection contract | ${stableDetection} stable narrow detection families; ${plannedDetection} planned detection capabilities | [Generated matrix](capabilities.md) |`,
     `| Supporting contract | ${evidenceReporting} evidence/reporting, ${lifecycleDistribution} lifecycle/distribution and ${agentGuided} agent-guided capabilities; none are counted as detection coverage | [Generated matrix](capabilities.md) |`,
     `| Local before/after demo | ${domainSeverity('before', 'security_exposure', 'high')} security HIGH; ${domainSeverity('before', 'search_discoverability', 'high')} discoverability HIGH + ${domainSeverity('before', 'search_discoverability', 'medium')} MEDIUM; ${domainSeverity('before', 'reliability', 'medium')} reliability MEDIUM -> ${demoFacts.after.bySeverity.high} active HIGH / ${demoFacts.after.bySeverity.medium} active MEDIUM | [Generated demo evidence](demo-evidence.md) |`,
     `| Ordinary project journeys | ${journeys.journeys.length} fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |`,

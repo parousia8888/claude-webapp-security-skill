@@ -16,7 +16,7 @@ The repository-owned local demo begins with **2 security HIGH; 11 discoverabilit
 
 ## What is implemented
 
-The current source contract lists **7 stable narrow detection families** and **0 planned detection adapters**. Separately, it records **4 evidence/reporting**, **1 lifecycle/distribution**, and **6 agent-guided** capabilities. Demo, report, installer and Action behavior are not counted as vulnerability detection.
+The current source contract lists **7 stable narrow detection families** and **3 planned detection capabilities**. Separately, it records **5 evidence/reporting**, **1 lifecycle/distribution**, and **6 agent-guided** capabilities. Demo, report, installer and Action behavior are not counted as vulnerability detection.
 
 [Review every capability and its evidence](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md).
 

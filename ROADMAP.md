@@ -34,6 +34,18 @@ The complete milestone sequence, tests, stop conditions and Definition of Done l
 verification, verified installer, exact-version external consumer and owner-approved public `v1`
 promotion are complete. Final M8 evidence is recorded in the engineering plan.
 
+## Planned for v0.5.0
+
+v0.5.0 is the source-detection and understandable-remediation program. It plans deeper built-in
+JavaScript/TypeScript and Python checks, a versioned professional/plain-language finding contract,
+and evidence-gated evaluations of one mature SAST adapter and one deployment/IaC adapter. These
+items remain unavailable until their milestone evidence ships.
+
+The complete audited baseline, milestone sequence, tests, stop conditions and publication gates
+live in the [v0.5.0 engineering plan](docs/V0.5.0_ENGINEERING_PLAN.md). Built-in depth for other
+languages, authenticated DAST, automatic BOLA/IDOR proof and unattended production patching are
+outside this release.
+
 ## Correctness backlog
 
 Included in the published v0.4.0 release:

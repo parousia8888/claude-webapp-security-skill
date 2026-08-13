@@ -76,6 +76,33 @@
       "evidence": ["scripts/lib/external-adapters.mjs", "test/external-adapters.test.mjs", "test/real-adapters.test.mjs"]
     },
     {
+      "id": "javascript-python-source-expansion",
+      "name": "JavaScript/TypeScript and Python source-rule expansion",
+      "category": "detection",
+      "maturity": "planned",
+      "plannedFor": "0.5.0",
+      "scope": "Planned high-confidence built-in checks for common execution, injection, browser-output, session, transport, deserialization, file/path and framework-exposure risks. No new rule is available until its positive and safe-neighbour fixtures ship.",
+      "evidence": []
+    },
+    {
+      "id": "mature-sast-adapter",
+      "name": "Mature source-analysis adapter",
+      "category": "detection",
+      "maturity": "planned",
+      "plannedFor": "0.5.0",
+      "scope": "Planned evidence-gated selection between Semgrep CE and Opengrep. At most one becomes stable; all matches remain suspected until separately reproduced.",
+      "evidence": []
+    },
+    {
+      "id": "deployment-iac-adapter",
+      "name": "Deployment and IaC policy adapter",
+      "category": "detection",
+      "maturity": "planned",
+      "plannedFor": "0.5.0",
+      "scope": "Planned evidence-gated selection between Trivy and Checkov for explicitly tested Docker, workflow and optional IaC inputs. No stable adapter is promised before benchmark gates pass.",
+      "evidence": []
+    },
+    {
       "id": "local-before-after-demo",
       "name": "Local before/after demo",
       "category": "evidence_reporting",
@@ -106,6 +133,15 @@
       "maturity": "stable",
       "scope": "Writes patch-only proposals, explains source findings and compares persisted v2 baselines with subject/scope/rule identity, per-rule coverage and honest new/fixed/unchanged/regressed/unretested/not_comparable states.",
       "evidence": ["scripts/project-audit.mjs", "scripts/lib/evidence-v2.mjs", "scripts/explain-finding.mjs", "test/evidence-loop.test.mjs", "test/baseline-identity.test.mjs"]
+    },
+    {
+      "id": "dual-audience-finding-explanation",
+      "name": "Professional and plain-language finding explanation",
+      "category": "evidence_reporting",
+      "maturity": "planned",
+      "plannedFor": "0.5.0",
+      "scope": "Planned versioned finding contract for technical terms, ordinary-language meaning, realistic consequence, fix proposal, alternatives, side effects, required decisions, security and functional retests, and rollback.",
+      "evidence": []
     },
     {
       "id": "distribution-surfaces",
