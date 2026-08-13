@@ -26,7 +26,7 @@
 
 ## 安装与分发
 
-Release [v0.3.0](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0) 提供签名 tag、可复现源码归档、SPDX SBOM、校验和、release manifest 与 provenance。受支持的一条命令安装路径在执行前固定并校验 bootstrap，随后校验所选 release 的资产与元数据。
+Release [v0.4.0](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.4.0) 提供签名 tag、可复现源码归档、SPDX SBOM、校验和、release manifest 与 provenance。受支持的一条命令安装路径在执行前固定并校验 bootstrap，随后校验所选 release 的资产与元数据。
 
 - [可信安装说明](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/verified-installation.zh-CN.md)
 - [GitHub Marketplace Action](https://github.com/marketplace/actions/web-app-security-skill)

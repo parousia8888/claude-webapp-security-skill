@@ -60,6 +60,7 @@ try {
   const trust = JSON.parse(result.stdout);
   assert.equal(trust.repository, 'parousia8888/web-app-security-skill');
   assert.ok(trust.releases['0.3.0']);
+  assert.ok(trust.releases['0.4.0']);
 
   result = await run([], {
     ...common,

@@ -16,7 +16,7 @@ The current contract names 7 stable narrow detection families and keeps 4 eviden
 
 I also ran 5 ordinary projects at immutable commits through the v2 source path. No hosted project was contacted or dependency executed; OSV-Scanner alone may query its public advisory service. The journeys retain confirmed facts, false-positive closures, suspected and unknown results rather than presenting only successful detections. A separate 5-study corpus exercises broader source review, with two projects overlapping by design. [Method and reproduction commands](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md).
 
-Distribution is part of the threat model. [v0.3.0](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0) includes a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. The recommended installer verifies an immutable bootstrap before execution, then verifies the release it installs.
+Distribution is part of the threat model. [v0.4.0](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.4.0) includes a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. The recommended installer verifies an immutable bootstrap before execution, then verifies the release it installs.
 
 The useful review question is not whether this replaces an AppSec team or a general scanner; it does not. The question is whether the evidence states, patch boundary, retest contract and installation chain are strict enough to make an agent-assisted first pass safer and easier to review.
 

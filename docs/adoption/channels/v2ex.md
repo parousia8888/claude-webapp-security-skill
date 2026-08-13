@@ -14,7 +14,7 @@
 
 目前能力合同明确列出 7 个 stable 窄检测家族、0 个 planned 检测 adapter 和 6 项 agent-guided 方法；证据/报告与分发能力不计入检测覆盖。另有 5 个固定 commit 的普通开源项目旅程，保留零 finding、误报关闭和 unknown 结果，未探测线上实例。
 
-v0.3.0 release 提供签名 tag、可复现归档、SPDX SBOM、校验和、manifest 与 provenance。安装路径会先固定并校验 bootstrap，再校验 release 资产。
+v0.4.0 release 提供签名 tag、可复现归档、SPDX SBOM、校验和、manifest 与 provenance。安装路径会先固定并校验 bootstrap，再校验 release 资产。
 
 Demo 证据：https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md
 

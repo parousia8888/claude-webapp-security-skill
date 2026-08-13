@@ -14,7 +14,7 @@ artifacts and reproduced local behavior; they do not claim universal scanner cov
 | Local before/after demo | 2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM -> 0 active HIGH / 0 active MEDIUM | [Generated demo evidence](demo-evidence.md) |
 | Ordinary project journeys | 5 fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |
 | Source methodology studies | 5 fixed-commit studies, kept separate from CLI precision claims | [Study method](case-studies/README.md) |
-| Release | v0.3.0 signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance | [v0.3.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0) |
+| Release | v0.4.0 signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance | [v0.4.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.4.0) |
 
 ## Ordinary project journeys
 

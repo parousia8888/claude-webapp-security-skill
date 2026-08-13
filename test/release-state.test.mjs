@@ -20,9 +20,9 @@ function run(program, commandArgs, options = {}) {
 
 try {
   const state = JSON.parse(readFileSync(join(ROOT, 'docs', 'release-state.json'), 'utf8'));
-  assert.equal(state.publishedRelease.version, '0.3.0');
-  assert.equal(state.verifiedInstaller.defaultVersion, '0.3.0');
-  assert.deepEqual(state.verifiedInstaller.trustedVersions, ['0.3.0']);
+  assert.equal(state.publishedRelease.version, '0.4.0');
+  assert.equal(state.verifiedInstaller.defaultVersion, '0.4.0');
+  assert.deepEqual(state.verifiedInstaller.trustedVersions, ['0.3.0', '0.4.0']);
   run(process.execPath, [join(ROOT, 'scripts', 'check-release-state.mjs')]);
 
   cpSync(ROOT, candidate, {
@@ -54,8 +54,8 @@ try {
     readFileSync(join(candidate, 'docs', 'adoption', 'citations.md'), 'utf8'),
     readFileSync(join(candidate, 'docs', 'adoption', 'share-metadata.json'), 'utf8'),
   ].join('\n');
-  assert.match(generated, /v0\.3\.0/);
-  assert.doesNotMatch(generated, /releases\/tag\/v0\.3\.1|v0\.3\.1 records a signed tag/);
+  assert.match(generated, /v0\.4\.0/);
+  assert.doesNotMatch(generated, /releases\/tag\/v0\.4\.1|v0\.4\.1 records a signed tag/);
   console.log('release state ok: candidate version cannot become a published-release claim');
 } finally {
   rmSync(temp, { recursive: true, force: true });

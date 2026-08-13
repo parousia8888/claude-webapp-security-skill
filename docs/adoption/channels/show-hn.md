@@ -12,7 +12,7 @@ I built Web App Security Skill, an open-source skill and CLI for recording scope
 
 The local demo is generated from a repository-owned fixture: 2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM, then a patch, then 0 active HIGH / 0 active MEDIUM on the same path. The repository names 7 stable narrow detection families, keeps supporting automation outside that count, and publishes 5 fixed-commit ordinary-project journeys including zero-finding and unknown outcomes.
 
-The installer verifies pinned bootstrap bytes and release assets; v0.3.0 includes a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
+The installer verifies pinned bootstrap bytes and release assets; v0.4.0 includes a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
 
 Demo evidence: https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md
 
