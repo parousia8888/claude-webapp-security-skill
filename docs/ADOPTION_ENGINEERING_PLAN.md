@@ -105,8 +105,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G1 | Fixture-generated animated terminal demo and README placement | completed | `f1f9728`, `3fe3cc1` + checks below |
 | G2 | Verified low-friction install channel and clean-room lifecycle | completed | `11eee87`, `55c3de2`, `02277e8`, `37d822a` + checks below |
 | G3 | Privacy-minimal five-session usability kit and deterministic aggregation | completed | `a51640a` + checks below |
-| G4 | Reusable English/Chinese publication and upstream case-study kit | in progress | pending |
-| G5 | Priority fail-closed correctness fixes and release-candidate evidence | pending | pending |
+| G4 | Reusable English/Chinese publication and upstream case-study kit | completed | `2618447` + checks below |
+| G5 | Priority fail-closed correctness fixes and release-candidate evidence | in progress | pending |
 
 ## G0 - Adoption contract and measurable baseline
 
@@ -341,12 +341,35 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: pending
-- Implementation: pending
-- Tests: pending
-- Commit / CI: pending
-- Remaining risks: posting, community interaction, and upstream disclosure are owner actions and
-  require action-time review.
+- Status: completed 2026-08-13
+- Implementation: `docs/adoption/publication.json` supplies the product, audience, positioning,
+  limitations, repository, Marketplace URL and external-state boundary. From that source plus the
+  existing public contract, generated demo record, capability contract, immutable journey catalog
+  and current release evidence, `scripts/generate-adoption-assets.mjs` deterministically writes
+  aligned English/Chinese launch briefs, technical long-form, Show HN, Reddit, X/short, V2EX and
+  Chinese developer-community drafts, a citation sheet and machine-readable share metadata.
+  `scripts/render-public-case.mjs`, `docs/case-studies/template.schema.json` and the public/private
+  templates provide a reusable case workflow with immutable source, explicit authorization and
+  network boundary, evidence states, false-positive closure, minimal patch, retest, disclosure and
+  upstream-response fields. The public renderer rejects private disclosure states and will not
+  render suspected evidence without coordinated public authorization.
+- Tests: `test/adoption-assets.test.mjs` runs the valid case under a network-denied preload, proves a
+  case can render without a live target, rejects missing or moving commits, missing evidence,
+  disclosure or retest state, rejects private suspected evidence, and accepts a coordinated public
+  fixture. The same test checks generated external-state and no-upstream-validation metadata.
+  `node scripts/generate-adoption-assets.mjs --check`; two complete `npm run check` runs; Skill
+  Creator validation; and `git diff --check` passed. The generated short post is 272 characters
+  before platform URL shortening.
+- Commit / CI: implementation `2618447`;
+  [CI run 31655686745](https://github.com/parousia8888/web-app-security-skill/actions/runs/31655686745)
+  passed Ubuntu/macOS on Node 20/22 and
+  [CodeQL run 31655686723](https://github.com/parousia8888/web-app-security-skill/actions/runs/31655686723)
+  passed.
+- Remaining risks: no draft was posted and no upstream project was contacted in this phase.
+  Publication, community interaction, action-time community-rule review, private coordination and
+  any upstream response remain `external_validation_pending` owner actions. The generated channel
+  drafts require human tone/context review immediately before posting; the kit does not establish
+  conversion, independent use, upstream validation, precision or general scanner coverage.
 
 ## G5 - Correctness and release candidate
 
