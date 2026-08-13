@@ -2,3 +2,6 @@ reports/
 .webapp-security/
 node_modules/
 .DS_Store
+usability-sessions/
+usability-summary.json
+usability-summary.md

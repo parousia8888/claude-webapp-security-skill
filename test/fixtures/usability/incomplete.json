@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "study": "first-use-v1",
+  "sessionId": "S-00000003",
+  "consent": { "observationAccepted": true, "dataBoundaryAccepted": true },
+  "fixture": { "id": "first-use-clean-room-v1", "repositoryDataShared": false, "networkRequired": false },
+  "environment": { "surface": "cli", "os": "wsl2", "nodeMajor": 22 },
+  "installation": { "status": "completed", "seconds": 180 },
+  "firstReport": { "status": "blocked", "seconds": 420 },
+  "firstBlockage": "command_discovery",
+  "resultStateComprehension": "not_reached",
+  "patchConfidence": "not_reached",
+  "retest": { "status": "not_attempted", "seconds": null },
+  "sessionOutcome": "incomplete",
+  "manualNotesPresent": false
+}

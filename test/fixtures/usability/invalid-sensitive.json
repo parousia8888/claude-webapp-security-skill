@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "study": "first-use-v1",
+  "sessionId": "S-00000004",
+  "consent": { "observationAccepted": true, "dataBoundaryAccepted": true },
+  "fixture": { "id": "first-use-clean-room-v1", "repositoryDataShared": false, "networkRequired": false },
+  "environment": { "surface": "codex", "os": "macos", "nodeMajor": 22 },
+  "installation": { "status": "completed", "seconds": 90 },
+  "firstReport": { "status": "completed", "seconds": 240 },
+  "firstBlockage": "none",
+  "resultStateComprehension": "correct",
+  "patchConfidence": "ready_with_review",
+  "retest": { "status": "completed", "seconds": 75 },
+  "sessionOutcome": "completed",
+  "manualNotesPresent": false,
+  "repositoryUrl": "https://example.invalid/private",
+  "rawTerminalLog": "SECRET=fixture-must-be-rejected"
+}

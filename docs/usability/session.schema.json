@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/usability/session.schema.json",
+  "title": "Web App Security Skill first-use session",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "study", "sessionId", "consent", "fixture", "environment",
+    "installation", "firstReport", "firstBlockage", "resultStateComprehension",
+    "patchConfidence", "retest", "sessionOutcome", "manualNotesPresent"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "study": { "const": "first-use-v1" },
+    "sessionId": { "type": "string", "pattern": "^S-[A-F0-9]{8}$" },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observationAccepted", "dataBoundaryAccepted"],
+      "properties": {
+        "observationAccepted": { "const": true },
+        "dataBoundaryAccepted": { "const": true }
+      }
+    },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "repositoryDataShared", "networkRequired"],
+      "properties": {
+        "id": { "const": "first-use-clean-room-v1" },
+        "repositoryDataShared": { "const": false },
+        "networkRequired": { "const": false }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface", "os", "nodeMajor"],
+      "properties": {
+        "surface": { "enum": ["claude", "codex", "cli"] },
+        "os": { "enum": ["linux", "macos", "wsl2"] },
+        "nodeMajor": { "enum": [20, 22] }
+      }
+    },
+    "installation": { "$ref": "#/$defs/timedOutcome" },
+    "firstReport": { "$ref": "#/$defs/timedOutcome" },
+    "firstBlockage": {
+      "enum": [
+        "none", "prerequisite", "install_trust", "install_conflict", "command_discovery",
+        "scope_comprehension", "report_generation", "result_state_comprehension",
+        "patch_review", "retest"
+      ]
+    },
+    "resultStateComprehension": { "enum": ["correct", "partial", "incorrect", "not_reached"] },
+    "patchConfidence": { "enum": ["ready_with_review", "needs_help", "would_not_apply", "not_reached"] },
+    "retest": { "$ref": "#/$defs/timedOutcome" },
+    "sessionOutcome": { "enum": ["completed", "abandoned", "incomplete"] },
+    "manualNotesPresent": { "type": "boolean" }
+  },
+  "$defs": {
+    "timedOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "seconds"],
+      "properties": {
+        "status": { "enum": ["completed", "blocked", "abandoned", "not_attempted"] },
+        "seconds": { "type": ["integer", "null"], "minimum": 0, "maximum": 7200 }
+      }
+    }
+  }
+}
