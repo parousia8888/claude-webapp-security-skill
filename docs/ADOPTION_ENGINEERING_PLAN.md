@@ -102,8 +102,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | Phase | Deliverable | Status | Evidence |
 |---|---|---|---|
 | G0 | Adoption contract, baseline, phase acceptance and anti-metric rules | completed | `0599f46` + checks below |
-| G1 | Fixture-generated animated terminal demo and README placement | completed | `f1f9728` + checks below |
-| G2 | Verified low-friction install channel and clean-room lifecycle | in progress | pending |
+| G1 | Fixture-generated animated terminal demo and README placement | in progress | `f1f9728`, `3fe3cc1` + checks below |
+| G2 | Verified low-friction install channel and clean-room lifecycle | pending | pending |
 | G3 | Privacy-minimal five-session usability kit and deterministic aggregation | pending | pending |
 | G4 | Reusable English/Chinese publication and upstream case-study kit | pending | pending |
 | G5 | Priority fail-closed correctness fixes and release-candidate evidence | pending | pending |
@@ -171,7 +171,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: completed 2026-08-13
+- Status: implementation complete; post-remediation CI pending 2026-08-13
 - Implementation: `scripts/generate-demo-gif.mjs` runs the real owned fixture, derives its five
   scenes from `before.json`, `hardening.patch`, `after.json` and baseline evidence, then renders an
   840x472 animated GIF with a repository-owned pixel font and pure Node GIF encoder. The committed
@@ -183,7 +183,15 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   `node test/demo-gif.test.mjs`; Skill Creator validator; `git diff --check`. All passed. Independent
   ImageMagick and FFmpeg decoders reported GIF89a, 840x472, five frames, looping playback and 10.9
   seconds. Visual inspection of every coalesced frame found no clipped or overlapping text.
-- Commit / CI: implementation `f1f9728`; phase-record commit and CI pending push.
+- Commit / CI: implementation `f1f9728`; initial phase record `ad83be4`; release-archive
+  remediation `3fe3cc1`. The first pushed tree's
+  [CI run 31652732689](https://github.com/parousia8888/web-app-security-skill/actions/runs/31652732689)
+  failed in the release-artifact test on macOS and Ubuntu because Node's default `spawnSync`
+  `maxBuffer` could not hold the archive after adding the 2.7 MB GIF; this was not a demo drift or
+  decoder failure. `3fe3cc1` sets a bounded 64 MB archive buffer and requires `demo.gif` plus
+  `demo.json` in release verification. The same tree's
+  [CodeQL run 31652732614](https://github.com/parousia8888/web-app-security-skill/actions/runs/31652732614)
+  passed. Post-remediation matrix CI and CodeQL are pending push and must pass before G1 is closed.
 - Remaining risks: the 2,742,052-byte GIF is optimized for deterministic cross-platform generation,
   not minimum transfer size. It remains below the 5 MB repository gate; future compression must
   preserve byte reproducibility and legibility. The demo proves the owned crawl-boundary fixture,
