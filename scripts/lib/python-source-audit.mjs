@@ -258,15 +258,16 @@ function callDetails(tokens, call) {
 }
 
 function finding(ruleId, path, token, kind, summary, evidence = {}) {
+  const discriminator = `${path}:${token.line}:${kind}`;
   return {
     ruleId,
     title: summary.title,
     severity: summary.severity,
     state: 'suspected',
-    discriminator: `${path}:${token.line}:${kind}`,
+    discriminator,
     summary: summary.text,
     location: { path, line: token.line },
-    evidence: { subject: path, line: token.line, construct: kind, ...evidence },
+    evidence: { subject: discriminator, line: token.line, construct: kind, ...evidence },
     remediation: 'Review the named construct and replace the unsafe API or explicit option with the framework-supported safe form.',
     retest: 'Rerun the source audit, then exercise the affected security case and the normal product journey.',
   };

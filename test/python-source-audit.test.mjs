@@ -88,6 +88,12 @@ const genericSecret = inspectPythonSource('src/constants.py', `
   SECRET_KEY = "non-framework-constant-value"
 `);
 assert.deepEqual(genericSecret.findings, []);
+const repeatedPythonSink = inspectPythonSource('src/repeated.py', `
+  eval(first)
+  eval(second)
+`);
+assert.equal(repeatedPythonSink.findings.length, 2);
+assert.equal(new Set(repeatedPythonSink.findings.map((finding) => finding.evidence.subject)).size, 2);
 
 const flaskCors = inspectPythonSource('src/flask_app.py', `
   from flask import Flask

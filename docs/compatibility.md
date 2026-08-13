@@ -24,6 +24,15 @@ lockfiles and supported framework dependencies; Python projects from `pyproject.
 It records deployment/config file paths without reading them. Unsupported or ambiguous stacks
 remain explicit in `security-scope.yml`.
 
+Built-in language depth is intentionally narrower than project discovery:
+
+| Source surface | Stable v0.5.0 built-in boundary | Explicit limit |
+|---|---|---|
+| JavaScript / TypeScript | `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`; direct lexical constructs for dynamic execution, child-process shell use, React/browser HTML sinks, wildcard credentialed CORS, disabled TLS verification, unsafe JWT options and hardcoded auth secrets | No whole-program data flow, alias-complete symbol resolution, runtime reachability or sanitizer proof |
+| Python | `.py`; tokenizer-backed constructs for dynamic execution, shell subprocess use, pickle and YAML deserialization, disabled TLS verification, framework debug, hardcoded framework secrets and wildcard credentialed CORS | A tokenizer failure becomes `unknown`; no interprocedural data flow or deployment-state proof |
+| Shared project configuration | Supported manifests/lockfiles, sensitive environment filenames, public Node inspector binds and production source-map flags | A filename/config match proves only the named fact, not exploitability |
+| Other languages | Discovery may record the stack; optional Opengrep may add only its two bundled same-file request-to-command rules where applicable | No equal built-in coverage is claimed; use agent-guided review or another independently governed scanner |
+
 The deterministic source audit currently runs 20 bounded built-in risk rules across shared project
 configuration, JavaScript/TypeScript and Python, plus two evidence-integrity rules. Opt-in Gitleaks
 checks Git history and the working tree; opt-in
@@ -31,7 +40,9 @@ Opengrep checks JavaScript/TypeScript and Python with the bundled local ruleset 
 network request. Checkov checks only the three fixed root Dockerfile/GitHub Actions rules documented
 in the adapter protocol; it uses `--skip-download` but may query PyPI for version metadata and never
 uploads project source. OSV-Scanner checks recorded lockfiles and may query the public OSV database.
-None is downloaded automatically or executes project dependencies. JSON, Markdown, HTML, SARIF
+None is downloaded automatically or executes project dependencies. Every source pattern and
+external scanner result remains `suspected` unless a rule-specific independent confirmation
+contract is satisfied. JSON, Markdown, HTML, SARIF
 2.1.0 and JUnit render from one report object. Compose, Terraform, Kubernetes and other security
 domains remain unavailable or agent-guided until a specific deterministic adapter ships.
 

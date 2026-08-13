@@ -3,8 +3,9 @@
 本教程覆盖从干净环境安装，到范围记录、源码检查、补丁审查、复测、升级和卸载的完整流程。产品承诺是：
 **把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。**
 
-这里的确定性路径只读取本地源码，不访问部署实例。它是一个经过回归测试的窄基线，不是通用 SAST，
-也不证明项目已经安全。
+这里的确定性路径只读取本地源码，不访问部署实例。v0.5.0 candidate 会运行 20 条 built-in risk 与
+2 条证据完整性规则，并加深 JavaScript/TypeScript 和 Python 覆盖。它仍然是范围明确的首次检查，
+不是通用 SAST，也不证明项目已经安全。
 
 ## 环境要求
 
@@ -115,6 +116,15 @@ webapp-security explain <finding-id> \
 不能把文件名匹配、静态 pattern 或 AI 建议升级为 `confirmed`。例如，生产 source map 配置只能形成
 `suspected` 线索，直到构建产物或自有部署证明它被公开交付。
 
+默认解释先讲人话，再展开技术细节。每条可处理的 v3 finding 按这个顺序阅读：
+
+1. `technicalTerm` 与 `state`：行业名称，以及检查实际证明到了哪一步。
+2. `plainLanguage` 与 `consequence`：代码在做什么；如果缺失条件确实成立，可能造成什么后果。
+3. `evidenceBoundary`：规则没有证明的部分，例如输入流或运行时可达性。
+4. `proposal`、`alternatives` 与 `sideEffects`：准备怎么改、还有什么方案、正常功能可能怎么变化。
+5. `userDecisions`、`securityRetest`、`functionalRetest` 与 `rollback`：必须由项目所有者决定什么，
+   以及保留修改前需要哪些证据。
+
 ## 审查并应用补丁
 
 同时阅读报告和 `.webapp-security/runs/first-review/proposed.patch`。Patch 可能包含可应用 diff 和
@@ -126,6 +136,20 @@ webapp-security explain <finding-id> \
 2. 判断变更是否影响生产流量、鉴权、数据、SEO 或 crawler。
 3. 保持最小且可审查的修改，并保留原始报告作为 baseline。
 4. 修改后运行项目自身测试。
+
+为单条 finding 创建私有、只供审查的 repair record：
+
+```bash
+webapp-security repair-plan <finding-id> \
+  --report .webapp-security/runs/first-review/report.json \
+  --out .webapp-security/runs/first-review/repair-review
+webapp-security repair-validate \
+  .webapp-security/runs/first-review/repair-review/repair-record.json
+```
+
+初始记录保持 `review_required`、approval pending、patch not applied。CLI 不会自行把记录改成 approved
+或 applied，也不会修改项目文件。鉴权、授权、公开路由、CORS、cookie/session、存储数据和生产基础设施
+必须由所有者显式决定。只有指定的安全复测和受影响的正常产品流程都通过，repair 才能进入 `retested`。
 
 使用 AI coding agent 时，采用仓库 README 或 [`README_AI.md`](../README_AI.md) 的 canonical prompt，
 并明确 agent 可以应用修改，还是只能交付 patch。高风险和生产变更需要单独批准。

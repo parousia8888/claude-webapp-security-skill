@@ -20,8 +20,19 @@ Maintainers reproduce the report, classify whether the error is a rule problem, 
 transport failure, or documentation ambiguity, then add a failing regression before changing the
 rule. A suppression is accepted only when its scope is narrower than the finding it suppresses.
 
+For stable source rules, promotion requires a vulnerable fixture, a meaningful safe near-neighbour,
+an explicit evidence boundary and a planted missing-observation failure. A normal source pattern
+that requires context can remain a useful `suspected` lead without being labelled a confirmed
+vulnerability. Ordinary-project review therefore keeps four separate manual classes:
+`useful_lead`, `expected_benign_match`, `unknown` and `confirmed`.
+
 ## Metrics
 
 Releases report confirmed regressions, known unknown states, and case-study false positives. The
 project does not publish a single precision percentage until the corpus and ground truth are large
 enough to make that number meaningful.
+
+The five-project v0.5.0 review is a bounded noise review, not a benchmark denominator. Its 43
+findings were manually classified as 11 useful leads, 27 expected benign matches, 1 unknown and 4
+confirmed missing-lockfile facts. Those counts must not be converted into precision/recall or a
+claim that the zero-finding project is secure.

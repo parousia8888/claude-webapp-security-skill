@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Finding/report v3 gives every actionable source result a professional term, plain-language
+  explanation, realistic consequence, evidence boundary, standards references, reviewable
+  proposal, alternatives, side effects, required owner decisions, separate security/functional
+  retests and rollback criteria while preserving v2 subject, scope, coverage and baseline safety.
+- Eight bounded JavaScript/TypeScript and eight Python source rules expand the four shared built-in
+  risk checks to 20 stable built-in risk rules plus two evidence-integrity rules. Every stable rule
+  has a vulnerable fixture, safe near-neighbour, explicit confirmation boundary and planted
+  missing-observation failure in the generated 30-rule corpus.
+- Opt-in Opengrep 1.27.0 adapter runs two bundled digest-pinned request-to-command taint rules;
+  opt-in Checkov 3.3.9 runs three fixed root Dockerfile/GitHub Actions rules. External matches remain
+  suspected and unavailable/malformed evidence remains unknown.
+- `repair-plan` and `repair-validate` create and validate a private review-only workflow record with
+  explicit approval, application, dual-retest and rollback states. The CLI does not edit projects.
+- A new network-free 30-second source demo explains one suspected command-execution lead, proposes
+  shell-free argument handling, names its quoting/platform side effect, then records a compatible
+  security retest and separate functional retest.
+- A fixed-commit v0.5.0 built-in pass over five ordinary projects classifies all 43 findings as 11
+  useful leads, 27 expected benign matches, 1 unknown and 4 confirmed missing-lockfile facts without
+  publishing precision/recall or calling the finding count a vulnerability count.
+
+### Changed
+- Source reports default to the readable explanation layer while preserving explicit technical
+  evidence views and sanitized JSON, Markdown, HTML, SARIF and JUnit output.
+- Public source counts now come from the stable rule registry/corpus and separate built-in risk,
+  evidence-integrity and external-adapter rules from crawl and agent-guided methodology.
+
+### Fixed
+- Multiple same-rule JS/TS or Python observations in one file now include line and construct in the
+  fingerprint subject, preventing valid distinct findings from colliding and invalidating a report.
+
 ## [0.4.0] — 2026-08-14
 
 ### Added

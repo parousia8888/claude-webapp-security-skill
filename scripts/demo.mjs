@@ -1,77 +1,114 @@
 #!/usr/bin/env node
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { once } from 'node:events';
-import { createDemoFacts, demoCount } from './lib/demo-facts.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const outIndex = process.argv.indexOf('--out');
-const out = resolve(outIndex === -1 ? join(ROOT, 'demo-output') : process.argv[outIndex + 1]);
+const args = process.argv.slice(2);
+const outIndex = args.indexOf('--out');
+const out = resolve(outIndex === -1 ? join(ROOT, 'demo-output') : args[outIndex + 1]);
+const epoch = process.env.SOURCE_DATE_EPOCH || '0';
+const env = { ...process.env, SOURCE_DATE_EPOCH: epoch };
+const project = join(out, 'owned-source-fixture');
+const runs = join(out, 'runs');
+
+function run(commandArgs, options = {}) {
+  const result = spawnSync(process.execPath, commandArgs, {
+    cwd: options.cwd || ROOT, env, encoding: 'utf8', timeout: 30000,
+  });
+  if (result.status !== (options.expected ?? 0)) {
+    throw new Error(result.stderr || result.stdout || `command exited ${result.status}`);
+  }
+  return result;
+}
+
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
+cpSync(join(ROOT, 'examples', 'insecure-demo'), project, { recursive: true });
 
-async function fixture(hardened) {
-  const args = [join(ROOT, 'examples', 'insecure-demo', 'server.mjs')];
-  if (hardened) args.push('--hardened');
-  const child = spawn(process.execPath, args, { stdio: ['ignore', 'pipe', 'inherit'] });
-  const [line] = await once(child.stdout, 'data');
-  return { child, ...JSON.parse(String(line)) };
+run([join(ROOT, 'scripts', 'webapp-security.mjs'), 'start', project, '--out', runs, '--run-id', 'before']);
+run([join(ROOT, 'scripts', 'webapp-security.mjs'), 'audit', join(runs, 'before'),
+  '--out', join(out, 'before-evidence'), '--name', 'report', '--fail-on', 'never']);
+const beforePath = join(out, 'before-evidence', 'report.json');
+const before = JSON.parse(readFileSync(beforePath, 'utf8'));
+const finding = before.findings.find((item) => item.rule.id === 'node-child-process-shell-execution');
+if (!finding || finding.state !== 'suspected') throw new Error('demo command-execution lead is missing');
+
+const vulnerable = readFileSync(join(project, 'src', 'export-report.mjs'), 'utf8');
+const hardened = `import { execFile } from 'node:child_process';
+
+export function exportReport(title) {
+  return new Promise((resolve, reject) => {
+    execFile('printf', ['%s\\n', title], (error, stdout) => {
+      if (error) reject(error);
+      else resolve(stdout);
+    });
+  });
 }
+`;
+writeFileSync(join(project, 'src', 'export-report.mjs'), hardened);
+const patch = `--- a/src/export-report.mjs
++++ b/src/export-report.mjs
+@@
+-import { exec } from 'node:child_process';
++import { execFile } from 'node:child_process';
+@@
+-    exec(\`printf '%s\\\\n' "\${title}"\`, (error, stdout) => {
++    execFile('printf', ['%s\\\\n', title], (error, stdout) => {
+`;
+if (!vulnerable.includes('exec(`printf')) throw new Error('demo fixture drifted');
+writeFileSync(join(out, 'hardening.patch'), patch);
 
-async function audit(mode) {
-  const app = await fixture(mode === 'after');
-  const args = [
-    join(ROOT, 'scripts', 'crawl-surface-audit.mjs'), '--site', app.origin,
-    '--out', out, '--report-name', mode, '--active-probe', '--max-urls', '1',
-    '--acknowledge-authorization',
-    '--matrix', '1', '--delay', '0', '--timeout', '3000', '--fail-on', 'never', '--quiet',
-    '--subject-id', 'project-00000000000000000000000000000001',
-    '--scope-id', 'owned-insecure-demo-crawl-v1',
-    '--mode', mode === 'before' ? 'demo-before' : 'demo-after',
-  ];
-  if (mode === 'after') args.push('--baseline', join(out, 'before.json'));
-  const child = spawn(process.execPath, args, { stdio: ['ignore', 'ignore', 'inherit'] });
-  const [code] = await once(child, 'exit');
-  app.child.kill('SIGTERM');
-  if (code !== 0) throw new Error(`${mode} audit exited ${code}`);
-}
+run([join(ROOT, 'scripts', 'webapp-security.mjs'), 'start', project, '--out', runs, '--run-id', 'after']);
+run([join(ROOT, 'scripts', 'webapp-security.mjs'), 'retest', join(runs, 'after'),
+  '--out', join(out, 'after-evidence'), '--name', 'report', '--baseline', beforePath, '--fail-on', 'never']);
+const after = JSON.parse(readFileSync(join(out, 'after-evidence', 'report.json'), 'utf8'));
+const fixed = after.findings.find((item) => item.id === finding.id);
+if (fixed?.baseline.state !== 'fixed') throw new Error('demo security retest did not record fixed');
+const functional = run([join(project, 'test-functional.mjs')], { cwd: project });
+writeFileSync(join(out, 'functional-retest.txt'), functional.stdout);
 
-await audit('before');
-await audit('after');
-writeFileSync(join(out, 'hardening.patch'), `--- insecure-demo/before.conf
-+++ insecure-demo/after.conf
-@@ public crawl policy @@
--User-agent: *
--Disallow: /
-+User-agent: *
-+Allow: /
-+Sitemap: /sitemap.xml
-@@ sensitive artifacts @@
--GET /.env       -> 200
--GET /app.js.map -> 200
-+GET /.env       -> 404
-+GET /app.js.map -> 404
-@@ unknown routes @@
--GET /missing -> 200 (SPA shell)
-+GET /missing -> 404
-`);
-const before = JSON.parse(readFileSync(join(out, 'before.json'), 'utf8'));
-const after = JSON.parse(readFileSync(join(out, 'after.json'), 'utf8'));
-const facts = createDemoFacts(before, after);
+for (const [source, target] of [
+  [beforePath, 'before.json'], [join(out, 'before-evidence', 'report.md'), 'before.md'],
+  [join(out, 'before-evidence', 'report.html'), 'before.html'],
+  [join(out, 'after-evidence', 'report.json'), 'after.json'],
+  [join(out, 'after-evidence', 'report.md'), 'after.md'],
+  [join(out, 'after-evidence', 'report.sarif'), 'after.sarif'],
+]) cpSync(source, join(out, target));
+
+const facts = {
+  schemaVersion: 2,
+  generator: 'scripts/demo.mjs',
+  boundary: 'owned-local-source-fixture-no-network',
+  input: 'examples/insecure-demo/src/export-report.mjs',
+  before: {
+    findingId: finding.id, ruleId: finding.rule.id, state: finding.state,
+    severity: finding.severity, technicalTerm: finding.explanation.technicalTerm,
+    plainLanguage: finding.explanation.plainLanguage,
+    consequence: finding.explanation.consequence,
+    evidenceBoundary: finding.explanation.evidenceBoundary,
+  },
+  proposal: {
+    status: finding.explanation.proposal.status,
+    summary: finding.explanation.proposal.summary,
+    sideEffects: finding.explanation.sideEffects,
+  },
+  securityRetest: { status: 'passed', baselineState: fixed.baseline.state },
+  functionalRetest: { status: 'passed', evidence: functional.stdout.trim() },
+};
 writeFileSync(join(out, 'demo-result.json'), `${JSON.stringify(facts, null, 2)}\n`);
-const fact = (stage, domain, severity) => demoCount(facts, stage, domain, 'confirmed', severity);
-const summary = `# Demo result\n\n| Stage | Security HIGH | Discoverability HIGH | Discoverability MEDIUM | Reliability MEDIUM | Evidence |\n|---|---:|---:|---:|---:|---|\n| Before | ${fact('before', 'security_exposure', 'high')} | ${fact('before', 'search_discoverability', 'high')} | ${fact('before', 'search_discoverability', 'medium')} | ${fact('before', 'reliability', 'medium')} | \`before.json\`, \`before.md\` |\n| Proposed hardening | - | - | - | - | \`hardening.patch\` |\n| Retest | ${fact('after', 'security_exposure', 'high')} | ${fact('after', 'search_discoverability', 'high')} | ${fact('after', 'search_discoverability', 'medium')} | ${fact('after', 'reliability', 'medium')} | \`after.json\`, \`after.md\` |\n\nThe patch is evidence for review. A fix is counted only from the compatible v2 retest output.\n`;
-writeFileSync(join(out, 'summary.md'), summary);
-console.log(`Demo complete in ${out}
-before: ${fact('before', 'security_exposure', 'high')} security HIGH; ${fact('before', 'search_discoverability', 'high')} discoverability HIGH + ${fact('before', 'search_discoverability', 'medium')} MEDIUM; ${fact('before', 'reliability', 'medium')} reliability MEDIUM
-after:  ${facts.after.bySeverity.high} active HIGH, ${facts.after.bySeverity.medium} active MEDIUM
+writeFileSync(join(out, 'summary.md'), `# Demo result
 
-Reports:
-  ${join(out, 'summary.md')}
-  ${join(out, 'demo-result.json')}
-  ${join(out, 'before.md')}
-  ${join(out, 'after.md')}
-Patch evidence:
-  ${join(out, 'hardening.patch')}`);
+| Input | Finding | Evidence state | Proposal | Security retest | Functional retest |
+|---|---|---|---|---|---|
+| owned local source fixture | ${facts.before.technicalTerm} | ${facts.before.state} | replace shell command with argument-separated execFile | ${facts.securityRetest.baselineState} | ${facts.functionalRetest.status} |
+
+The source lead is not claimed as a confirmed exploit. The patch is review evidence; the compatible
+source retest and the separate product behavior test are recorded independently.
+`);
+console.log(`Demo complete in ${out}
+before: suspected HIGH ${facts.before.ruleId}
+proposal: review shell-free argument handling and side effects
+security retest: ${facts.securityRetest.baselineState}
+functional retest: ${facts.functionalRetest.status}`);

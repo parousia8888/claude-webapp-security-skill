@@ -34,12 +34,23 @@ The complete milestone sequence, tests, stop conditions and Definition of Done l
 verification, verified installer, exact-version external consumer and owner-approved public `v1`
 promotion are complete. Final M8 evidence is recorded in the engineering plan.
 
-## Planned for v0.5.0
+## In release preparation for v0.5.0
 
-v0.5.0 is the source-detection and understandable-remediation program. It plans deeper built-in
-JavaScript/TypeScript and Python checks, a versioned professional/plain-language finding contract,
-and evidence-gated evaluations of one mature SAST adapter and one deployment/IaC adapter. These
-items remain unavailable until their milestone evidence ships.
+v0.5.0 is the source-detection and understandable-remediation program. Implemented on `main`:
+
+- 20 stable built-in risk rules and 2 evidence-integrity rules, including eight bounded
+  JavaScript/TypeScript and eight bounded Python rules;
+- finding/report v3 with professional and plain-language explanation, consequence, evidence limit,
+  proposal, alternatives, side effects, owner decisions, dual retests and rollback;
+- stable bounded Opengrep 1.27.0 and Checkov 3.3.9 adapters, in addition to Gitleaks and OSV-Scanner;
+- a review-only repair record and approval/retest state machine that never edits project files;
+- a labelled 30-rule fixture corpus, one planted missing-observation failure per rule and a manually
+  classified five-project ordinary-source review;
+- a source-focused local demo that records both security and normal functional retests.
+
+The remaining work is the M8 public-surface evidence gate followed by M9 release freeze, signed tag,
+reproducible artifacts, installer trust anchors, immutable Action consumer and guarded `v1`
+promotion. Until those gates pass, `v0.5.0` is not described as a published release.
 
 The complete audited baseline, milestone sequence, tests, stop conditions and publication gates
 live in the [v0.5.0 engineering plan](docs/V0.5.0_ENGINEERING_PLAN.md). Built-in depth for other

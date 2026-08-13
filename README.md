@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="#see-the-result">Demo</a> ·
+  <a href="#whats-new-in-v050">v0.5.0</a> ·
   <a href="#install">Install</a> ·
   <a href="#run-the-first-project">First project</a> ·
   <a href="docs/tutorial.md">Tutorial</a> ·
@@ -25,19 +26,41 @@
 </p>
 
 <p align="center">
-  <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="Owned local fixture: audit finds 2 security HIGH, 11 discoverability HIGH plus 5 MEDIUM, and 1 reliability MEDIUM; a reviewable patch is shown and the same path retests with no active HIGH or MEDIUM findings"></a>
+  <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="Owned local source fixture: a suspected HIGH OS command injection lead is explained, changed from shell execution to argument-separated execution, then security and normal product behavior are retested"></a>
 </p>
 
 <p align="center"><a href="docs/demo-evidence.md">Read the generated reports and patch behind this demo.</a></p>
 
+## What's new in v0.5.0
+
+The current `main` candidate is the source-detection and understandable-remediation release:
+
+- **More automatic source rules:** 20 stable built-in risk rules, 2 evidence-integrity rules and 8
+  opt-in external-adapter rules. Built-in depth targets JavaScript/TypeScript and Python Web code.
+- **Two explanations for one finding:** every v3 source result retains the professional term and
+  standards mapping, then explains the same issue in ordinary language, including realistic impact
+  and what the evidence does not prove.
+- **A change proposal, not a blind fix:** reports include alternatives, likely side effects, owner
+  decisions, security retest, functional retest and rollback. `repair-plan` creates a private review
+  record; the CLI does not edit the project.
+- **Evidence from ordinary projects:** the five-project v0.5.0 pass produced 43 pattern findings,
+  manually reviewed as 11 useful leads, 27 expected benign matches, 1 unknown and 4 confirmed
+  missing-lockfile facts. This is not 43 vulnerabilities or a precision/recall claim.
+
+Exact support and limits are in the [compatibility matrix](docs/compatibility.md), [stable rule
+corpus](docs/stable-rule-corpus.json) and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md).
+The verified installer below continues to select the published v0.4.0 release until v0.5.0 passes
+the signed release gates.
+
 ## See the result
 
-Run an intentionally misconfigured local web app, audit it, apply the fixture's hardening, and
-retest it through the same product path. Nothing reaches the network.
+Audit an intentionally unsafe local source file, inspect the explanation and proposed change, then
+run both the security retest and the fixture's normal behavior test. Nothing reaches the network
+and no project dependency is installed.
 
-| Input | Security | Discoverability | Reliability | Reviewable change | Retest |
-|---|---:|---:|---:|---|---|
-| Owned local fixture | 2 HIGH | 11 HIGH + 5 MEDIUM | 1 MEDIUM | crawl policy, exposed artifacts, unknown-route status | 0 active HIGH / MEDIUM |
+| Input | Finding | Evidence | Reviewable change | Retest |
+|---|---|---|---|---|
+| `src/export-report.mjs` | OS command injection lead (CWE-78), HIGH | `suspected`; input flow and reachability are not proven | replace shell parsing with `execFile` and separate arguments; quoting/platform behavior may change | security `fixed`; functional `passed` |
 
 ```bash
 git clone https://github.com/parousia8888/web-app-security-skill.git
@@ -46,9 +69,9 @@ npm run demo -- --out ./demo-output
 ```
 
 Read the [generated before / proposed change / retest evidence](docs/demo-evidence.md), then inspect
-`demo-output/demo-result.json`, `summary.md`, `before.json`, `hardening.patch`, and `after.json`.
-Every public demo count is derived from `demo-result.json`; the repository check reruns the fixture
-and fails if any surface disagrees.
+`demo-output/demo-result.json`, `summary.md`, `before.json`, `hardening.patch`, `after.json`, and
+`functional-retest.txt`. Every public demo fact is derived from `demo-result.json`; the repository
+check reruns the fixture and fails if any surface disagrees.
 
 For the complete install-to-uninstall path, follow the tested
 [first project tutorial](docs/tutorial.md).
@@ -114,6 +137,8 @@ The deterministic source path can then run as:
 ```bash
 webapp-security audit .webapp-security/runs/<run-id> --fail-on high
 webapp-security explain <finding-id> --report .webapp-security/runs/<run-id>/report.json
+webapp-security repair-plan <finding-id> \
+  --report .webapp-security/runs/<run-id>/report.json --out ./repair-review
 webapp-security start . --run-id <retest-run-id>
 webapp-security retest .webapp-security/runs/<retest-run-id> \
   --baseline .webapp-security/runs/<run-id>/report.json
@@ -233,8 +258,10 @@ webapp-security aws --profile default --region us-east-1 --out ./security-report
 Active rate-limit verification also requires `--acknowledge-authorization`. Network or evidence
 failure is `unknown` and exits non-zero; it is never rendered as safe.
 
-Source conclusions use finding/report v3; crawl, demo, crawler identity, edge and AWS remain on v2.
-Both versions preserve the same coverage, evidence-state, policy and exit-code semantics. Report
+Source conclusions use finding/report v3, including the before/after source reports inside the new
+demo. Crawl, crawler identity, edge and AWS remain on v2; the demo's small `demo-result.json` fact
+schema is separate from either report schema. Both report versions preserve the same coverage,
+evidence-state, policy and exit-code semantics. Report
 bundles and their tool-specific observations are sanitized in memory, staged as private files in the
 target directory, and committed together without overwriting prior evidence. A renderer or handled
 write failure is rolled back without leaving a partial new bundle. Historical v1 reports remain
@@ -264,7 +291,9 @@ resolves to that same verified release:
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-Source mode defaults to the bundled adapter. External binaries must be installed and pinned by the
+Source mode defaults to the bundled adapter. On the current v0.4.0 immutable Action it runs the
+v0.4.0 source contract; the v0.5.0 source rules become available only after the v0.5.0 Action source
+is published. External binaries must be installed and pinned by the
 caller; the Action never downloads them:
 
 ```yaml
@@ -304,20 +333,21 @@ git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.4.0
 
 ## 5 ordinary project journeys
 
-The ordinary-project set runs the complete v2 source path: built-in rules, Gitleaks `8.30.1`, and
-OSV-Scanner `2.5.0`, then records manual trace, false-positive closure, repair/retest and unreached
-surfaces. All source is pinned to immutable commits; no hosted instance or project dependency was
-executed. OSV alone may query its public advisory service, so its dated match counts can drift.
+The original v0.4.0 journeys preserve the complete v2 built-in/Gitleaks/OSV evidence. The separate
+[v0.5.0 built-in review](docs/case-studies/journeys/v0.5.0-review.md) reruns the same fixed commits
+through the broader v3 JavaScript/TypeScript and Python rules and manually classifies every finding.
+No hosted instance or project dependency was executed in either pass.
 
 | Project | Evidence outcome | Manual outcome |
 |---|---|---|
-| [Linkwarden](docs/case-studies/journeys/linkwarden.md) | 0 confirmed; OSV matches remain suspected | Direct URL-fetch path scoped `not_applicable`; proxy path unreached |
-| [Healthchecks](docs/case-studies/journeys/healthchecks.md) | 0 confirmed; Gitleaks doc/test matches suspected; OSV not applicable | Production environment values remain `unknown` |
-| [Open WebUI](docs/case-studies/journeys/open-webui.md) | Source-map and OSV matches suspected | Local source-map fixture retests `fixed`; public delivery remains unknown |
-| [Uptime Kuma](docs/case-studies/journeys/uptime-kuma.md) | 4 confirmed lockfile facts; external matches suspected | Operator webhook sink is not a vulnerability without a boundary bypass |
-| [Mealie](docs/case-studies/journeys/mealie.md) | 0 confirmed; Gitleaks test-material matches suspected | Limited URL-fetch path scoped `not_applicable`; broader paths unknown |
+| [Linkwarden](docs/case-studies/journeys/linkwarden.md) | v3: 6 suspected | 6 expected benign matches after JSDOM, DOMPurify and constant-content review |
+| [Healthchecks](docs/case-studies/journeys/healthchecks.md) | v3: 5 suspected | 4 useful response-encoding leads; 1 expected benign opt-in shell match |
+| [Open WebUI](docs/case-studies/journeys/open-webui.md) | v3: 6 suspected; 1 unknown | 3 useful leads; 3 expected benign; tokenizer failure stays unknown |
+| [Uptime Kuma](docs/case-studies/journeys/uptime-kuma.md) | v3: 4 confirmed facts; 21 suspected | 4 useful leads; 17 expected benign; confirmed items are lockfile hygiene, not four app vulnerabilities |
+| [Mealie](docs/case-studies/journeys/mealie.md) | v3: 0 findings | No configured pattern matched; this does not establish security |
 
-Read the [structured journeys, exact commands and evidence boundary](docs/case-studies/journeys/README.md).
+Read the [structured v0.5.0 classification](docs/case-studies/journeys/v0.5.0-evidence.json) and the
+[historical journey method](docs/case-studies/journeys/README.md).
 Confirmed source facts, scanner leads and false-positive outcomes are kept visible; this is not a
 precision score. Uptime Kuma and Mealie overlap with the methodology corpus below at the same
 commits, so these are two evidence views rather than ten distinct projects.

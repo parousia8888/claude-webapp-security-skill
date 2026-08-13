@@ -18,6 +18,8 @@ const contract = json('docs/public-contract.json');
 const capabilities = json('docs/capabilities.json');
 const demo = json('docs/assets/demo.json').result;
 const journeys = json('docs/case-studies/journeys/evidence.json');
+const ordinaryReview = json('docs/case-studies/journeys/v0.5.0-evidence.json');
+const ruleCorpus = json('docs/stable-rule-corpus.json');
 const version = read('VERSION').trim();
 const releaseState = json('docs/release-state.json');
 const published = releaseState.publishedRelease;
@@ -32,14 +34,12 @@ requireFact(releaseState.schemaVersion === 1, 'release-state schemaVersion must 
 requireFact(metadata.repository === publication.repositoryUrl.replace('https://github.com/', ''), 'repository sources disagree');
 requireFact(metadata.promise?.en && metadata.promise?.['zh-CN'], 'canonical promises are missing');
 requireFact(existsSync(join(ROOT, releaseEvidencePath)), `published release evidence is missing for v${published.version}`);
-requireFact(demo.boundary === 'owned-local-fixture-no-third-party-target', 'demo must remain an owned local fixture');
-requireFact(Number.isInteger(demo.before?.byDomain?.security_exposure?.confirmed?.high)
-  && Number.isInteger(demo.before?.byDomain?.search_discoverability?.confirmed?.high)
-  && Number.isInteger(demo.before?.byDomain?.search_discoverability?.confirmed?.medium)
-  && Number.isInteger(demo.before?.byDomain?.reliability?.confirmed?.medium)
-  && Number.isInteger(demo.after?.bySeverity?.high)
-  && Number.isInteger(demo.after?.bySeverity?.medium)
-  && Number.isInteger(demo.fixed), 'demo counts are invalid');
+requireFact(demo.boundary === 'owned-local-source-fixture-no-network', 'demo must remain an owned local source fixture');
+requireFact(demo.before?.state === 'suspected' && demo.before?.ruleId
+  && demo.before?.technicalTerm && demo.before?.plainLanguage && demo.before?.consequence
+  && demo.before?.evidenceBoundary && demo.proposal?.status === 'review_required'
+  && demo.proposal?.sideEffects?.length && demo.securityRetest?.baselineState === 'fixed'
+  && demo.functionalRetest?.status === 'passed', 'source demo facts are invalid');
 requireFact(journeys.journeys?.length === contract.projectJourneys?.length, 'ordinary journey sources disagree');
 requireFact(contract.methodStudies?.length > 0, 'method studies are missing');
 requireFact(journeys.journeys.every((journey) => /^[a-f0-9]{40}$/.test(journey.commit || '')), 'journeys must pin immutable commits');
@@ -47,6 +47,11 @@ requireFact(journeys.method?.hostedInstancesProbed === false
   && journeys.method?.projectDependenciesExecuted === false
   && journeys.method?.osvPublicAdvisoryNetwork === true,
   'journey source/network boundary drifted');
+requireFact(ordinaryReview.projects?.length === journeys.journeys.length
+  && ordinaryReview.method?.hostedInstancesProbed === false
+  && ordinaryReview.method?.networkAccessPerformed === false,
+  'v0.5.0 ordinary review boundary drifted');
+requireFact(ruleCorpus.counts?.stableTotal === 30, 'stable rule corpus count drifted');
 
 const capabilityCount = (category, maturity) => capabilities.capabilities.filter((item) =>
   item.category === category && (!maturity || item.maturity === maturity)).length;
@@ -68,20 +73,30 @@ const facts = {
   evidenceReporting: capabilityCount('evidence_reporting'),
   lifecycleDistribution: capabilityCount('lifecycle_distribution'),
   guided: capabilityCount('agent_guided_methodology'),
-  securityHigh: demo.before.byDomain.security_exposure.confirmed.high,
-  discoverabilityHigh: demo.before.byDomain.search_discoverability.confirmed.high,
-  discoverabilityMedium: demo.before.byDomain.search_discoverability.confirmed.medium,
-  reliabilityMedium: demo.before.byDomain.reliability.confirmed.medium,
-  afterHigh: demo.after.bySeverity.high,
-  afterMedium: demo.after.bySeverity.medium,
-  fixed: demo.fixed,
+  demoFinding: demo.before.technicalTerm,
+  demoState: demo.before.state,
+  demoSeverity: demo.before.severity,
+  demoBoundary: demo.before.evidenceBoundary,
+  demoProposal: demo.proposal.summary,
+  demoSideEffect: demo.proposal.sideEffects.join(' '),
+  securityRetest: demo.securityRetest.baselineState,
+  functionalRetest: demo.functionalRetest.status,
+  stableRules: ruleCorpus.counts.stableTotal,
+  builtInRisk: ruleCorpus.counts.builtInRisk,
+  builtInIntegrity: ruleCorpus.counts.builtInIntegrity,
+  externalRisk: ruleCorpus.counts.externalRisk,
+  reviewFindings: ordinaryReview.aggregate.findings,
+  reviewUseful: ordinaryReview.aggregate.reviewClasses.useful_lead,
+  reviewBenign: ordinaryReview.aggregate.reviewClasses.expected_benign_match,
+  reviewUnknown: ordinaryReview.aggregate.reviewClasses.unknown,
+  reviewConfirmed: ordinaryReview.aggregate.reviewClasses.confirmed,
   journeys: journeys.journeys.length,
   studies: contract.methodStudies.length,
 };
-const demoEn = `${facts.securityHigh} security HIGH; ${facts.discoverabilityHigh} discoverability HIGH + ${facts.discoverabilityMedium} MEDIUM; ${facts.reliabilityMedium} reliability MEDIUM`;
-const demoZh = `${facts.securityHigh} 个 security HIGH、${facts.discoverabilityHigh} 个 discoverability HIGH + ${facts.discoverabilityMedium} 个 MEDIUM、${facts.reliabilityMedium} 个 reliability MEDIUM`;
-const demoAfterEn = `${facts.afterHigh} active HIGH / ${facts.afterMedium} active MEDIUM`;
-const demoAfterZh = `${facts.afterHigh} 个 active HIGH / ${facts.afterMedium} 个 active MEDIUM`;
+const demoEn = `${facts.demoFinding}, ${facts.demoState.toUpperCase()} ${facts.demoSeverity.toUpperCase()}`;
+const demoZh = `${facts.demoFinding}，${facts.demoState} ${facts.demoSeverity.toUpperCase()}`;
+const demoAfterEn = `security ${facts.securityRetest}; functional ${facts.functionalRetest}`;
+const demoAfterZh = `security ${facts.securityRetest}；functional ${facts.functionalRetest}`;
 
 const generatedNote = '<!-- Generated by scripts/generate-adoption-assets.mjs. Edit structured sources, not this file. -->';
 const enLimits = publication.limitations.en.map((item) => `- ${item}`).join('\n');
@@ -91,6 +106,7 @@ const installZhLink = `${facts.repo}/blob/main/docs/verified-installation.zh-CN.
 const demoLink = `${facts.repo}/blob/main/docs/demo-evidence.md`;
 const capabilityLink = `${facts.repo}/blob/main/docs/capabilities.md`;
 const journeysLink = `${facts.repo}/blob/main/docs/case-studies/journeys/README.md`;
+const reviewLink = `${facts.repo}/blob/main/docs/case-studies/journeys/v0.5.0-review.md`;
 const launchEvidenceLink = `${facts.repo}/blob/main/docs/launch-evidence.md`;
 
 const outputs = new Map();
@@ -111,7 +127,7 @@ add('docs/adoption/launch-brief.md', [
   '',
   '## The inspect-patch-retest loop',
   '',
-  `The repository-owned local demo begins with **${demoEn}**, produces a reviewable patch, and retests the same fixture at **${demoAfterEn}**. The generated record classifies **${facts.fixed} findings as fixed**. The fixture runs locally without a third-party target.`,
+  `The repository-owned local source demo begins with **${demoEn}**, explains what the pattern does and does not prove, proposes argument-separated execution, names a quoting/platform side effect, and records **${demoAfterEn}**. It sends no network request and does not execute project dependencies.`,
   '',
   `[Watch the generated demo and inspect its reports](${demoLink}).`,
   '',
@@ -121,9 +137,9 @@ add('docs/adoption/launch-brief.md', [
   '',
   `[Review every capability and its evidence](${capabilityLink}).`,
   '',
-  `The evidence corpus also records **${facts.journeys} ordinary fixed-commit project journeys** and **${facts.studies} separate source-methodology studies**. No hosted instance was probed in the ordinary journeys, and zero-finding, false-positive and unknown outcomes remain visible.`,
+  `The v0.5.0 built-in review classifies all **${facts.reviewFindings} findings** from **${facts.journeys} fixed-commit ordinary projects** as ${facts.reviewUseful} useful leads, ${facts.reviewBenign} expected benign matches, ${facts.reviewUnknown} unknown and ${facts.reviewConfirmed} confirmed missing-lockfile facts. This is not a vulnerability count or precision/recall claim. A separate ${facts.studies}-study corpus exercises broader source methodology.`,
   '',
-  `[Review the journey method and exact boundaries](${journeysLink}).`,
+  `[Review the v0.5.0 classification](${reviewLink}) and [historical journey method](${journeysLink}).`,
   '',
   '## Install and distribution',
   '',
@@ -153,7 +169,7 @@ add('docs/adoption/launch-brief.zh-CN.md', [
   '',
   '## 检查、补丁与复测闭环',
   '',
-  `仓库自有本地 demo 的初始结果为 **${demoZh}**，随后生成可审查补丁，并对同一个 fixture 复测到 **${demoAfterZh}**；生成记录把 **${facts.fixed} 项 finding 标记为 fixed**。该 fixture 在本地运行，不接触第三方目标。`,
+  `仓库自有本地源码 demo 的初始结果为 **${demoZh}**，随后说明 pattern 能证明和不能证明什么，提出参数分离的执行方式，列出 quoting/跨平台副作用，并记录 **${demoAfterZh}**。该 fixture 不访问网络，也不执行项目依赖。`,
   '',
   `[查看生成的 demo、报告与补丁](${demoLink})。`,
   '',
@@ -163,9 +179,9 @@ add('docs/adoption/launch-brief.zh-CN.md', [
   '',
   `[逐项查看能力与证据](${capabilityLink})。`,
   '',
-  `证据集还记录了 **${facts.journeys} 个固定 commit 的普通项目旅程**，以及独立维护的 **${facts.studies} 个源码方法论案例**。普通项目旅程未探测托管实例，并保留零 finding、误报关闭与 unknown 结果。`,
+  `v0.5.0 built-in 复核把 **${facts.journeys} 个固定 commit 普通项目**中的 **${facts.reviewFindings} 条 finding**逐条归类为 ${facts.reviewUseful} 条有用线索、${facts.reviewBenign} 条预期良性命中、${facts.reviewUnknown} 条 unknown 和 ${facts.reviewConfirmed} 条已确认的缺 lockfile 事实。这不是漏洞数量或 precision/recall。另有 ${facts.studies} 个独立源码方法论案例。`,
   '',
-  `[查看旅程方法、命令和边界](${journeysLink})。`,
+  `[查看 v0.5.0 人工分类](${reviewLink})与[历史旅程方法](${journeysLink})。`,
   '',
   '## 安装与分发',
   '',
@@ -195,11 +211,11 @@ add('docs/adoption/channels/technical-long-form.md', [
   '',
   `I built [${facts.product}](${facts.repo}) around one constraint: a security workflow should leave reviewable evidence instead of ending at a list of warnings. The workflow records scope, classifies evidence, proposes a minimal patch, and requires a retest before calling a finding fixed.`,
   '',
-  `The repository-owned demo deliberately starts with ${demoEn}. It shows the patch and reruns the same path at ${demoAfterEn}, with ${facts.fixed} findings recorded as fixed. [The generated reports and patch are public](${demoLink}).`,
+  `The repository-owned source demo starts with ${demoEn}. It keeps the evidence boundary visible, shows the shell-free patch and records ${demoAfterEn}. [The generated reports and patch are public](${demoLink}).`,
   '',
   `The current contract names ${facts.stableDetection} stable narrow detection families and keeps ${facts.evidenceReporting} evidence/reporting plus ${facts.lifecycleDistribution} lifecycle/distribution capabilities outside that detection count. Context-heavy API, identity, data and cloud review still depends on ${facts.guided} agent-guided methods and human review. [The full category-by-maturity matrix links each claim to evidence](${capabilityLink}).`,
   '',
-  `I also ran ${facts.journeys} ordinary projects at immutable commits through the v2 source path. No hosted project was contacted or dependency executed; OSV-Scanner alone may query its public advisory service. The journeys retain confirmed facts, false-positive closures, suspected and unknown results rather than presenting only successful detections. A separate ${facts.studies}-study corpus exercises broader source review, with two projects overlapping by design. [Method and reproduction commands](${journeysLink}).`,
+  `I also ran the v0.5.0 built-in path over ${facts.journeys} ordinary projects at immutable commits. No hosted project was contacted, no dependency executed and no network request made. All ${facts.reviewFindings} findings were reviewed as ${facts.reviewUseful} useful leads, ${facts.reviewBenign} expected benign matches, ${facts.reviewUnknown} unknown and ${facts.reviewConfirmed} confirmed facts. A separate ${facts.studies}-study corpus exercises broader source review. [Classification and reproduction](${reviewLink}).`,
   '',
   `Distribution is part of the threat model. [v${facts.publishedVersion}](${facts.release}) includes a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. The recommended installer verifies an immutable bootstrap before execution, then verifies the release it installs.`,
   '',
@@ -227,7 +243,7 @@ add('docs/adoption/channels/show-hn.md', [
   '',
   `I built ${facts.product}, an open-source skill and CLI for recording scope, running narrow deterministic checks, proposing reviewable hardening patches, and retesting applied changes.`,
   '',
-  `The local demo is generated from a repository-owned fixture: ${demoEn}, then a patch, then ${demoAfterEn} on the same path. The repository names ${facts.stableDetection} stable narrow detection families, keeps supporting automation outside that count, and publishes ${facts.journeys} fixed-commit ordinary-project journeys including zero-finding and unknown outcomes.`,
+  `The local demo is generated from a repository-owned source fixture: ${demoEn}, then a reviewable patch, then ${demoAfterEn}. The repository records ${facts.builtInRisk} built-in risk, ${facts.builtInIntegrity} evidence-integrity and ${facts.externalRisk} external-adapter stable rules, and a fully classified ${facts.journeys}-project review.`,
   '',
   `The installer verifies pinned bootstrap bytes and release assets; v${facts.publishedVersion} includes a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.`,
   '',
@@ -253,7 +269,7 @@ add('docs/adoption/channels/reddit.md', [
   '',
   `I am working on [${facts.product}](${facts.repo}). It combines an agent workflow with deterministic local tooling: record scope, classify results as confirmed/suspected/unknown/not_applicable, produce a patch for review, then require baseline retest evidence before marking anything fixed.`,
   '',
-  `The reproducible owned-fixture demo currently shows ${demoEn} -> ${demoAfterEn} and keeps the reports and patch in the repository. The public contract identifies ${facts.stableDetection} stable narrow detection families and ${facts.guided} agent-guided methods without counting reports or distribution as detection.`,
+  `The reproducible owned-source demo shows ${demoEn} -> ${demoAfterEn} and keeps the evidence boundary, side effect, reports and patch in the repository. The rule corpus identifies ${facts.stableRules} stable source/deployment rules by category, while agent-guided methods remain separate.`,
   '',
   `I kept the ${facts.journeys} ordinary-project source journeys at immutable commits and included zero-finding, false-positive and unknown results. No hosted instance was probed. Release v${facts.publishedVersion} adds a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.`,
   '',
@@ -297,7 +313,7 @@ add('docs/adoption/channels/v2ex.md', [
   '',
   `项目地址：${facts.repo}`,
   '',
-  `这个项目把 Web 安全加固拆成范围确认、证据分类、最小补丁和强制复测。自有本地 fixture 的生成式 demo 为 ${demoZh}，应用可审查补丁后沿同一路径复测为 ${demoAfterZh}；报告、补丁和生成方式都可以检查。`,
+  `这个项目把 Web 安全加固拆成范围确认、证据分类、最小补丁和双重复测。自有本地源码 fixture 的 demo 为 ${demoZh}，应用可审查补丁后记录 ${demoAfterZh}；证据边界、副作用、报告、补丁和生成方式都可以检查。`,
   '',
   `目前能力合同明确列出 ${facts.stableDetection} 个 stable 窄检测家族、${facts.plannedDetection} 项 planned 检测能力和 ${facts.guided} 项 agent-guided 方法；证据/报告与分发能力不计入检测覆盖。另有 ${facts.journeys} 个固定 commit 的普通开源项目旅程，保留零 finding、误报关闭和 unknown 结果，未探测线上实例。`,
   '',
@@ -331,7 +347,7 @@ add('docs/adoption/channels/chinese-developer-community.md', [
   '',
   `项目没有把一次扫描结果当成安全结论。每项结果必须处于 confirmed、suspected、unknown 或 not_applicable；补丁默认只输出供审查，只有沿基线复测后才可记录为 fixed。`,
   '',
-  `可复现 demo 使用仓库自有本地 fixture，初始结果是 ${demoZh}，展示补丁后复测为 ${demoAfterZh}，并记录 ${facts.fixed} 项 fixed。它不请求第三方目标，生成脚本、JSON/Markdown 报告和 patch 都在仓库中。`,
+  `可复现 demo 使用仓库自有本地源码 fixture，初始结果是 ${demoZh}，展示补丁后记录 ${demoAfterZh}。它不请求第三方目标、不执行项目依赖，证据边界、副作用、生成脚本、JSON/Markdown 报告和 patch 都在仓库中。`,
   '',
   `当前能力合同按 category 与 maturity 分开记录：${facts.stableDetection} 个 stable 窄检测家族、${facts.plannedDetection} 项 planned 检测能力、${facts.evidenceReporting} 项证据/报告能力、${facts.lifecycleDistribution} 项生命周期/分发能力和 ${facts.guided} 项 agent-guided 方法。这个分层避免把 demo、报告、安装器或强上下文审查描述成检测覆盖。`,
   '',
@@ -362,7 +378,7 @@ add('docs/adoption/citations.md', [
   '| ID | Citable claim | Evidence | Required qualifier |',
   '|---|---|---|---|',
   `| \`product.workflow\` | ${facts.promiseEn} | [README](${facts.repo}#readme) | Agent-guided work still requires project context and review. |`,
-  `| \`demo.before-after\` | The repository-owned local fixture records ${demoEn} before, ${demoAfterEn} after, and ${facts.fixed} fixed findings. | [Generated demo evidence](${demoLink}) | Owned fixture only; no third-party target or general coverage claim. |`,
+  `| \`demo.before-after\` | The repository-owned local source fixture records ${demoEn}, a reviewable proposal and ${demoAfterEn}. | [Generated demo evidence](${demoLink}) | The lead is suspected; no exploitability or third-party coverage claim. |`,
   `| \`capabilities.contract\` | The current source contract lists ${facts.stableDetection} stable narrow detection families and ${facts.plannedDetection} planned detection capabilities, separately from ${facts.evidenceReporting} evidence/reporting, ${facts.lifecycleDistribution} lifecycle/distribution and ${facts.guided} agent-guided capabilities. | [Generated capability matrix](${capabilityLink}) | Supporting or guided capability counts are not vulnerability coverage or precision. |`,
   `| \`cases.ordinary\` | ${facts.journeys} ordinary project journeys use immutable source commits with no hosted instance probed. | [Journey evidence](${journeysLink}) | Source-only scope; zero, false-positive and unknown outcomes remain visible; no upstream validation claimed. |`,
   `| \`cases.method\` | ${facts.studies} separate fixed-commit studies exercise the source-review methodology. | [Case-study method](${facts.repo}/blob/main/docs/case-studies/README.md) | Not a CLI precision benchmark. |`,
@@ -394,16 +410,11 @@ const share = {
     evidence: capabilityLink,
   },
   ownedLocalDemo: {
-    before: {
-      byDomain: {
-        security_exposure: { high: facts.securityHigh },
-        search_discoverability: { high: facts.discoverabilityHigh, medium: facts.discoverabilityMedium },
-        reliability: { medium: facts.reliabilityMedium },
-      },
-    },
-    after: { active: { high: facts.afterHigh, medium: facts.afterMedium } },
-    fixed: facts.fixed,
+    finding: { technicalTerm: facts.demoFinding, state: facts.demoState, severity: facts.demoSeverity },
+    proposal: { summary: facts.demoProposal, sideEffect: facts.demoSideEffect },
+    retest: { security: facts.securityRetest, functional: facts.functionalRetest },
     thirdPartyTarget: false,
+    networkAccess: false,
     evidence: demoLink,
   },
   caseEvidence: {
@@ -411,6 +422,13 @@ const share = {
     methodologyStudies: facts.studies,
     hostedInstancesProbedInOrdinaryJourneys: false,
     upstreamValidationClaimed: false,
+    v050Review: {
+      findings: facts.reviewFindings,
+      usefulLeads: facts.reviewUseful,
+      expectedBenignMatches: facts.reviewBenign,
+      unknown: facts.reviewUnknown,
+      confirmedFacts: facts.reviewConfirmed,
+    },
     evidence: journeysLink,
   },
   externalState: publication.externalState,

@@ -11,18 +11,19 @@ artifacts and reproduced local behavior; they do not claim universal scanner cov
 |---|---|---|
 | Detection contract | 9 stable narrow detection families; 0 planned detection capabilities | [Generated matrix](capabilities.md) |
 | Supporting contract | 6 evidence/reporting, 1 lifecycle/distribution and 6 agent-guided capabilities; none are counted as detection coverage | [Generated matrix](capabilities.md) |
-| Local before/after demo | 2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM -> 0 active HIGH / 0 active MEDIUM | [Generated demo evidence](demo-evidence.md) |
-| Ordinary project journeys | 5 fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |
+| Stable source/deployment rule corpus | 20 built-in risk; 2 built-in evidence-integrity; 8 external adapter risk; 30 total | [Labelled corpus](stable-rule-corpus.json) |
+| Local before/after demo | OS command injection lead (CWE-78); SUSPECTED HIGH -> security fixed; functional passed; side effect recorded | [Generated demo evidence](demo-evidence.md) |
+| Ordinary project review | 43 findings across 5 fixed commits -> 11 useful leads; 27 expected benign; 1 unknown; 4 confirmed facts | [v0.5.0 review](case-studies/journeys/v0.5.0-review.md) |
 | Source methodology studies | 5 fixed-commit studies, kept separate from CLI precision claims | [Study method](case-studies/README.md) |
 | Release | v0.4.0 signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance | [v0.4.0 release](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.4.0) |
 
 ## Ordinary project journeys
 
-- [Linkwarden](case-studies/journeys/linkwarden.md) at `62f1b81ff7f66001b0f5f613202f87771f3186ee`: 0 confirmed and 270 suspected in the dated v2 snapshot; manual result `not_applicable`; closures and unreached surfaces are recorded.
-- [Healthchecks](case-studies/journeys/healthchecks.md) at `49653c350cddc47fc00a471bd1b08b5771a7967c`: 0 confirmed and 98 suspected in the dated v2 snapshot; manual result `unknown`; closures and unreached surfaces are recorded.
-- [Open WebUI](case-studies/journeys/open-webui.md) at `01f4282f1ffe0d6212f58d3afbeae21fffd0c4be`: 0 confirmed and 144 suspected in the dated v2 snapshot; manual result `suspected`; closures and unreached surfaces are recorded.
-- [Uptime Kuma](case-studies/journeys/uptime-kuma.md) at `6b5ea0155793e666666745fb8d6fef1e829543a2`: 4 confirmed and 93 suspected in the dated v2 snapshot; manual result `not_applicable`; closures and unreached surfaces are recorded.
-- [Mealie](case-studies/journeys/mealie.md) at `2fc22cea43f2978533f3a89a1ddeb1e6a18b245f`: 0 confirmed and 30 suspected in the dated v2 snapshot; manual result `not_applicable`; closures and unreached surfaces are recorded.
+- Linkwarden at `62f1b81ff7f66001b0f5f613202f87771f3186ee`: 0 confirmed, 6 suspected, 0 unknown in the v3 report; reviewed as 0 useful leads, 6 expected benign, 0 unknown and 0 confirmed facts.
+- Healthchecks at `49653c350cddc47fc00a471bd1b08b5771a7967c`: 0 confirmed, 5 suspected, 0 unknown in the v3 report; reviewed as 4 useful leads, 1 expected benign, 0 unknown and 0 confirmed facts.
+- Open WebUI at `01f4282f1ffe0d6212f58d3afbeae21fffd0c4be`: 0 confirmed, 6 suspected, 1 unknown in the v3 report; reviewed as 3 useful leads, 3 expected benign, 1 unknown and 0 confirmed facts.
+- Uptime Kuma at `6b5ea0155793e666666745fb8d6fef1e829543a2`: 4 confirmed, 21 suspected, 0 unknown in the v3 report; reviewed as 4 useful leads, 17 expected benign, 0 unknown and 4 confirmed facts.
+- Mealie at `2fc22cea43f2978533f3a89a1ddeb1e6a18b245f`: 0 confirmed, 0 suspected, 0 unknown in the v3 report; reviewed as 0 useful leads, 0 expected benign, 0 unknown and 0 confirmed facts.
 
 ## Source methodology studies
 
@@ -38,6 +39,7 @@ artifacts and reproduced local behavior; they do not claim universal scanner cov
 node scripts/generate-launch-evidence.mjs --check
 npm run demo -- --out ./demo-output
 node scripts/check-case-journeys.mjs
+node scripts/check-v050-ordinary-review.mjs
 node scripts/check-p7-surfaces.mjs
 ```
 

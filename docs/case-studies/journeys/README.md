@@ -5,6 +5,12 @@ exact commits: built-in rules, Gitleaks `8.30.1`, and OSV-Scanner `2.5.0`. They 
 source facts, scanner leads, false-positive closures, `unknown`/`not_applicable` coverage, and
 unreached surfaces. They are not a vulnerability leaderboard or precision benchmark.
 
+The [v0.5.0 built-in review](v0.5.0-review.md) is a separate, additive evidence set. It keeps these
+same five commits but runs the broader v3 built-in JavaScript/TypeScript and Python path, then
+uniquely classifies every observed finding in
+[`v0.5.0-evidence.json`](v0.5.0-evidence.json). The v2 snapshot below remains unchanged for release
+history and external-adapter evidence.
+
 | Project | Stack | v2 snapshot | Manual trace |
 |---|---|---|---|
 | [Linkwarden](linkwarden.md) | Node/Next.js monorepo | 0 confirmed; OSV leads suspected | Direct URL-fetch path `not_applicable`; proxy path unreached |

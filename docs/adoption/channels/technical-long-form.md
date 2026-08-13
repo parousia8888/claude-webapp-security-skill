@@ -10,11 +10,11 @@ Building a reviewable web-security loop for AI coding agents
 
 I built [Web App Security Skill](https://github.com/parousia8888/web-app-security-skill) around one constraint: a security workflow should leave reviewable evidence instead of ending at a list of warnings. The workflow records scope, classifies evidence, proposes a minimal patch, and requires a retest before calling a finding fixed.
 
-The repository-owned demo deliberately starts with 2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM. It shows the patch and reruns the same path at 0 active HIGH / 0 active MEDIUM, with 21 findings recorded as fixed. [The generated reports and patch are public](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md).
+The repository-owned source demo starts with OS command injection lead (CWE-78), SUSPECTED HIGH. It keeps the evidence boundary visible, shows the shell-free patch and records security fixed; functional passed. [The generated reports and patch are public](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md).
 
 The current contract names 9 stable narrow detection families and keeps 6 evidence/reporting plus 1 lifecycle/distribution capabilities outside that detection count. Context-heavy API, identity, data and cloud review still depends on 6 agent-guided methods and human review. [The full category-by-maturity matrix links each claim to evidence](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md).
 
-I also ran 5 ordinary projects at immutable commits through the v2 source path. No hosted project was contacted or dependency executed; OSV-Scanner alone may query its public advisory service. The journeys retain confirmed facts, false-positive closures, suspected and unknown results rather than presenting only successful detections. A separate 5-study corpus exercises broader source review, with two projects overlapping by design. [Method and reproduction commands](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md).
+I also ran the v0.5.0 built-in path over 5 ordinary projects at immutable commits. No hosted project was contacted, no dependency executed and no network request made. All 43 findings were reviewed as 11 useful leads, 27 expected benign matches, 1 unknown and 4 confirmed facts. A separate 5-study corpus exercises broader source review. [Classification and reproduction](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/v0.5.0-review.md).
 
 Distribution is part of the threat model. [v0.4.0](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.4.0) includes a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. The recommended installer verifies an immutable bootstrap before execution, then verifies the release it installs.
 
@@ -24,9 +24,9 @@ Repository: https://github.com/parousia8888/web-app-security-skill
 
 ### Limits
 
-- The deterministic CLI is narrow and is not a general SAST engine or universal vulnerability scanner.
+- Built-in source depth targets JavaScript/TypeScript and Python and is not a universal SAST engine or vulnerability scanner.
 - Agent-guided reviews require project context and human review; installing the Skill does not prove a project secure.
-- The animated result comes from an intentionally misconfigured, repository-owned local fixture and does not establish third-party coverage.
+- The animated result is one suspected source lead in a repository-owned local fixture and does not establish third-party coverage or exploitability.
 - The ordinary project journeys are fixed-commit source reviews; no hosted instance was probed and no upstream validation is claimed.
 
 > Publication status: draft. No external publication or upstream endorsement is claimed.

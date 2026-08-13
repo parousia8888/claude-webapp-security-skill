@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { readStableRuleCorpus, validateCorpusObservations } from '../scripts/lib/rule-corpus.mjs';
 
 if (process.env.WEBAPP_SECURITY_REAL_ADAPTER_TEST !== 'true') {
   console.log('real adapters skipped: set WEBAPP_SECURITY_REAL_ADAPTER_TEST=true with pinned binaries');
@@ -98,7 +99,20 @@ try {
   assert.equal(cleanReport.findings.filter((finding) => finding.adapter.id === 'checkov').length, 0);
   assert.ok(cleanReport.coverage.every((entry) => entry.status === 'completed'));
 
-  console.log('real adapters ok: pinned Checkov, Gitleaks, Opengrep and OSV-Scanner positive and clean controls');
+  const corpus = readStableRuleCorpus(join(ROOT, 'docs', 'stable-rule-corpus.json'));
+  const externalObservations = corpus.rules.filter((rule) => rule.adapterType === 'external').map((rule) => ({
+    ruleId: rule.ruleId,
+    positiveState: report.findings.find((finding) => finding.rule.id === rule.ruleId)?.state,
+    negativeFindingCount: cleanReport.findings.filter((finding) => finding.rule.id === rule.ruleId).length,
+  }));
+  assert.deepEqual(validateCorpusObservations(corpus, externalObservations, { adapterType: 'external' }), []);
+  for (const rule of corpus.rules.filter((item) => item.adapterType === 'external')) {
+    const mutated = externalObservations.filter((observation) => observation.ruleId !== rule.ruleId);
+    assert.match(validateCorpusObservations(corpus, mutated, { adapterType: 'external' }).join('; '),
+      new RegExp(`missing positive/negative observation ${rule.ruleId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+  }
+
+  console.log('real adapters ok: 8 corpus-linked pinned adapters with 8 planted missing-observation failures');
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

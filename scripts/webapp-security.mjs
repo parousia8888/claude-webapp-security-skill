@@ -145,7 +145,7 @@ const include = [
   'docs/report-v3.schema.json', 'docs/report-v3-migration.md',
   'docs/repair-record.schema.json',
   'docs/adapter-protocol.md', 'docs/alert-policy.md', 'docs/rule-taxonomy.md',
-  'docs/stable-source-rules.json',
+  'docs/stable-source-rules.json', 'docs/stable-rule-corpus.json',
 ];
 
 function stagePayload(spec) {

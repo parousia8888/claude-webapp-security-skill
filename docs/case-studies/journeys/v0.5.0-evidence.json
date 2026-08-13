@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "runDate": "2026-08-14T00:00:00.000Z",
+  "method": {
+    "sourceOnly": true,
+    "builtInAdapterOnly": true,
+    "hostedInstancesProbed": false,
+    "projectDependenciesExecuted": false,
+    "networkAccessPerformed": false,
+    "classificationSet": [
+      "useful_lead",
+      "expected_benign_match",
+      "unknown",
+      "confirmed"
+    ],
+    "precisionRecallPublished": false,
+    "findingCountTreatedAsVulnerabilityCount": false
+  },
+  "stableRuleCorpus": {
+    "path": "docs/stable-rule-corpus.json",
+    "semanticDigest": "7e5d8a25b5377afbc4aa2c9e1125ab06135bca837c2b8361cc8a3cac582b5b58"
+  },
+  "rulesetDigest": "558f69d99cd90c1efc7acd4ec7fc37ca1c4a269b2425d51668654e9bf4fd0bbf",
+  "projects": [
+    {
+      "id": "linkwarden",
+      "project": "Linkwarden",
+      "repository": "linkwarden/linkwarden",
+      "commit": "62f1b81ff7f66001b0f5f613202f87771f3186ee",
+      "stack": "Node/Next.js monorepo",
+      "report": {
+        "schemaVersion": 3,
+        "sha256": "e9dc96f64a17c303be88f8a19b4f4e79ffee644c994238fe395931e1ed831008",
+        "summary": { "total": 6, "confirmed": 0, "suspected": 6, "unknown": 0 }
+      },
+      "review": {
+        "useful_lead": [],
+        "expected_benign_match": [
+          "browser-html-injection-sink-f22c281c574a6",
+          "browser-html-injection-sink-f568cc8e82cd5",
+          "browser-html-injection-sink-f5c56cde850bc",
+          "browser-html-injection-sink-f658d0eace71e",
+          "react-dangerous-html-sink-f046f247dbe9f",
+          "react-dangerous-html-sink-fec327abaa30e"
+        ],
+        "unknown": [],
+        "confirmed": []
+      },
+      "reviewNotes": [
+        "Three outerHTML assignments execute inside server-side JSDOM during bookmark import, not in a browser execution context.",
+        "ReadableView sanitizes archived HTML with DOMPurify before the later HTML sink; its style sink receives the repository-owned readerViewCSS constant."
+      ]
+    },
+    {
+      "id": "healthchecks",
+      "project": "Healthchecks",
+      "repository": "healthchecks/healthchecks",
+      "commit": "49653c350cddc47fc00a471bd1b08b5771a7967c",
+      "stack": "Python/Django",
+      "report": {
+        "schemaVersion": 3,
+        "sha256": "d357cdcdf245cf2c7361943a164879500e5b8ddaef1f08f0696f53e6226bcbb4",
+        "summary": { "total": 5, "confirmed": 0, "suspected": 5, "unknown": 0 }
+      },
+      "review": {
+        "useful_lead": [
+          "browser-html-injection-sink-f0f835bceee03",
+          "browser-html-injection-sink-f24c58d8c443e",
+          "browser-html-injection-sink-f51c51dee2db8",
+          "browser-html-injection-sink-f653250b2b940"
+        ],
+        "expected_benign_match": [
+          "python-shell-command-execution-fb5e4cca36736"
+        ],
+        "unknown": [],
+        "confirmed": []
+      },
+      "reviewNotes": [
+        "The shell integration is explicitly disabled by default, runs an operator-defined command and shell-quotes substituted check values; that operating boundary should remain documented.",
+        "Four browser sinks consume same-origin AJAX response text. They remain useful trust-boundary review leads because this source-only pass did not prove each response is safely encoded."
+      ]
+    },
+    {
+      "id": "open-webui",
+      "project": "Open WebUI",
+      "repository": "open-webui/open-webui",
+      "commit": "01f4282f1ffe0d6212f58d3afbeae21fffd0c4be",
+      "stack": "SvelteKit/Vite + Python/FastAPI split stack",
+      "report": {
+        "schemaVersion": 3,
+        "sha256": "dea06e5180cd3261b71730425f7a9fa81fcce50e4f5d0ae127033279464e8000",
+        "summary": { "total": 7, "confirmed": 0, "suspected": 6, "unknown": 1 }
+      },
+      "review": {
+        "useful_lead": [
+          "python-dynamic-code-execution-f2bee0a8961b7",
+          "python-dynamic-code-execution-f3ba61fdc1fbf",
+          "production-source-map-enabled-fe80a1bc36381"
+        ],
+        "expected_benign_match": [
+          "node-child-process-shell-execution-fa02a8be39772",
+          "browser-html-injection-sink-f63b29149adec",
+          "browser-html-injection-sink-feda43800e332"
+        ],
+        "unknown": [
+          "source-evidence-incomplete-fed6485c9a14e"
+        ],
+        "confirmed": []
+      },
+      "reviewNotes": [
+        "The build command is the fixed literal git rev-parse HEAD. The note HTML is DOMPurify-sanitized and the drag handle defaults to fixed markup.",
+        "Plugin and function content is intentionally executed after an enablement gate; who may author content and how that trust is enforced still require review.",
+        "Production source maps remain a delivery-policy lead. A Python tokenizer failure is preserved as unknown rather than a clean result."
+      ]
+    },
+    {
+      "id": "uptime-kuma",
+      "project": "Uptime Kuma",
+      "repository": "louislam/uptime-kuma",
+      "commit": "6b5ea0155793e666666745fb8d6fef1e829543a2",
+      "stack": "Express + Vue/Vite",
+      "report": {
+        "schemaVersion": 3,
+        "sha256": "8b5e0809c5cdb2f3d75db90c9fe29307fae8b8d008048c9035f1906c5ee702a1",
+        "summary": { "total": 25, "confirmed": 4, "suspected": 21, "unknown": 0 }
+      },
+      "review": {
+        "useful_lead": [
+          "node-child-process-shell-execution-f1fd536a4c1cf",
+          "node-child-process-shell-execution-fff79479ef0b6",
+          "node-tls-verification-disabled-f797f44de810d",
+          "node-tls-verification-disabled-f88cf400ad1f4"
+        ],
+        "expected_benign_match": [
+          "node-child-process-shell-execution-f0ad8aae87346",
+          "node-child-process-shell-execution-f3809f3720080",
+          "node-child-process-shell-execution-f48f5bdc4f0c8",
+          "node-child-process-shell-execution-f504eaeec0cab",
+          "node-child-process-shell-execution-f5800f7104812",
+          "node-child-process-shell-execution-f5e937233a2b2",
+          "node-child-process-shell-execution-f6c66c6b0079a",
+          "node-child-process-shell-execution-f6efcb8f0fd89",
+          "node-child-process-shell-execution-f87f586fa20cf",
+          "node-child-process-shell-execution-f8b7baa3e42d0",
+          "node-child-process-shell-execution-fa35a5ca32041",
+          "node-child-process-shell-execution-fa623234183e3",
+          "node-child-process-shell-execution-fbaf4eacf6d3f",
+          "node-child-process-shell-execution-fdc0fc99b2dc0",
+          "node-child-process-shell-execution-fe08ca4babd80",
+          "node-child-process-shell-execution-fe74e06f859c5",
+          "node-child-process-shell-execution-feb12dd7c8fea"
+        ],
+        "unknown": [],
+        "confirmed": [
+          "dependency-lockfile-missing-f260fc0cc410d",
+          "dependency-lockfile-missing-fb2a2e7802b84",
+          "dependency-lockfile-missing-fd19a7ef391f0",
+          "dependency-lockfile-missing-fef12c7017a8a"
+        ]
+      },
+      "reviewNotes": [
+        "Most shell calls are fixed release, build or maintenance commands. Two leads remain useful: a caller-controlled command wrapper and concatenation of a Chromium executable path into a shell command.",
+        "One notification integration conditionally disables TLS verification and a deprecated healthcheck disables it globally; deployment context and migration options require review.",
+        "Four example or helper package manifests really have no applicable lockfile. These are confirmed hygiene facts, not four confirmed application vulnerabilities."
+      ]
+    },
+    {
+      "id": "mealie",
+      "project": "Mealie",
+      "repository": "mealie-recipes/mealie",
+      "commit": "2fc22cea43f2978533f3a89a1ddeb1e6a18b245f",
+      "stack": "Nuxt/Vue + Python/FastAPI split stack",
+      "report": {
+        "schemaVersion": 3,
+        "sha256": "30531c8ae0eeb72eff8a6166c71efc63a938a556b1009746b6a6cdacf4541561",
+        "summary": { "total": 0, "confirmed": 0, "suspected": 0, "unknown": 0 }
+      },
+      "review": {
+        "useful_lead": [],
+        "expected_benign_match": [],
+        "unknown": [],
+        "confirmed": []
+      },
+      "reviewNotes": [
+        "The bounded built-in rules produced no finding. This means only that no configured pattern matched within completed coverage; it does not establish that the project is secure."
+      ]
+    }
+  ],
+  "aggregate": {
+    "reports": 5,
+    "findings": 43,
+    "reportStates": { "confirmed": 4, "suspected": 38, "unknown": 1 },
+    "reviewClasses": { "useful_lead": 11, "expected_benign_match": 27, "unknown": 1, "confirmed": 4 }
+  }
+}

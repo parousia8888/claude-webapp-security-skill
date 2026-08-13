@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="#查看结果">Demo</a> ·
+  <a href="#v050-新增内容">v0.5.0</a> ·
   <a href="#安装">安装</a> ·
   <a href="#执行第一个项目">首个项目</a> ·
   <a href="docs/tutorial.zh-CN.md">完整教程</a> ·
@@ -27,19 +28,37 @@
 > 把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。
 
 <p align="center">
-  <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="自有本地 fixture：审计发现 2 个 security HIGH、11 个 discoverability HIGH 加 5 个 MEDIUM，以及 1 个 reliability MEDIUM；展示可审查补丁后，同一路径复测没有 active HIGH 或 MEDIUM finding"></a>
+  <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="自有本地源码 fixture：发现一条 suspected HIGH 命令注入线索，用专业术语和白话解释，提出取消 shell 解析的修改，再分别复测安全条件和正常产品行为"></a>
 </p>
 
 <p align="center"><a href="docs/demo-evidence.md">查看该演示对应的生成报告与补丁证据。</a></p>
 
+## v0.5.0 新增内容
+
+当前 `main` 候选版本的重点是“更多源码检测 + 看得懂的修复提案”：
+
+- **自动源码规则增加：**20 条 stable built-in risk、2 条证据完整性规则、8 条 opt-in 外部 adapter
+  规则。内置深度明确集中在 JavaScript/TypeScript 与 Python Web 代码。
+- **同一问题讲两遍：**v3 源码 finding 保留行业术语和标准映射，同时用白话说明问题、可能后果，以及
+  当前证据不能证明什么。
+- **先给提案，不盲改：**报告列出替代方案、可能副作用、需要用户决定的事项、安全复测、功能复测和
+  回滚条件。`repair-plan` 只创建私有审查记录，CLI 不直接修改项目。
+- **普通项目证据：**v0.5.0 在 5 个固定 commit 项目上得到 43 条 pattern finding，人工逐条复核为
+  11 条有用线索、27 条预期良性命中、1 条 unknown、4 条已确认的缺 lockfile 事实。这不等于 43 个
+  漏洞，也不构成 precision/recall 指标。
+
+准确支持范围见[兼容矩阵](docs/compatibility.md)、[稳定规则语料](docs/stable-rule-corpus.json)和
+[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。在 v0.5.0 通过签名发布门禁前，下面的可信
+安装器仍选择已经发布的 v0.4.0。
+
 ## 查看结果
 
-命令会启动一个故意配置错误的本地 Web 应用，执行审计，切换到加固后的 fixture，再走同一条真实
-CLI 路径复测。全程不访问外网。
+命令会检查一个故意留下不安全写法的本地源码文件，展示解释和修改提案，再分别执行安全复测与正常
+功能测试。全程不访问外网，也不安装项目依赖。
 
-| 输入 | Security | Discoverability | Reliability | 可审查变更 | 复测 |
-|---|---:|---:|---:|---|---|
-| 自有本地 fixture | 2 HIGH | 11 HIGH + 5 MEDIUM | 1 MEDIUM | 爬取策略、暴露产物、未知路由状态 | 0 active HIGH / MEDIUM |
+| 输入 | Finding | 证据 | 可审查变更 | 复测 |
+|---|---|---|---|---|
+| `src/export-report.mjs` | OS command injection lead (CWE-78)，HIGH | `suspected`；未证明输入流和可达性 | 用 `execFile` 和分离参数取消 shell 解析；命令 quoting 与跨平台行为可能改变 | security `fixed`；functional `passed` |
 
 ```bash
 git clone https://github.com/parousia8888/web-app-security-skill.git
@@ -48,8 +67,9 @@ npm run demo -- --out ./demo-output
 ```
 
 阅读[生成的加固前 / 变更建议 / 复测证据](docs/demo-evidence.md)，再检查
-`demo-output/demo-result.json`、`summary.md`、`before.json`、`hardening.patch` 与 `after.json`。
-所有公开 demo 计数都来自 `demo-result.json`；仓库门禁会重跑 fixture，并在任一公开面不一致时失败。
+`demo-output/demo-result.json`、`summary.md`、`before.json`、`hardening.patch`、`after.json` 与
+`functional-retest.txt`。所有公开 demo 事实都来自 `demo-result.json`；仓库门禁会重跑 fixture，
+并在任一公开面不一致时失败。
 
 完整的安装到卸载流程见经过测试的[第一个项目教程](docs/tutorial.zh-CN.md)。
 
@@ -110,6 +130,8 @@ webapp-security start .
 ```bash
 webapp-security audit .webapp-security/runs/<run-id> --fail-on high
 webapp-security explain <finding-id> --report .webapp-security/runs/<run-id>/report.json
+webapp-security repair-plan <finding-id> \
+  --report .webapp-security/runs/<run-id>/report.json --out ./repair-review
 webapp-security start . --run-id <retest-run-id>
 webapp-security retest .webapp-security/runs/<retest-run-id> \
   --baseline .webapp-security/runs/<run-id>/report.json
@@ -214,8 +236,9 @@ webapp-security aws --profile default --region us-east-1 --out ./security-report
 主动限流复测同样要求 `--acknowledge-authorization`。网络或证据源失败会得到 `unknown` 和非零退出，
 不会被描述成安全。
 
-Source 结论使用 finding/report v3；crawl、demo、crawler identity、edge 与 AWS 仍使用 v2。
-两个版本保留相同的 coverage、证据状态、policy 与退出码语义。Report bundle 和各工具的
+Source 结论使用 finding/report v3，新 demo 内部的 before/after 源码报告也使用 v3。Crawl、crawler
+identity、edge 与 AWS 仍使用 v2；demo 的小型 `demo-result.json` 事实 schema 与两种 report schema
+分开。两个 report 版本保留相同的 coverage、证据状态、policy 与退出码语义。Report bundle 和各工具的
 observation 会先在内存中脱敏，再以私有 staging 文件写入目标目录并整套提交，不覆盖已有证据；
 renderer 或可处理的写入失败会回滚，不留下半套新 bundle。历史 v1 报告只用于展示、release 校验
 与显式的不可比较迁移，不能作为可比较 baseline。符合 subject、scope、rule 和 coverage 兼容条件的
@@ -242,7 +265,8 @@ release：
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-Source mode 默认只用内置 adapter。外部二进制必须由调用方固定版本并安装，Action 不会下载：
+Source mode 默认只用内置 adapter。当前 v0.4.0 不可变 Action 仍运行 v0.4.0 源码合同；只有 v0.5.0
+Action source 正式发布后才包含 v0.5.0 规则。外部二进制必须由调用方固定版本并安装，Action 不会下载：
 
 ```yaml
 - name: Audit source
@@ -277,17 +301,18 @@ git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.4.0
 
 ## 5 个普通项目旅程
 
-普通项目集运行完整 v2 源码路径：built-in、Gitleaks `8.30.1` 与 OSV-Scanner `2.5.0`，再记录人工
-追踪、误报关闭、修复/复测及未覆盖面。所有源码固定到不可变 commit；未探测线上实例，也不执行项目
-依赖。只有 OSV 可查询公共 advisory 服务，因此它的 dated match 数量可能漂移。
+原 v0.4.0 旅程保留完整 v2 built-in/Gitleaks/OSV 证据。独立的
+[v0.5.0 built-in 复核](docs/case-studies/journeys/v0.5.0-review.md)对同一批固定 commit 执行更广的
+v3 JavaScript/TypeScript 与 Python 规则，并人工归类每条 finding。两个版本都没有探测线上实例或执行
+项目依赖。
 
 | 项目 | 证据结果 | 人工结论 |
 |---|---|---|
-| [Linkwarden](docs/case-studies/journeys/linkwarden.md) | 0 confirmed；OSV match 保持 suspected | direct URL fetch 局部归类 `not_applicable`；proxy 路径未覆盖 |
-| [Healthchecks](docs/case-studies/journeys/healthchecks.md) | 0 confirmed；Gitleaks 文档/测试 match 为 suspected；OSV 不适用 | 生产环境值保持 `unknown` |
-| [Open WebUI](docs/case-studies/journeys/open-webui.md) | source-map 与 OSV match 为 suspected | 本地 source-map fixture 复测为 `fixed`；公开交付仍未知 |
-| [Uptime Kuma](docs/case-studies/journeys/uptime-kuma.md) | 4 个 confirmed lockfile 事实；外部 match 为 suspected | 没有边界绕过证据时，operator webhook sink 不算漏洞 |
-| [Mealie](docs/case-studies/journeys/mealie.md) | 0 confirmed；Gitleaks 测试材料 match 为 suspected | 局部 URL fetch 路径为 `not_applicable`；其他路径未知 |
+| [Linkwarden](docs/case-studies/journeys/linkwarden.md) | v3：6 suspected | 复核 JSDOM、DOMPurify 和常量内容后，6 条为预期良性命中 |
+| [Healthchecks](docs/case-studies/journeys/healthchecks.md) | v3：5 suspected | 4 条 response encoding 有用线索；1 条 opt-in shell 为预期良性命中 |
+| [Open WebUI](docs/case-studies/journeys/open-webui.md) | v3：6 suspected；1 unknown | 3 条有用线索；3 条预期良性；tokenizer 失败保留 unknown |
+| [Uptime Kuma](docs/case-studies/journeys/uptime-kuma.md) | v3：4 confirmed fact；21 suspected | 4 条有用线索；17 条预期良性；confirmed 只是 lockfile 卫生事实，不是 4 个应用漏洞 |
+| [Mealie](docs/case-studies/journeys/mealie.md) | v3：0 finding | 没有配置中的 pattern 命中，不等于项目安全 |
 
 阅读[结构化旅程、精确命令与证据边界](docs/case-studies/journeys/README.md)。零 finding 与误报关闭
 同样保留；这里不计算 precision 分数。Uptime Kuma 与 Mealie 和下方方法论 corpus 使用相同 commit，

@@ -13,8 +13,10 @@ information lives in `README.md`; the execution contract lives in `SKILL.md`.
    prepared first, but do not access a third-party host without written authorization.
 5. Prefer source review and local fixtures. Use the smallest non-destructive proof necessary.
 6. Classify every result as `confirmed`, `suspected`, `unknown`, or `not_applicable`.
-7. Prepare reviewable changes, preserve existing user edits, and retest every applied fix.
-8. Report evidence, limitations, remaining risks, and the exact verification that ran.
+7. Present the professional term, plain-language meaning, consequence, evidence boundary, proposal,
+   alternatives, side effects, owner decisions, security retest, functional retest and rollback.
+8. Prepare reviewable changes, preserve existing user edits, and retest every applied fix.
+9. Report evidence, limitations, remaining risks, and the exact verification that ran.
 
 ## First task prompt
 
@@ -45,6 +47,8 @@ Never infer ownership from repository access, DNS reachability, or a user-agent 
 - `node scripts/webapp-security.mjs start <project>`
 - `node scripts/webapp-security.mjs audit <project-or-run>`
 - `node scripts/webapp-security.mjs explain <finding-id> --report <report.json>`
+- `node scripts/webapp-security.mjs repair-plan <finding-id> --report <report.json> --out <directory>`
+- `node scripts/webapp-security.mjs repair-validate <repair-record.json>`
 - `node scripts/webapp-security.mjs retest <project-or-run> --baseline <report.json>`
 - `node scripts/webapp-security.mjs demo`
 - `node scripts/webapp-security.mjs crawl ...`
@@ -58,6 +62,12 @@ The source audit has narrow deterministic rules and stable multi-format findings
 general SAST engine. Agent-guided findings may use the same evidence contract, but do not gain
 automatic confirmation. Project discovery only establishes source/local scope; it does not prove
 deployment ownership or authorize remote traffic.
+
+Every actionable source finding must retain both audiences. Keep the professional term and
+standards reference, then explain the issue without assuming security vocabulary. Phrase the
+consequence conditionally for `suspected` or `unknown` evidence. Never omit likely product side
+effects or select an authentication, authorization, public-access, CORS/session, stored-data or
+production policy on the user's behalf.
 
 ## Repository-mode first run
 

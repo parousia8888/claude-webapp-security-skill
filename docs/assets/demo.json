@@ -1,344 +1,48 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "generator": "scripts/generate-demo-gif.mjs",
   "sources": [
     "scripts/demo.mjs",
     "demo-result.json",
-    "hardening.patch"
+    "hardening.patch",
+    "functional-retest.txt"
   ],
   "width": 840,
   "height": 472,
   "frames": 5,
-  "durationMilliseconds": 10900,
+  "durationMilliseconds": 11000,
   "bytes": 2742052,
-  "sha256": "c2a69f2cec43e48ba904fd753bf0ab481859730489a9860e730ce780dfdd945c",
+  "sha256": "b962ab1aeecac9a24756c0330cca0cbefe50e03a86e122a72c977f97117321df",
   "result": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "generator": "scripts/demo.mjs",
-    "boundary": "owned-local-fixture-no-third-party-target",
+    "boundary": "owned-local-source-fixture-no-network",
+    "input": "examples/insecure-demo/src/export-report.mjs",
     "before": {
-      "byDomain": {
-        "security_exposure": {
-          "confirmed": {
-            "critical": 0,
-            "high": 2,
-            "medium": 0,
-            "low": 0,
-            "info": 1
-          },
-          "suspected": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "unknown": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "not_applicable": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          }
-        },
-        "supply_chain": {
-          "confirmed": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "suspected": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "unknown": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "not_applicable": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          }
-        },
-        "search_discoverability": {
-          "confirmed": {
-            "critical": 0,
-            "high": 11,
-            "medium": 5,
-            "low": 0,
-            "info": 0
-          },
-          "suspected": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "unknown": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "not_applicable": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          }
-        },
-        "reliability": {
-          "confirmed": {
-            "critical": 0,
-            "high": 0,
-            "medium": 1,
-            "low": 0,
-            "info": 1
-          },
-          "suspected": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "unknown": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "not_applicable": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          }
-        },
-        "evidence_integrity": {
-          "confirmed": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "suspected": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "unknown": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "not_applicable": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          }
-        }
-      },
-      "bySeverity": {
-        "critical": 0,
-        "high": 13,
-        "medium": 6,
-        "low": 0,
-        "info": 2
-      }
+      "findingId": "node-child-process-shell-execution-fc537355354f5",
+      "ruleId": "node-child-process-shell-execution",
+      "state": "suspected",
+      "severity": "high",
+      "technicalTerm": "OS command injection lead (CWE-78)",
+      "plainLanguage": "The server starts a command through a shell. A shell treats special characters as instructions, so unsafe input can change what runs.",
+      "consequence": "If request or job input reaches the command string, an attacker may read files, change data or run programs with the application permissions.",
+      "evidenceBoundary": "The rule resolves direct child_process imports/requires and finds exec/execSync or process calls with shell: true. It does not trace arguments or prove reachability."
     },
-    "after": {
-      "byDomain": {
-        "security_exposure": {
-          "confirmed": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 1
-          },
-          "suspected": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "unknown": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "not_applicable": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          }
-        },
-        "supply_chain": {
-          "confirmed": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "suspected": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "unknown": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "not_applicable": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          }
-        },
-        "search_discoverability": {
-          "confirmed": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "suspected": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "unknown": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "not_applicable": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          }
-        },
-        "reliability": {
-          "confirmed": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "suspected": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "unknown": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "not_applicable": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          }
-        },
-        "evidence_integrity": {
-          "confirmed": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "suspected": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "unknown": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          },
-          "not_applicable": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0,
-            "info": 0
-          }
-        }
-      },
-      "bySeverity": {
-        "critical": 0,
-        "high": 0,
-        "medium": 0,
-        "low": 0,
-        "info": 1
-      }
+    "proposal": {
+      "status": "review_required",
+      "summary": "Trace command inputs, prefer execFile/spawn with shell disabled and pass each validated argument separately.",
+      "sideEffects": [
+        "Command quoting and platform behavior may change; existing automation can require explicit argument handling."
+      ]
     },
-    "fixed": 21
+    "securityRetest": {
+      "status": "passed",
+      "baselineState": "fixed"
+    },
+    "functionalRetest": {
+      "status": "passed",
+      "evidence": "functional retest passed: ordinary report export still works"
+    }
   },
-  "boundary": "owned-local-fixture-no-third-party-target"
+  "boundary": "owned-local-source-fixture-no-network"
 }

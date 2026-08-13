@@ -1,5 +1,5 @@
 name: "Web App Security Skill"
-description: "Audit authorized crawl boundaries or source projects with reproducible evidence."
+description: "Audit authorized crawl boundaries or source projects with reproducible, explainable evidence."
 author: "parousia8888"
 branding:
   icon: "shield"
@@ -15,7 +15,7 @@ inputs:
     description: "Must be true in crawl mode to confirm ownership or written authorization"
     default: "false"
   project:
-    description: "Project directory in source mode"
+    description: "Project directory in source mode; dependencies are not installed or executed"
     default: "."
   adapters:
     description: "Comma-separated source/deployment adapters: builtin, checkov, gitleaks, opengrep, osv, or all"
@@ -59,10 +59,10 @@ runs:
         bash "$GITHUB_ACTION_PATH/scripts/run-action.sh"
 outputs:
   report-json:
-    description: "JSON report path"
+    description: "JSON report path; source mode uses finding/report v3 with technical and plain-language explanation"
     value: "${{ inputs.output-dir }}/report.json"
   report-markdown:
-    description: "Markdown report path"
+    description: "Markdown report path; proposals are review-only and are not applied by the Action"
     value: "${{ inputs.output-dir }}/report.md"
   report-sarif:
     description: "SARIF report path (source mode; crawl mode may omit it)"

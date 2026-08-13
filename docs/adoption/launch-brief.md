@@ -10,7 +10,7 @@ Scope, audit, harden, and retest web projects with AI coding agents and reproduc
 
 ## The inspect-patch-retest loop
 
-The repository-owned local demo begins with **2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM**, produces a reviewable patch, and retests the same fixture at **0 active HIGH / 0 active MEDIUM**. The generated record classifies **21 findings as fixed**. The fixture runs locally without a third-party target.
+The repository-owned local source demo begins with **OS command injection lead (CWE-78), SUSPECTED HIGH**, explains what the pattern does and does not prove, proposes argument-separated execution, names a quoting/platform side effect, and records **security fixed; functional passed**. It sends no network request and does not execute project dependencies.
 
 [Watch the generated demo and inspect its reports](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md).
 
@@ -20,9 +20,9 @@ The current source contract lists **9 stable narrow detection families** and **0
 
 [Review every capability and its evidence](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md).
 
-The evidence corpus also records **5 ordinary fixed-commit project journeys** and **5 separate source-methodology studies**. No hosted instance was probed in the ordinary journeys, and zero-finding, false-positive and unknown outcomes remain visible.
+The v0.5.0 built-in review classifies all **43 findings** from **5 fixed-commit ordinary projects** as 11 useful leads, 27 expected benign matches, 1 unknown and 4 confirmed missing-lockfile facts. This is not a vulnerability count or precision/recall claim. A separate 5-study corpus exercises broader source methodology.
 
-[Review the journey method and exact boundaries](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md).
+[Review the v0.5.0 classification](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/v0.5.0-review.md) and [historical journey method](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md).
 
 ## Install and distribution
 
@@ -34,9 +34,9 @@ Release [v0.4.0](https://github.com/parousia8888/web-app-security-skill/releases
 
 ## Limits to preserve when quoting
 
-- The deterministic CLI is narrow and is not a general SAST engine or universal vulnerability scanner.
+- Built-in source depth targets JavaScript/TypeScript and Python and is not a universal SAST engine or vulnerability scanner.
 - Agent-guided reviews require project context and human review; installing the Skill does not prove a project secure.
-- The animated result comes from an intentionally misconfigured, repository-owned local fixture and does not establish third-party coverage.
+- The animated result is one suspected source lead in a repository-owned local fixture and does not establish third-party coverage or exploitability.
 - The ordinary project journeys are fixed-commit source reviews; no hosted instance was probed and no upstream validation is claimed.
 
 Community publication, independent user-session results and upstream validation remain `external_validation_pending`. This brief is a publication kit, not evidence that any external post or validation has occurred.

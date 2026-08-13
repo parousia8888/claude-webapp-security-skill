@@ -1,0 +1,702 @@
+{
+  "schemaVersion": 1,
+  "rulesetSemanticDigest": "7e5d8a25b5377afbc4aa2c9e1125ab06135bca837c2b8361cc8a3cac582b5b58",
+  "counts": {
+    "stableTotal": 30,
+    "builtInRisk": 20,
+    "builtInIntegrity": 2,
+    "externalRisk": 8
+  },
+  "rules": [
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "browser-html-injection-sink",
+      "kind": "risk_detection",
+      "family": "browser_output",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule finds direct innerHTML/outerHTML assignments, insertAdjacentHTML and document.write calls. It does not trace input or determine sanitization.",
+      "positiveFixtures": [
+        {
+          "id": "browser-html-sink-positive",
+          "path": "test/fixtures/js-ts-rules/vulnerable.tsx"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "browser-html-sink-safe",
+          "path": "test/fixtures/js-ts-rules/safe.tsx"
+        }
+      ],
+      "testEntry": "test/js-ts-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "checkov",
+      "adapterVersion": "3.3.9",
+      "adapterType": "external",
+      "ruleId": "checkov-dockerfile-healthcheck-missing",
+      "kind": "risk_detection",
+      "family": "deployment_configuration",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "Checkov rule CKV_DOCKER_2 found no HEALTHCHECK in the Dockerfile. A deployment-level health probe may already exist and was not inspected.",
+      "positiveFixtures": [
+        {
+          "id": "checkov-healthcheck-positive",
+          "path": "test/fixtures/checkov-rules/vulnerable/Dockerfile"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "checkov-healthcheck-safe",
+          "path": "test/fixtures/checkov-rules/safe/Dockerfile"
+        }
+      ],
+      "testEntry": "test/real-adapters.test.mjs"
+    },
+    {
+      "adapterId": "checkov",
+      "adapterVersion": "3.3.9",
+      "adapterType": "external",
+      "ruleId": "checkov-dockerfile-root-user",
+      "kind": "risk_detection",
+      "family": "deployment_configuration",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "Checkov rule CKV_DOCKER_8 matched the Dockerfile. A runtime USER override, rootless container engine or additional isolation may reduce the deployed impact; none was verified.",
+      "positiveFixtures": [
+        {
+          "id": "checkov-root-user-positive",
+          "path": "test/fixtures/checkov-rules/vulnerable/Dockerfile"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "checkov-root-user-safe",
+          "path": "test/fixtures/checkov-rules/safe/Dockerfile"
+        }
+      ],
+      "testEntry": "test/real-adapters.test.mjs"
+    },
+    {
+      "adapterId": "checkov",
+      "adapterVersion": "3.3.9",
+      "adapterType": "external",
+      "ruleId": "checkov-github-actions-write-all",
+      "kind": "risk_detection",
+      "family": "deployment_configuration",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "Checkov rule CKV2_GHA_1 matched top-level permissions: write-all. Event restrictions, job-level reductions, environment protection and actual token use were not evaluated.",
+      "positiveFixtures": [
+        {
+          "id": "checkov-write-all-positive",
+          "path": "test/fixtures/checkov-rules/vulnerable/.github/workflows/ci.yml"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "checkov-write-all-safe",
+          "path": "test/fixtures/checkov-rules/safe/.github/workflows/ci.yml"
+        }
+      ],
+      "testEntry": "test/real-adapters.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "cors-wildcard-with-credentials",
+      "kind": "risk_detection",
+      "family": "authentication_session",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule found origin: \"*\" and credentials: true in one object. It does not prove the object configures live CORS middleware or how a framework emits headers.",
+      "positiveFixtures": [
+        {
+          "id": "cors-wildcard-credentials-positive",
+          "path": "test/fixtures/js-ts-rules/vulnerable.tsx"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "cors-wildcard-credentials-safe",
+          "path": "test/fixtures/js-ts-rules/safe.tsx"
+        }
+      ],
+      "testEntry": "test/js-ts-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "dependency-lockfile-missing",
+      "kind": "risk_detection",
+      "family": "dependency_configuration",
+      "expectedPositiveState": "confirmed",
+      "evidenceBoundary": "The rule confirms that a supported manifest has no adjacent or applicable workspace lockfile. It does not prove a malicious dependency or exploitable vulnerability.",
+      "positiveFixtures": [
+        {
+          "id": "manifest-without-lock",
+          "path": "test/fixtures/audit-app/package.json"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "manifest-with-lock",
+          "path": "test/fixtures/next-app/pnpm-lock.yaml"
+        }
+      ],
+      "testEntry": "test/evidence-loop.test.mjs"
+    },
+    {
+      "adapterId": "gitleaks",
+      "adapterVersion": "8.30.1",
+      "adapterType": "external",
+      "ruleId": "gitleaks-committed-secret",
+      "kind": "risk_detection",
+      "family": "secret_management",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The match and redacted fingerprint are recorded. Credential validity, exposure and authorization are not tested.",
+      "positiveFixtures": [
+        {
+          "id": "gitleaks-redacted-lead",
+          "path": "test/external-adapters.test.mjs"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "gitleaks-clean-output",
+          "path": "test/real-adapters.test.mjs"
+        }
+      ],
+      "testEntry": "test/real-adapters.test.mjs"
+    },
+    {
+      "adapterId": "gitleaks",
+      "adapterVersion": "8.30.1",
+      "adapterType": "external",
+      "ruleId": "gitleaks-working-tree-secret",
+      "kind": "risk_detection",
+      "family": "secret_management",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The match and redacted fingerprint are recorded. Credential validity and distribution are not tested.",
+      "positiveFixtures": [
+        {
+          "id": "gitleaks-working-tree-lead",
+          "path": "test/external-adapters.test.mjs"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "gitleaks-clean-directory",
+          "path": "test/real-adapters.test.mjs"
+        }
+      ],
+      "testEntry": "test/real-adapters.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "hardcoded-auth-secret",
+      "kind": "risk_detection",
+      "family": "secret_management",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule found a security-named assignment to a non-placeholder literal of at least 12 characters. It records only a length band; validity, history and deployment use are not tested.",
+      "positiveFixtures": [
+        {
+          "id": "hardcoded-auth-secret-positive",
+          "path": "test/fixtures/js-ts-rules/vulnerable.tsx"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "hardcoded-auth-secret-safe",
+          "path": "test/fixtures/js-ts-rules/safe.tsx"
+        }
+      ],
+      "testEntry": "test/js-ts-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "js-dynamic-code-execution",
+      "kind": "risk_detection",
+      "family": "injection_execution",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule found a direct eval call or new Function constructor after masking comments and literals. It does not prove untrusted input reaches the argument or that the path runs.",
+      "positiveFixtures": [
+        {
+          "id": "js-dynamic-execution-positive",
+          "path": "test/fixtures/js-ts-rules/vulnerable.tsx"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "js-dynamic-execution-safe",
+          "path": "test/fixtures/js-ts-rules/safe.tsx"
+        }
+      ],
+      "testEntry": "test/js-ts-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "jwt-unsafe-verification-options",
+      "kind": "risk_detection",
+      "family": "authentication_session",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule resolves direct jsonwebtoken imports/requires and finds verify calls with algorithms containing \"none\" or ignoreExpiration: true. It does not prove the call protects a live route.",
+      "positiveFixtures": [
+        {
+          "id": "jwt-unsafe-options-positive",
+          "path": "test/fixtures/js-ts-rules/vulnerable.tsx"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "jwt-unsafe-options-safe",
+          "path": "test/fixtures/js-ts-rules/safe.tsx"
+        }
+      ],
+      "testEntry": "test/js-ts-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "node-child-process-shell-execution",
+      "kind": "risk_detection",
+      "family": "injection_execution",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule resolves direct child_process imports/requires and finds exec/execSync or process calls with shell: true. It does not trace arguments or prove reachability.",
+      "positiveFixtures": [
+        {
+          "id": "node-shell-execution-positive",
+          "path": "test/fixtures/js-ts-rules/vulnerable.tsx"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "node-shell-execution-safe",
+          "path": "test/fixtures/js-ts-rules/safe.tsx"
+        }
+      ],
+      "testEntry": "test/js-ts-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "node-inspector-public-bind",
+      "kind": "risk_detection",
+      "family": "framework_exposure",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The package command is present. The audit does not prove the script runs in production or that the debug port is reachable.",
+      "positiveFixtures": [
+        {
+          "id": "public-inspector-script",
+          "path": "test/fixtures/audit-app/package.json"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "loopback-inspector-script",
+          "path": "test/evidence-loop.test.mjs"
+        }
+      ],
+      "testEntry": "test/evidence-loop.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "node-tls-verification-disabled",
+      "kind": "risk_detection",
+      "family": "transport",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule found rejectUnauthorized: false or a literal NODE_TLS_REJECT_UNAUTHORIZED assignment to \"0\". It does not prove the setting runs in production.",
+      "positiveFixtures": [
+        {
+          "id": "node-tls-disable-positive",
+          "path": "test/fixtures/js-ts-rules/vulnerable.tsx"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "node-tls-disable-safe",
+          "path": "test/fixtures/js-ts-rules/safe.tsx"
+        }
+      ],
+      "testEntry": "test/js-ts-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "opengrep",
+      "adapterVersion": "1.27.0",
+      "adapterType": "external",
+      "ruleId": "opengrep-js-request-command-flow",
+      "kind": "risk_detection",
+      "family": "injection_execution",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The pinned local taint rule observed a same-file source-to-sink path. It does not prove the route is reachable, the value is attacker-controlled in deployment or the command executes.",
+      "positiveFixtures": [
+        {
+          "id": "opengrep-js-flow-positive",
+          "path": "test/fixtures/opengrep-rules/vulnerable.js"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "opengrep-js-flow-safe",
+          "path": "test/fixtures/opengrep-rules/safe.js"
+        }
+      ],
+      "testEntry": "test/real-adapters.test.mjs"
+    },
+    {
+      "adapterId": "opengrep",
+      "adapterVersion": "1.27.0",
+      "adapterType": "external",
+      "ruleId": "opengrep-python-request-command-flow",
+      "kind": "risk_detection",
+      "family": "injection_execution",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The pinned local taint rule observed a same-file Flask source-to-shell sink path. It does not prove the route is exposed, the code runs in production or exploitation succeeds.",
+      "positiveFixtures": [
+        {
+          "id": "opengrep-python-flow-positive",
+          "path": "test/fixtures/opengrep-rules/vulnerable.py"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "opengrep-python-flow-safe",
+          "path": "test/fixtures/opengrep-rules/safe.py"
+        }
+      ],
+      "testEntry": "test/real-adapters.test.mjs"
+    },
+    {
+      "adapterId": "osv",
+      "adapterVersion": "2.5.0",
+      "adapterType": "external",
+      "ruleId": "osv-known-vulnerability",
+      "kind": "risk_detection",
+      "family": "dependency_configuration",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "Package identity, version and advisory IDs matched. Reachability, exploitability and local severity are not inferred.",
+      "positiveFixtures": [
+        {
+          "id": "osv-advisory-match",
+          "path": "test/external-adapters.test.mjs"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "osv-clean-output",
+          "path": "test/real-adapters.test.mjs"
+        }
+      ],
+      "testEntry": "test/real-adapters.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "production-source-map-enabled",
+      "kind": "risk_detection",
+      "family": "browser_output",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The configuration enables map output. The audit does not prove a map was built or served publicly.",
+      "positiveFixtures": [
+        {
+          "id": "source-map-enabled",
+          "path": "test/fixtures/audit-app/next.config.mjs"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "source-map-default",
+          "path": "test/fixtures/next-app/next.config.mjs"
+        }
+      ],
+      "testEntry": "test/evidence-loop.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "python-cors-wildcard-with-credentials",
+      "kind": "risk_detection",
+      "family": "framework_exposure",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule observes paired wildcard-origin and credential literals in a supported framework configuration. Browser and middleware enforcement are not tested.",
+      "positiveFixtures": [
+        {
+          "id": "python-cors-positive",
+          "path": "test/fixtures/python-rules/vulnerable.py"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "python-cors-safe",
+          "path": "test/fixtures/python-rules/safe.py"
+        }
+      ],
+      "testEntry": "test/python-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "python-dynamic-code-execution",
+      "kind": "risk_detection",
+      "family": "injection_execution",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule observes a direct built-in eval or exec call. It does not prove input control, reachability or successful execution.",
+      "positiveFixtures": [
+        {
+          "id": "python-dynamic-execution-positive",
+          "path": "test/fixtures/python-rules/vulnerable.py"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "python-dynamic-execution-safe",
+          "path": "test/fixtures/python-rules/safe.py"
+        }
+      ],
+      "testEntry": "test/python-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "python-framework-debug-enabled",
+      "kind": "risk_detection",
+      "family": "framework_exposure",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule observes Flask debug=True/app.debug=True or Django DEBUG=True in settings.py. It does not prove the setting is active or publicly reachable.",
+      "positiveFixtures": [
+        {
+          "id": "python-debug-positive",
+          "path": "test/fixtures/python-rules/vulnerable.py"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "python-debug-safe",
+          "path": "test/fixtures/python-rules/safe.py"
+        }
+      ],
+      "testEntry": "test/python-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "python-hardcoded-framework-secret",
+      "kind": "risk_detection",
+      "family": "secret_management",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule observes a non-placeholder literal of at least 12 characters and records only its length band. Validity and deployment use are not tested.",
+      "positiveFixtures": [
+        {
+          "id": "python-framework-secret-positive",
+          "path": "test/fixtures/python-rules/vulnerable.py"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "python-framework-secret-safe",
+          "path": "test/fixtures/python-rules/safe.py"
+        }
+      ],
+      "testEntry": "test/python-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "python-shell-command-execution",
+      "kind": "risk_detection",
+      "family": "injection_execution",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule resolves os/subprocess imports and observes a shell API or shell=True. It does not prove argument influence or runtime reachability.",
+      "positiveFixtures": [
+        {
+          "id": "python-shell-execution-positive",
+          "path": "test/fixtures/python-rules/vulnerable.py"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "python-shell-execution-safe",
+          "path": "test/fixtures/python-rules/safe.py"
+        }
+      ],
+      "testEntry": "test/python-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "python-tls-verification-disabled",
+      "kind": "risk_detection",
+      "family": "transport",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule resolves Requests or HTTPX and observes verify=False on a supported call. It does not prove the path is deployed or interceptable.",
+      "positiveFixtures": [
+        {
+          "id": "python-tls-positive",
+          "path": "test/fixtures/python-rules/vulnerable.py"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "python-tls-safe",
+          "path": "test/fixtures/python-rules/safe.py"
+        }
+      ],
+      "testEntry": "test/python-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "python-unsafe-deserialization",
+      "kind": "risk_detection",
+      "family": "deserialization",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule resolves pickle/dill imports and observes load or loads. It does not establish the source, integrity or reachability of the bytes.",
+      "positiveFixtures": [
+        {
+          "id": "python-deserialization-positive",
+          "path": "test/fixtures/python-rules/vulnerable.py"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "python-deserialization-safe",
+          "path": "test/fixtures/python-rules/safe.py"
+        }
+      ],
+      "testEntry": "test/python-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "python-unsafe-yaml-load",
+      "kind": "risk_detection",
+      "family": "deserialization",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule resolves PyYAML load and observes an explicit Loader or UnsafeLoader. It does not prove input trust or runtime reachability.",
+      "positiveFixtures": [
+        {
+          "id": "python-yaml-positive",
+          "path": "test/fixtures/python-rules/vulnerable.py"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "python-yaml-safe",
+          "path": "test/fixtures/python-rules/safe.py"
+        }
+      ],
+      "testEntry": "test/python-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "react-dangerous-html-sink",
+      "kind": "risk_detection",
+      "family": "browser_output",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "The rule found dangerouslySetInnerHTML with an __html property. It does not trace the value, recognize every sanitizer or prove browser reachability.",
+      "positiveFixtures": [
+        {
+          "id": "react-html-sink-positive",
+          "path": "test/fixtures/js-ts-rules/vulnerable.tsx"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "react-html-sink-safe",
+          "path": "test/fixtures/js-ts-rules/safe.tsx"
+        }
+      ],
+      "testEntry": "test/js-ts-source-audit.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "sensitive-env-file-present",
+      "kind": "risk_detection",
+      "family": "secret_management",
+      "expectedPositiveState": "suspected",
+      "evidenceBoundary": "Filename presence is a lead only. Repository tracking, contents, credential validity and public delivery are not established.",
+      "positiveFixtures": [
+        {
+          "id": "real-env-name",
+          "path": "test/fixtures/audit-app/.env.production"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "template-env-exclusion",
+          "path": "test/evidence-loop.test.mjs"
+        }
+      ],
+      "testEntry": "test/evidence-loop.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "source-evidence-incomplete",
+      "kind": "evidence_integrity",
+      "family": "deployment_configuration",
+      "expectedPositiveState": "unknown",
+      "evidenceBoundary": "The coverage ledger proves an input was skipped, truncated or unreadable. It does not prove a vulnerability in that input.",
+      "positiveFixtures": [
+        {
+          "id": "bounded-traversal",
+          "path": "test/source-coverage-ledger.test.mjs"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "complete-small-project",
+          "path": "test/fixtures/next-app/package.json"
+        }
+      ],
+      "testEntry": "test/source-coverage-ledger.test.mjs"
+    },
+    {
+      "adapterId": "builtin-source",
+      "adapterVersion": "1.1.0",
+      "adapterType": "built_in",
+      "ruleId": "source-stack-unsupported",
+      "kind": "evidence_integrity",
+      "family": "deployment_configuration",
+      "expectedPositiveState": "unknown",
+      "evidenceBoundary": "This proves only that supported Node or Python manifests were not found inside the bounded traversal.",
+      "positiveFixtures": [
+        {
+          "id": "unsupported-stack",
+          "path": "test/source-coverage-ledger.test.mjs"
+        }
+      ],
+      "negativeFixtures": [
+        {
+          "id": "supported-node-stack",
+          "path": "test/fixtures/next-app/package.json"
+        }
+      ],
+      "testEntry": "test/source-coverage-ledger.test.mjs"
+    }
+  ]
+}

@@ -24,28 +24,21 @@
     "evidence": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md"
   },
   "ownedLocalDemo": {
-    "before": {
-      "byDomain": {
-        "security_exposure": {
-          "high": 2
-        },
-        "search_discoverability": {
-          "high": 11,
-          "medium": 5
-        },
-        "reliability": {
-          "medium": 1
-        }
-      }
+    "finding": {
+      "technicalTerm": "OS command injection lead (CWE-78)",
+      "state": "suspected",
+      "severity": "high"
     },
-    "after": {
-      "active": {
-        "high": 0,
-        "medium": 0
-      }
+    "proposal": {
+      "summary": "Trace command inputs, prefer execFile/spawn with shell disabled and pass each validated argument separately.",
+      "sideEffect": "Command quoting and platform behavior may change; existing automation can require explicit argument handling."
     },
-    "fixed": 21,
+    "retest": {
+      "security": "fixed",
+      "functional": "passed"
+    },
     "thirdPartyTarget": false,
+    "networkAccess": false,
     "evidence": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md"
   },
   "caseEvidence": {
@@ -53,6 +46,13 @@
     "methodologyStudies": 5,
     "hostedInstancesProbedInOrdinaryJourneys": false,
     "upstreamValidationClaimed": false,
+    "v050Review": {
+      "findings": 43,
+      "usefulLeads": 11,
+      "expectedBenignMatches": 27,
+      "unknown": 1,
+      "confirmedFacts": 4
+    },
     "evidence": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md"
   },
   "externalState": {

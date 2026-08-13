@@ -14,7 +14,7 @@ Web App Security Skill 是一个开源 agent skill 与 CLI，目标是让 Web �
 
 项目没有把一次扫描结果当成安全结论。每项结果必须处于 confirmed、suspected、unknown 或 not_applicable；补丁默认只输出供审查，只有沿基线复测后才可记录为 fixed。
 
-可复现 demo 使用仓库自有本地 fixture，初始结果是 2 个 security HIGH、11 个 discoverability HIGH + 5 个 MEDIUM、1 个 reliability MEDIUM，展示补丁后复测为 0 个 active HIGH / 0 个 active MEDIUM，并记录 21 项 fixed。它不请求第三方目标，生成脚本、JSON/Markdown 报告和 patch 都在仓库中。
+可复现 demo 使用仓库自有本地源码 fixture，初始结果是 OS command injection lead (CWE-78)，suspected HIGH，展示补丁后记录 security fixed；functional passed。它不请求第三方目标、不执行项目依赖，证据边界、副作用、生成脚本、JSON/Markdown 报告和 patch 都在仓库中。
 
 当前能力合同按 category 与 maturity 分开记录：9 个 stable 窄检测家族、0 项 planned 检测能力、6 项证据/报告能力、1 项生命周期/分发能力和 6 项 agent-guided 方法。这个分层避免把 demo、报告、安装器或强上下文审查描述成检测覆盖。
 
@@ -29,9 +29,9 @@ Web App Security Skill 是一个开源 agent skill 与 CLI，目标是让 Web �
 
 ### 需要保留的限制
 
-- 确定性 CLI 的范围有限，不是通用 SAST 引擎或全覆盖漏洞扫描器。
+- 内置源码深度集中在 JavaScript/TypeScript 与 Python，不是通用 SAST 引擎或全覆盖漏洞扫描器。
 - agent-guided 审查需要项目上下文和人工复核；安装 Skill 不代表项目已经安全。
-- 动画结果来自仓库自有、故意错误配置的本地 fixture，不代表第三方项目覆盖率。
+- 动画结果只是仓库自有本地 fixture 中的一条 suspected 源码线索，不证明第三方覆盖率或可利用性。
 - 普通项目旅程是固定 commit 的源码审查；未探测托管实例，也不声称得到上游验证。
 
 > 发布状态：草稿。没有声称已在任何中文社区发布，也没有声称获得第三方或上游验证。

@@ -248,15 +248,16 @@ function propertyHas(tokens, start, end, name, expected, type = null, targetDept
 }
 
 function finding(ruleId, path, token, kind, summary, evidence, remediation, retest) {
+  const discriminator = `${path}:${token.line}:${kind}`;
   return {
     ruleId,
     title: summary.title,
     severity: summary.severity,
     state: 'suspected',
-    discriminator: `${path}:${token.line}:${kind}`,
+    discriminator,
     summary: summary.text,
     location: { path, line: token.line },
-    evidence: { subject: path, line: token.line, construct: kind, ...evidence },
+    evidence: { subject: discriminator, line: token.line, construct: kind, ...evidence },
     remediation,
     retest,
   };

@@ -1,0 +1,8 @@
+{
+  "name": "web-app-security-owned-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test-functional.mjs"
+  }
+}

@@ -73,31 +73,17 @@ for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
   }
 }
 
-const demoFacts = [
-  demo?.before?.byDomain?.security_exposure?.confirmed?.high,
-  demo?.before?.byDomain?.search_discoverability?.confirmed?.high,
-  demo?.before?.byDomain?.search_discoverability?.confirmed?.medium,
-  demo?.before?.byDomain?.reliability?.confirmed?.medium,
-  demo?.after?.bySeverity?.high,
-  demo?.after?.bySeverity?.medium,
-];
-if (!demoFacts.every(Number.isInteger)) fail('structured demo facts are invalid');
-if (demoFacts.every(Number.isInteger)) {
-  const [securityHigh, discoverabilityHigh, discoverabilityMedium, reliabilityMedium, afterHigh, afterMedium] = demoFacts.map(String);
-  const row = `| Owned local fixture | ${securityHigh} | ${discoverabilityHigh} / ${discoverabilityMedium} | ${reliabilityMedium} | public crawl policy, exposed artifacts, unknown-route status | ${afterHigh} active HIGH, ${afterMedium} active MEDIUM |`;
-  if (!evidence.includes(row)) fail('generated demo evidence differs from structured demo facts');
-  for (const [path, text, markers] of [
-    ['README.md', en, [`${securityHigh} HIGH`, `${discoverabilityHigh} HIGH + ${discoverabilityMedium} MEDIUM`, `${reliabilityMedium} MEDIUM`, `${afterHigh} active HIGH / MEDIUM`]],
-    ['README.zh-CN.md', zh, [`${securityHigh} HIGH`, `${discoverabilityHigh} HIGH + ${discoverabilityMedium} MEDIUM`, `${reliabilityMedium} MEDIUM`, `${afterHigh} active HIGH / MEDIUM`]],
-  ]) {
-    for (const marker of markers) {
-      if (!text.includes(marker)) fail(`${path} is missing generated demo count ${marker}`);
-    }
-  }
+const demoFacts = [demo?.before?.technicalTerm, demo?.before?.state, demo?.before?.severity,
+  demo?.before?.evidenceBoundary, demo?.proposal?.summary, demo?.proposal?.sideEffects?.[0],
+  demo?.securityRetest?.baselineState, demo?.functionalRetest?.status];
+if (demoFacts.some((value) => !value)) fail('structured source demo facts are invalid');
+for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh], ['docs/demo-evidence.md', evidence]]) {
+  for (const marker of [demo.before.technicalTerm, demo.before.state, demo.securityRetest.baselineState,
+    demo.functionalRetest.status]) if (!text.includes(marker)) fail(`${path} is missing source demo fact ${marker}`);
 }
 
 for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
-  if (/13\s+(?:high|HIGH)/.test(text)) fail(`${path} combines cross-domain demo severity`);
+  if (/2 security HIGH|11 discoverability HIGH|13\s+(?:high|HIGH)/.test(text)) fail(`${path} retains stale crawl demo facts`);
   if (!text.includes('demo-result.json')) fail(`${path} does not name the structured demo fact source`);
   if (!text.includes('fail-on-domain')) fail(`${path} does not document domain policy`);
   if (!text.includes('docs/rule-taxonomy.md')) fail(`${path} does not link the rule taxonomy`);

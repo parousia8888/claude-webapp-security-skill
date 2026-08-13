@@ -11,6 +11,8 @@ const check = process.argv.includes('--check');
 const capabilities = JSON.parse(readFileSync(join(ROOT, 'docs', 'capabilities.json'), 'utf8'));
 const publicContract = JSON.parse(readFileSync(join(ROOT, 'docs', 'public-contract.json'), 'utf8'));
 const journeys = JSON.parse(readFileSync(join(ROOT, 'docs', 'case-studies', 'journeys', 'evidence.json'), 'utf8'));
+const ordinaryReview = JSON.parse(readFileSync(join(ROOT, 'docs', 'case-studies', 'journeys', 'v0.5.0-evidence.json'), 'utf8'));
+const ruleCorpus = JSON.parse(readFileSync(join(ROOT, 'docs', 'stable-rule-corpus.json'), 'utf8'));
 const releaseState = JSON.parse(readFileSync(join(ROOT, 'docs', 'release-state.json'), 'utf8'));
 const published = releaseState.publishedRelease;
 const temp = mkdtempSync(join(tmpdir(), 'web-app-security-launch-'));
@@ -28,7 +30,6 @@ try {
   });
   if (demo.status !== 0) throw new Error(demo.stderr || demo.stdout || 'demo failed');
   const demoFacts = JSON.parse(readFileSync(join(temp, 'demo-result.json'), 'utf8'));
-  const domainSeverity = (stage, domain, name) => demoFacts[stage].byDomain[domain].confirmed[name];
   const count = (category, maturity) => capabilities.capabilities.filter((item) =>
     item.category === category && (!maturity || item.maturity === maturity)).length;
   const stableDetection = count('detection', 'stable');
@@ -54,15 +55,16 @@ try {
     '|---|---|---|',
     `| Detection contract | ${stableDetection} stable narrow detection families; ${plannedDetection} planned detection capabilities | [Generated matrix](capabilities.md) |`,
     `| Supporting contract | ${evidenceReporting} evidence/reporting, ${lifecycleDistribution} lifecycle/distribution and ${agentGuided} agent-guided capabilities; none are counted as detection coverage | [Generated matrix](capabilities.md) |`,
-    `| Local before/after demo | ${domainSeverity('before', 'security_exposure', 'high')} security HIGH; ${domainSeverity('before', 'search_discoverability', 'high')} discoverability HIGH + ${domainSeverity('before', 'search_discoverability', 'medium')} MEDIUM; ${domainSeverity('before', 'reliability', 'medium')} reliability MEDIUM -> ${demoFacts.after.bySeverity.high} active HIGH / ${demoFacts.after.bySeverity.medium} active MEDIUM | [Generated demo evidence](demo-evidence.md) |`,
-    `| Ordinary project journeys | ${journeys.journeys.length} fixed-commit source journeys; no hosted instance probed | [Journey method](case-studies/journeys/README.md) |`,
+    `| Stable source/deployment rule corpus | ${ruleCorpus.counts.builtInRisk} built-in risk; ${ruleCorpus.counts.builtInIntegrity} built-in evidence-integrity; ${ruleCorpus.counts.externalRisk} external adapter risk; ${ruleCorpus.counts.stableTotal} total | [Labelled corpus](stable-rule-corpus.json) |`,
+    `| Local before/after demo | ${demoFacts.before.technicalTerm}; ${demoFacts.before.state.toUpperCase()} ${demoFacts.before.severity.toUpperCase()} -> security ${demoFacts.securityRetest.baselineState}; functional ${demoFacts.functionalRetest.status}; side effect recorded | [Generated demo evidence](demo-evidence.md) |`,
+    `| Ordinary project review | ${ordinaryReview.aggregate.findings} findings across ${ordinaryReview.projects.length} fixed commits -> ${ordinaryReview.aggregate.reviewClasses.useful_lead} useful leads; ${ordinaryReview.aggregate.reviewClasses.expected_benign_match} expected benign; ${ordinaryReview.aggregate.reviewClasses.unknown} unknown; ${ordinaryReview.aggregate.reviewClasses.confirmed} confirmed facts | [v0.5.0 review](case-studies/journeys/v0.5.0-review.md) |`,
     `| Source methodology studies | ${publicContract.methodStudies.length} fixed-commit studies, kept separate from CLI precision claims | [Study method](case-studies/README.md) |`,
     `| Release | v${published.version} signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance | [v${published.version} release](${published.url}) |`,
     '',
     '## Ordinary project journeys',
     '',
-    ...journeys.journeys.map((journey) =>
-      `- [${journey.project}](${journey.document.replace(/^docs\//, '')}) at \`${journey.commit}\`: ${journey.corpus.snapshot.summary.confirmed} confirmed and ${journey.corpus.snapshot.summary.suspected} suspected in the dated v2 snapshot; manual result \`${journey.manualTrace.classification}\`; closures and unreached surfaces are recorded.`),
+    ...ordinaryReview.projects.map((project) =>
+      `- ${project.project} at \`${project.commit}\`: ${project.report.summary.confirmed} confirmed, ${project.report.summary.suspected} suspected, ${project.report.summary.unknown} unknown in the v3 report; reviewed as ${project.review.useful_lead.length} useful leads, ${project.review.expected_benign_match.length} expected benign, ${project.review.unknown.length} unknown and ${project.review.confirmed.length} confirmed facts.`),
     '',
     '## Source methodology studies',
     '',
@@ -74,6 +76,7 @@ try {
     'node scripts/generate-launch-evidence.mjs --check',
     'npm run demo -- --out ./demo-output',
     'node scripts/check-case-journeys.mjs',
+    'node scripts/check-v050-ordinary-review.mjs',
     'node scripts/check-p7-surfaces.mjs',
     '```',
     '',
@@ -86,7 +89,7 @@ try {
       console.error('launch evidence is stale; run node scripts/generate-launch-evidence.mjs');
       process.exit(1);
     }
-    console.log(`launch evidence current: ${stableDetection} stable detection, ${plannedDetection} planned detection, ${journeys.journeys.length} journeys, ${publicContract.methodStudies.length} studies`);
+    console.log(`launch evidence current: ${stableDetection} stable detection, ${plannedDetection} planned detection, ${ordinaryReview.projects.length} journeys, ${publicContract.methodStudies.length} studies`);
   } else {
     writeFileSync(OUTPUT, rendered);
     console.log(OUTPUT);

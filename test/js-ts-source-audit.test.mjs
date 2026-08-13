@@ -92,6 +92,12 @@ const nestedCors = inspectJsTsSource('src/cors.ts', `
   export const options = { nested: { origin: '*' }, credentials: true };
 `);
 assert.deepEqual(nestedCors.findings, []);
+const repeatedJsSink = inspectJsTsSource('src/repeated.ts', `
+  element.innerHTML = first;
+  element.innerHTML = second;
+`);
+assert.equal(repeatedJsSink.findings.length, 2);
+assert.equal(new Set(repeatedJsSink.findings.map((finding) => finding.evidence.subject)).size, 2);
 
 assert.equal(classifyJsTsSource('src/client.ts').eligible, true);
 assert.deepEqual(classifyJsTsSource('src/client.min.js'),

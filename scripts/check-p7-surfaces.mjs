@@ -22,6 +22,7 @@ const metadata = JSON.parse(read('docs/github-metadata.json'));
 const capabilities = JSON.parse(read('docs/capabilities.json'));
 const contract = JSON.parse(read('docs/public-contract.json'));
 const journeys = JSON.parse(read('docs/case-studies/journeys/evidence.json'));
+const ordinaryReview = JSON.parse(read('docs/case-studies/journeys/v0.5.0-evidence.json'));
 const releaseState = JSON.parse(read('docs/release-state.json'));
 const published = releaseState.publishedRelease;
 const surfaces = {
@@ -75,12 +76,13 @@ for (const marker of [
   'stable narrow detection families',
   'planned detection capabilities',
   'none are counted as detection coverage',
-  `${journeys.journeys.length} fixed-commit source journeys`,
+  `${ordinaryReview.aggregate.findings} findings across ${ordinaryReview.projects.length} fixed commits`,
   `${contract.methodStudies.length} fixed-commit studies`,
-  '2 security HIGH; 11 discoverability HIGH + 5 MEDIUM; 1 reliability MEDIUM -> 0 active HIGH / 0 active MEDIUM',
+  'OS command injection lead (CWE-78); SUSPECTED HIGH -> security fixed; functional passed',
+  `${ordinaryReview.aggregate.findings} findings across ${ordinaryReview.projects.length} fixed commits`,
   `releases/tag/${published.tag}`,
 ]) if (!surfaces.launch.includes(marker)) fail(`launch evidence is missing ${marker}`);
-if (/13\s+(?:high|HIGH)/.test(surfaces.launch)) fail('launch evidence combines cross-domain demo severity');
+if (/2 security HIGH|11 discoverability HIGH|13\s+(?:high|HIGH)/.test(surfaces.launch)) fail('launch evidence retains stale crawl demo facts');
 
 if (!surfaces.roadmap.includes('## Shipped in v0.3.0')
     || !surfaces.roadmap.includes('## Shipped in v0.4.0')

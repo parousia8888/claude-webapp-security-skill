@@ -13,15 +13,15 @@
   },
   "limitations": {
     "en": [
-      "The deterministic CLI is narrow and is not a general SAST engine or universal vulnerability scanner.",
+      "Built-in source depth targets JavaScript/TypeScript and Python and is not a universal SAST engine or vulnerability scanner.",
       "Agent-guided reviews require project context and human review; installing the Skill does not prove a project secure.",
-      "The animated result comes from an intentionally misconfigured, repository-owned local fixture and does not establish third-party coverage.",
+      "The animated result is one suspected source lead in a repository-owned local fixture and does not establish third-party coverage or exploitability.",
       "The ordinary project journeys are fixed-commit source reviews; no hosted instance was probed and no upstream validation is claimed."
     ],
     "zh-CN": [
-      "确定性 CLI 的范围有限，不是通用 SAST 引擎或全覆盖漏洞扫描器。",
+      "内置源码深度集中在 JavaScript/TypeScript 与 Python，不是通用 SAST 引擎或全覆盖漏洞扫描器。",
       "agent-guided 审查需要项目上下文和人工复核；安装 Skill 不代表项目已经安全。",
-      "动画结果来自仓库自有、故意错误配置的本地 fixture，不代表第三方项目覆盖率。",
+      "动画结果只是仓库自有本地 fixture 中的一条 suspected 源码线索，不证明第三方覆盖率或可利用性。",
       "普通项目旅程是固定 commit 的源码审查；未探测托管实例，也不声称得到上游验证。"
     ]
   },

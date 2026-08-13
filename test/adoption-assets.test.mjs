@@ -93,11 +93,12 @@ try {
 
   const share = JSON.parse(readFileSync(join(ROOT, 'docs', 'adoption', 'share-metadata.json'), 'utf8'));
   assert.equal(share.ownedLocalDemo.thirdPartyTarget, false);
-  assert.equal(share.ownedLocalDemo.before.byDomain.security_exposure.high, 2);
-  assert.equal(share.ownedLocalDemo.before.byDomain.search_discoverability.high, 11);
-  assert.equal(share.ownedLocalDemo.before.byDomain.search_discoverability.medium, 5);
-  assert.equal(share.ownedLocalDemo.before.byDomain.reliability.medium, 1);
-  assert.equal(share.ownedLocalDemo.after.active.high, 0);
+  assert.equal(share.ownedLocalDemo.finding.technicalTerm, 'OS command injection lead (CWE-78)');
+  assert.equal(share.ownedLocalDemo.finding.state, 'suspected');
+  assert.equal(share.ownedLocalDemo.retest.security, 'fixed');
+  assert.equal(share.ownedLocalDemo.retest.functional, 'passed');
+  assert.equal(share.caseEvidence.v050Review.usefulLeads, 11);
+  assert.equal(share.caseEvidence.v050Review.expectedBenignMatches, 27);
   assert.equal(share.caseEvidence.upstreamValidationClaimed, false);
   assert.equal(share.externalState.communityPublication, 'external_validation_pending');
 
@@ -114,7 +115,8 @@ try {
   ].map((path) => readFileSync(join(ROOT, 'docs', 'adoption', path), 'utf8')).join('\n');
   assert.doesNotMatch(generated, /precision (?:rate|score|of)|universal scanner|upstream (?:approved|validated|endorsed) us/i);
   assert.doesNotMatch(generated, /13\s+(?:high|HIGH)/);
-  assert.match(generated, /2 security HIGH; 11 discoverability HIGH \+ 5 MEDIUM; 1 reliability MEDIUM/);
+  assert.match(generated, /OS command injection lead \(CWE-78\)/);
+  assert.match(generated, /11 useful leads, 27 expected benign matches, 1 unknown and 4 confirmed/);
   assert.match(generated, /external_validation_pending|Publication status: draft|发布状态：草稿/);
 
   console.log('✓ adoption assets: structured claims, channel drafts, no-live-target case and fail-closed fields');

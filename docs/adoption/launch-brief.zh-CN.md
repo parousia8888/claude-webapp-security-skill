@@ -10,7 +10,7 @@
 
 ## 检查、补丁与复测闭环
 
-仓库自有本地 demo 的初始结果为 **2 个 security HIGH、11 个 discoverability HIGH + 5 个 MEDIUM、1 个 reliability MEDIUM**，随后生成可审查补丁，并对同一个 fixture 复测到 **0 个 active HIGH / 0 个 active MEDIUM**；生成记录把 **21 项 finding 标记为 fixed**。该 fixture 在本地运行，不接触第三方目标。
+仓库自有本地源码 demo 的初始结果为 **OS command injection lead (CWE-78)，suspected HIGH**，随后说明 pattern 能证明和不能证明什么，提出参数分离的执行方式，列出 quoting/跨平台副作用，并记录 **security fixed；functional passed**。该 fixture 不访问网络，也不执行项目依赖。
 
 [查看生成的 demo、报告与补丁](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md)。
 
@@ -20,9 +20,9 @@
 
 [逐项查看能力与证据](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md)。
 
-证据集还记录了 **5 个固定 commit 的普通项目旅程**，以及独立维护的 **5 个源码方法论案例**。普通项目旅程未探测托管实例，并保留零 finding、误报关闭与 unknown 结果。
+v0.5.0 built-in 复核把 **5 个固定 commit 普通项目**中的 **43 条 finding**逐条归类为 11 条有用线索、27 条预期良性命中、1 条 unknown 和 4 条已确认的缺 lockfile 事实。这不是漏洞数量或 precision/recall。另有 5 个独立源码方法论案例。
 
-[查看旅程方法、命令和边界](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md)。
+[查看 v0.5.0 人工分类](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/v0.5.0-review.md)与[历史旅程方法](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md)。
 
 ## 安装与分发
 
@@ -34,9 +34,9 @@ Release [v0.4.0](https://github.com/parousia8888/web-app-security-skill/releases
 
 ## 引用时必须保留的限制
 
-- 确定性 CLI 的范围有限，不是通用 SAST 引擎或全覆盖漏洞扫描器。
+- 内置源码深度集中在 JavaScript/TypeScript 与 Python，不是通用 SAST 引擎或全覆盖漏洞扫描器。
 - agent-guided 审查需要项目上下文和人工复核；安装 Skill 不代表项目已经安全。
-- 动画结果来自仓库自有、故意错误配置的本地 fixture，不代表第三方项目覆盖率。
+- 动画结果只是仓库自有本地 fixture 中的一条 suspected 源码线索，不证明第三方覆盖率或可利用性。
 - 普通项目旅程是固定 commit 的源码审查；未探测托管实例，也不声称得到上游验证。
 
 社区发布、独立用户 session 结果和上游验证仍为 `external_validation_pending`。本简报只是发布素材，不代表外部文章或验证已经发生。

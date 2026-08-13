@@ -4,8 +4,10 @@ This tutorial takes a clean machine from installation to a scoped source audit, 
 retest, upgrade and uninstall. The product promise is: **Scope, audit, harden, and retest web
 projects with AI coding agents and reproducible evidence.**
 
-The deterministic path shown here reads local source files and does not contact a deployment. It is
-a narrow regression-tested baseline, not a general SAST scan or proof that a project is secure.
+The deterministic path shown here reads local source files and does not contact a deployment. On
+the v0.5.0 candidate it runs 20 built-in risk rules and 2 evidence-integrity rules, with deeper
+JavaScript/TypeScript and Python coverage. It remains a bounded first pass, not a general SAST scan
+or proof that a project is secure.
 
 ## Prerequisites
 
@@ -120,6 +122,18 @@ Do not promote a filename match, static pattern or AI suggestion to `confirmed`.
 enabled source maps remain `suspected` until a built artifact or owned deployment proves public
 delivery.
 
+The default explanation is deliberately readable before it is technical. For every actionable v3
+finding, check these fields in order:
+
+1. `technicalTerm` and `state`: the professional name and what the audit actually proved.
+2. `plainLanguage` and `consequence`: what the code is doing and what might happen if the missing
+   conditions are real.
+3. `evidenceBoundary`: what the rule did not establish, such as input flow or runtime reachability.
+4. `proposal`, `alternatives` and `sideEffects`: the suggested change, another viable path and what
+   normal behavior could change.
+5. `userDecisions`, `securityRetest`, `functionalRetest` and `rollback`: decisions the project
+   owner must make and the evidence required before keeping the change.
+
 ## Review and apply a patch
 
 Open both the report and `.webapp-security/runs/first-review/proposed.patch`. The patch may contain
@@ -132,6 +146,22 @@ Before changing source:
 2. Check whether the change affects production traffic, authentication, data, SEO or crawlers.
 3. Keep the smallest reviewable change and preserve the original report as the baseline.
 4. Run the project's own tests after the change.
+
+Create a private review-only repair record for one finding:
+
+```bash
+webapp-security repair-plan <finding-id> \
+  --report .webapp-security/runs/first-review/report.json \
+  --out .webapp-security/runs/first-review/repair-review
+webapp-security repair-validate \
+  .webapp-security/runs/first-review/repair-review/repair-record.json
+```
+
+The initial record remains `review_required` with approval pending and no patch applied. The CLI
+does not edit it into an approved or applied state and does not edit project files. Authentication,
+authorization, public routes, CORS, cookies/sessions, stored data and production infrastructure
+always require an explicit owner decision. A repair reaches `retested` only after both its named
+security verification and the affected normal product journey pass.
 
 For an AI coding agent, use the canonical first-task prompt from the repository README or
 [`README_AI.md`](../README_AI.md). Tell the agent whether it may apply changes or must return
