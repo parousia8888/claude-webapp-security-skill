@@ -56,30 +56,33 @@ npm run demo -- --out ./demo-output
 ## 安装
 
 这条命令同时安装 Claude Code skill、Codex skill 和 `~/.local/bin/webapp-security` 普通 CLI。
-若已有安装会直接拒绝；只有显式加入 `--force` 才会先生成带时间戳的备份再替换。
+若已有安装会直接拒绝；只有显式加入 `--force` 才会先生成带时间戳的备份再替换。该命令下载不可变
+bootstrap 并在执行前验证 SHA-256，然后验证选定 release 的 manifest、checksums、SBOM、源码提交和
+归档，再进入安装。
 
 ```bash
-git clone --depth 1 https://github.com/parousia8888/web-app-security-skill.git /tmp/web-app-security-skill \
-  && node /tmp/web-app-security-skill/scripts/webapp-security.mjs install
+( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/55c3de22cb373581b9723467c0d2663917c6df84/scripts/bootstrap-install.sh?immutable=55c3de2'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" 'bdb3951d6085d24c83b7590c0295702cdce8b6c15b0247747bf93b67649e78bd'; sh "$p" )
 ```
 
 也可以只装单一入口：
 
 ```bash
-node scripts/webapp-security.mjs install --target claude
-node scripts/webapp-security.mjs install --target codex
-node scripts/webapp-security.mjs install --target cli
-node scripts/webapp-security.mjs install --target both   # Claude Code + Codex
+sh bootstrap-install.sh --target claude
+sh bootstrap-install.sh --target codex
+sh bootstrap-install.sh --target cli
+sh bootstrap-install.sh --target both   # Claude Code + Codex
 ```
 
-系统支持范围与当前限制见[兼容矩阵](docs/compatibility.md)。
+简写示例以已经通过上方命令下载并验证 `bootstrap-install.sh` 为前提。显式版本、离线/人工验证、
+attestation 及信任锚说明见[可信安装](docs/verified-installation.zh-CN.md)。系统支持范围与当前限制见
+[兼容矩阵](docs/compatibility.md)。
 
 查看版本、升级或卸载：
 
 ```bash
 webapp-security version
-# 必须从已下载的新版 release payload 执行；upgrade 自身不会联网下载代码。
-node /path/to/new-release/scripts/webapp-security.mjs upgrade
+# 对可识别的现有安装运行已验证 bootstrap，并选择 upgrade 模式。
+sh bootstrap-install.sh --mode upgrade
 webapp-security uninstall
 ```
 

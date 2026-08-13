@@ -56,31 +56,34 @@ For the complete install-to-uninstall path, follow the tested
 
 This one command installs the skill for Claude Code and Codex, plus the ordinary CLI under
 `~/.local/bin`. Existing installs are refused unless you explicitly pass `--force`, which creates
-timestamped backups before replacement.
+timestamped backups before replacement. It downloads an immutable bootstrap, verifies its SHA-256
+before execution, then verifies the selected release manifest, checksums, SBOM, source commit and
+archive before installation.
 
 ```bash
-git clone --depth 1 https://github.com/parousia8888/web-app-security-skill.git /tmp/web-app-security-skill \
-  && node /tmp/web-app-security-skill/scripts/webapp-security.mjs install
+( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/55c3de22cb373581b9723467c0d2663917c6df84/scripts/bootstrap-install.sh?immutable=55c3de2'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" 'bdb3951d6085d24c83b7590c0295702cdce8b6c15b0247747bf93b67649e78bd'; sh "$p" )
 ```
 
 Select a surface when needed:
 
 ```bash
-node scripts/webapp-security.mjs install --target claude
-node scripts/webapp-security.mjs install --target codex
-node scripts/webapp-security.mjs install --target cli
-node scripts/webapp-security.mjs install --target both   # Claude Code + Codex
+sh bootstrap-install.sh --target claude
+sh bootstrap-install.sh --target codex
+sh bootstrap-install.sh --target cli
+sh bootstrap-install.sh --target both   # Claude Code + Codex
 ```
 
-Supported environments and current limits are recorded in the
-[compatibility matrix](docs/compatibility.md).
+The shortened examples assume you already downloaded and verified `bootstrap-install.sh` using the
+command above. Explicit-version, offline/manual, attestation and trust-anchor details are in
+[verified installation](docs/verified-installation.md). Supported environments and current limits
+are recorded in the [compatibility matrix](docs/compatibility.md).
 
 Check, upgrade, or remove an installation:
 
 ```bash
 webapp-security version
-# Run upgrade from the newer release payload; it never downloads code by itself.
-node /path/to/new-release/scripts/webapp-security.mjs upgrade
+# Run the verified bootstrap with --mode upgrade for a recognized installation.
+sh bootstrap-install.sh --mode upgrade
 webapp-security uninstall
 ```
 
