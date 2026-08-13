@@ -4,7 +4,7 @@
   "product": "Web App Security Skill",
   "repository": "https://github.com/parousia8888/web-app-security-skill",
   "marketplace": "https://github.com/marketplace/actions/web-app-security-skill",
-  "productVersion": "0.3.0",
+  "productVersion": "0.4.0",
   "release": {
     "version": "0.3.0",
     "url": "https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.3.0",
