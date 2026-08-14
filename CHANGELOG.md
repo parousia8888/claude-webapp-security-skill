@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-08-14
+
+### Fixed
+- JSX child text containing comment-shaped glob notation such as `skills/*.yaml` no longer causes
+  all JavaScript/TypeScript rules for that file to become partial. JSX expressions, attributes and
+  nested elements remain tokenized as code.
+- CPython-valid raw strings with backslash-quoted delimiters no longer produce an unbalanced
+  delimiter error and partial Python coverage.
+- The five-project review now distinguishes the original report byte SHA-256 from a reproducible
+  semantic digest over report schema, ruleset, finding identities and states, with a machine
+  comparison command for third-party reruns.
+- The HTTPS hardening fixture clears an inherited `SSL_CERT_FILE` before using its local certificate
+  authority, reducing host-specific trust-store interference.
+
+### Security boundary
+- The stable 30-rule corpus, finding/report schemas, evidence-state semantics, passive network
+  defaults and review-only repair behavior are unchanged from v0.5.0.
+
 ## [0.5.0] — 2026-08-14
 
 ### Added

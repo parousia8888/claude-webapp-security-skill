@@ -42,13 +42,63 @@ function regexMayStart(previous) {
       'yield', 'await', 'from'].includes(previous.value);
 }
 
-export function tokenizeJsTs(text) {
+function jsxTagMayStart(text, index, previous, fromText) {
+  const next = text[index + 1] || '';
+  if (fromText) return next === '/' || next === '>' || /[A-Za-z_$]/.test(next);
+  return regexMayStart(previous) && (next === '>' || /[A-Za-z_$]/.test(next));
+}
+
+export function tokenizeJsTs(text, { jsx = false } = {}) {
   const tokens = [];
   let index = 0;
   let line = 1;
+  let jsxMode = 'code';
+  let pendingJsxClosing = false;
+  let pendingJsxReturnMode = 'code';
+  const jsxElements = [];
+  let jsxExpressionDepth = 0;
+  let jsxExpressionReturnMode = 'text';
   const push = (type, value, start, startLine) => tokens.push({ type, value, start, line: startLine });
   while (index < text.length) {
     const character = text[index];
+    if (jsx && jsxMode === 'text') {
+      if (character === '<' && jsxTagMayStart(text, index, tokens.at(-1), true)) {
+        push('punct', '<', index, line);
+        pendingJsxClosing = text[index + 1] === '/';
+        pendingJsxReturnMode = 'text';
+        jsxMode = 'tag';
+        index += 1;
+        continue;
+      }
+      if (character === '{') {
+        push('punct', '{', index, line);
+        jsxExpressionDepth = 1;
+        jsxExpressionReturnMode = 'text';
+        jsxMode = 'code';
+        index += 1;
+        continue;
+      }
+      if (character === '\n') line += 1;
+      index += 1;
+      continue;
+    }
+    if (jsx && jsxMode === 'tag' && character === '{') {
+      push('punct', '{', index, line);
+      jsxExpressionDepth = 1;
+      jsxExpressionReturnMode = 'tag';
+      jsxMode = 'code';
+      index += 1;
+      continue;
+    }
+    if (jsx && jsxMode === 'code' && character === '<'
+        && jsxTagMayStart(text, index, tokens.at(-1), false)) {
+      push('punct', '<', index, line);
+      pendingJsxClosing = false;
+      pendingJsxReturnMode = 'code';
+      jsxMode = 'tag';
+      index += 1;
+      continue;
+    }
     if (/\s/.test(character)) {
       if (character === '\n') line += 1;
       index += 1;
@@ -150,8 +200,29 @@ export function tokenizeJsTs(text) {
     }
     const operator = ['===', '!==', '>>>', '=>', '==', '!=', '>=', '<=', '&&', '||', '?.', '??', '**']
       .find((candidate) => text.startsWith(candidate, index));
-    push('punct', operator || character, index, line);
-    index += (operator || character).length;
+    const value = operator || character;
+    push('punct', value, index, line);
+    index += value.length;
+    if (jsx && jsxMode === 'tag' && value === '>') {
+      if (pendingJsxClosing) {
+        const element = jsxElements.pop();
+        jsxMode = element?.returnMode || 'code';
+      } else if (valueAt(tokens, tokens.length - 2) === '/') {
+        jsxMode = pendingJsxReturnMode;
+      } else {
+        jsxElements.push({ returnMode: pendingJsxReturnMode });
+        jsxMode = 'text';
+      }
+      pendingJsxClosing = false;
+      continue;
+    }
+    if (jsx && jsxExpressionDepth > 0) {
+      if (value === '{') jsxExpressionDepth += 1;
+      if (value === '}') {
+        jsxExpressionDepth -= 1;
+        if (jsxExpressionDepth === 0) jsxMode = jsxExpressionReturnMode;
+      }
+    }
   }
   return { tokens, error: null };
 }
@@ -299,7 +370,7 @@ const OUTPUT = {
 };
 
 export function inspectJsTsSource(path, text) {
-  const parsed = tokenizeJsTs(text);
+  const parsed = tokenizeJsTs(text, { jsx: /\.[cm]?[jt]sx$/i.test(path) });
   if (parsed.error) return { findings: [], error: parsed.error };
   const { tokens } = parsed;
   const findings = [];

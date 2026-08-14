@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="#查看结果">Demo</a> ·
-  <a href="#v050-新增内容">v0.5.0</a> ·
+  <a href="#v051-新增内容">v0.5.1</a> ·
   <a href="#安装">安装</a> ·
   <a href="#执行第一个项目">首个项目</a> ·
   <a href="docs/tutorial.zh-CN.md">完整教程</a> ·
@@ -33,9 +33,18 @@
 
 <p align="center"><a href="docs/demo-evidence.md">查看该演示对应的生成报告与补丁证据。</a></p>
 
-## v0.5.0 新增内容
+## v0.5.1 新增内容
 
-已发布的 v0.5.0 重点是“更多源码检测 + 看得懂的修复提案”：
+v0.5.1 是基于 v0.5.0“更多源码检测 + 看得懂的修复提案”能力边界的兼容性补丁：
+
+- **源码覆盖更可靠：**`skills/*.yaml` 这类 JSX 子文本不会再被当成块注释；常见且能通过
+  CPython 编译的 raw 正则字符串也不会再让整个文件的语言规则降级为 partial。
+- **复核证据可重复验证：**五项目复核把作者原始报告的字节 SHA-256 与稳定语义摘要分开，
+  第三方无需复现随机 ephemeral subject 也能校验规则集、finding 身份与状态。
+- **TLS fixture 更隔离：**本地证书测试在选择自有 fixture CA 前清理继承的
+  `SSL_CERT_FILE`。
+
+检测和解释能力继续遵守 v0.5.0 合同：
 
 - **自动源码规则增加：**20 条 stable built-in risk、2 条证据完整性规则、8 条 opt-in 外部 adapter
   规则。内置深度明确集中在 JavaScript/TypeScript 与 Python Web 代码。
@@ -48,8 +57,8 @@
   漏洞，也不构成 precision/recall 指标。
 
 准确支持范围见[兼容矩阵](docs/compatibility.md)、[稳定规则语料](docs/stable-rule-corpus.json)和
-[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。下面的可信安装器默认选择已发布的
-v0.5.0，同时保留可显式安装的 v0.3.0 与 v0.4.0 信任路径。
+[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。在 v0.5.1 公开资产完成发布后验证前，
+下面的可信安装器仍默认选择已发布的 v0.5.0，并保留可显式安装的 v0.3.0 与 v0.4.0 信任路径。
 
 ## 查看结果
 

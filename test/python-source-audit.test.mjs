@@ -125,6 +125,11 @@ assert.deepEqual(classifyPythonSource('README.md'),
   { eligible: false, reason: 'unsupported_python_extension' });
 assert.equal(tokenizePython('value = "unterminated').error.code, 'unterminated_python_string');
 assert.equal(tokenizePython('run(\n').error.code, 'unbalanced_python_delimiter');
+const rawRegex = String.raw`import re
+_FM_TITLE = re.compile(r'^title:\s*["\']?(.+?)["\']?\s*$', re.MULTILINE)
+`;
+assert.equal(tokenizePython(rawRegex).error, null);
+assert.deepEqual(inspectPythonSource('src/frontmatter.py', rawRegex).findings, []);
 
 const temp = mkdtempSync(join(tmpdir(), 'webapp-security-python-'));
 const write = (path, contents) => {

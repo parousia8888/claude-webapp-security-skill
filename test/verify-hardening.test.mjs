@@ -68,12 +68,14 @@ const httpSite = `http://localhost:${redirect.address().port}`;
 
 const reportDir = join(temp, 'edge-report');
 const consoleSecret = 'M5_CONSOLE_SECRET_SENTINEL';
+const fixtureTrustEnv = { ...process.env, CURL_CA_BUNDLE: cert };
+delete fixtureTrustEnv.SSL_CERT_FILE;
 const passive = await command('/bin/bash', [
   SCRIPT, '--site', secureSite, '--http-site', httpSite, '--n', '1',
   '--content-path', `/?token=${consoleSecret}`,
   '--out', reportDir, '--report-name', 'edge-fixture',
 ], {
-  env: { ...process.env, CURL_CA_BUNDLE: cert },
+  env: fixtureTrustEnv,
 });
 check('passive hardening verification succeeds', passive.code === 0, passive.stdout + passive.stderr);
 check('passive mode skips burst', /skipped; pass --active-rate-limit/.test(passive.stdout));
@@ -93,7 +95,7 @@ for (const name of ['edge-fixture.json', 'edge-fixture.md', 'edge-fixture.html',
 
 const active = await command('/bin/bash', [
   SCRIPT, '--site', secureSite, '--http-site', httpSite, '--active-rate-limit', '--acknowledge-authorization', '--n', '1',
-], { env: { ...process.env, CURL_CA_BUNDLE: cert } });
+], { env: fixtureTrustEnv });
 check('active rate-limit verification succeeds', active.code === 0, active.stdout + active.stderr);
 check('probe throttling is observed', /probe class is being throttled/.test(active.stdout));
 check('content availability is observed', /content class remained available/.test(active.stdout));

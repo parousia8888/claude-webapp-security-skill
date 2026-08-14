@@ -14,6 +14,7 @@ import { SOURCE_RULES, sourceRuleset } from '../scripts/lib/source-rules.mjs';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const CLI = join(ROOT, 'scripts', 'webapp-security.mjs');
 const CHECK = join(ROOT, 'scripts', 'check-case-journeys.mjs');
+const CHECK_V050 = join(ROOT, 'scripts', 'check-v050-ordinary-review.mjs');
 const RUN_JOURNEY = join(ROOT, 'scripts', 'run-case-journey.mjs');
 const DENY_NETWORK = join(ROOT, 'test', 'helpers', 'deny-network.cjs');
 const temp = mkdtempSync(join(tmpdir(), 'web-app-security-case-'));
@@ -54,6 +55,41 @@ try {
   let result = spawnSync(process.execPath, [CHECK], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /5 projects/);
+
+  const ordinaryEvidence = JSON.parse(readFileSync(join(ROOT, 'docs', 'case-studies', 'journeys',
+    'v0.5.0-evidence.json'), 'utf8'));
+  const reviewed = ordinaryEvidence.projects[0];
+  const reviewedIds = [
+    ...reviewed.review.useful_lead.map((id) => ({ id, state: 'suspected' })),
+    ...reviewed.review.expected_benign_match.map((id) => ({ id, state: 'suspected' })),
+    ...reviewed.review.unknown.map((id) => ({ id, state: 'unknown' })),
+    ...reviewed.review.confirmed.map((id) => ({ id, state: 'confirmed' })),
+  ];
+  const reproducedReportPath = join(temp, 'reproduced-report.json');
+  const reproducedReport = {
+    schemaVersion: reviewed.report.schemaVersion,
+    ruleset: { digest: ordinaryEvidence.rulesetDigest },
+    summary: {
+      total: reviewed.report.summary.total,
+      byState: {
+        confirmed: reviewed.report.summary.confirmed,
+        suspected: reviewed.report.summary.suspected,
+        unknown: reviewed.report.summary.unknown,
+      },
+    },
+    findings: reviewedIds,
+  };
+  writeFileSync(reproducedReportPath, `${JSON.stringify(reproducedReport)}\n`);
+  result = spawnSync(process.execPath, [CHECK_V050, '--report', reviewed.id, reproducedReportPath],
+    { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /reproduced report semantics match/);
+  reproducedReport.findings[0].state = 'unknown';
+  writeFileSync(reproducedReportPath, `${JSON.stringify(reproducedReport)}\n`);
+  result = spawnSync(process.execPath, [CHECK_V050, '--report', reviewed.id, reproducedReportPath],
+    { encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /reproduced report semantics differ/);
 
   cpSync(join(ROOT, 'test', 'fixtures', 'case-open-webui'), project, { recursive: true });
   const runRoot = join(temp, 'representative-runs');

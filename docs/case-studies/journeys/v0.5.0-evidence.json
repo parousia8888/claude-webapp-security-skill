@@ -31,6 +31,7 @@
       "report": {
         "schemaVersion": 3,
         "sha256": "e9dc96f64a17c303be88f8a19b4f4e79ffee644c994238fe395931e1ed831008",
+        "semanticDigest": "ecf170068871fe76b3716a1343b9ac0f4d48650fc2811ce3f07e031b736b0f46",
         "summary": { "total": 6, "confirmed": 0, "suspected": 6, "unknown": 0 }
       },
       "review": {
@@ -60,6 +61,7 @@
       "report": {
         "schemaVersion": 3,
         "sha256": "d357cdcdf245cf2c7361943a164879500e5b8ddaef1f08f0696f53e6226bcbb4",
+        "semanticDigest": "620ae1de8b4c9cf721899d7ef7fb3cb70a30359c5027b120d8752e3b11a95f26",
         "summary": { "total": 5, "confirmed": 0, "suspected": 5, "unknown": 0 }
       },
       "review": {
@@ -89,6 +91,7 @@
       "report": {
         "schemaVersion": 3,
         "sha256": "dea06e5180cd3261b71730425f7a9fa81fcce50e4f5d0ae127033279464e8000",
+        "semanticDigest": "0d9da23f094f2d5388877ee226fba3d2ed50d5a9c6df252e0e06524b7604a5de",
         "summary": { "total": 7, "confirmed": 0, "suspected": 6, "unknown": 1 }
       },
       "review": {
@@ -122,6 +125,7 @@
       "report": {
         "schemaVersion": 3,
         "sha256": "8b5e0809c5cdb2f3d75db90c9fe29307fae8b8d008048c9035f1906c5ee702a1",
+        "semanticDigest": "334a32d408ca4189f1960eff1a0085d72ddbe69e397289eb58bb7106a824453b",
         "summary": { "total": 25, "confirmed": 4, "suspected": 21, "unknown": 0 }
       },
       "review": {
@@ -173,6 +177,7 @@
       "report": {
         "schemaVersion": 3,
         "sha256": "30531c8ae0eeb72eff8a6166c71efc63a938a556b1009746b6a6cdacf4541561",
+        "semanticDigest": "bb42afae7a8a2f4c709a57bb61ba519b99657a14eaddbf12724b1a4f87e17071",
         "summary": { "total": 0, "confirmed": 0, "suspected": 0, "unknown": 0 }
       },
       "review": {

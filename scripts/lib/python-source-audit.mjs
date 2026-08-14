@@ -62,7 +62,6 @@ export function tokenizePython(text) {
     if (string) {
       const start = index;
       const startLine = line;
-      const raw = string.prefix.toLowerCase().includes('r');
       index += string.length;
       let value = '';
       let closed = false;
@@ -74,7 +73,7 @@ export function tokenizePython(text) {
         }
         const current = text[index];
         if (current === '\n') line += 1;
-        if (current === '\\' && !raw) {
+        if (current === '\\') {
           value += current;
           if (index + 1 < text.length) {
             value += text[index + 1];

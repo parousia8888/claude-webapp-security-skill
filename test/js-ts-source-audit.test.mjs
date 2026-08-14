@@ -64,11 +64,18 @@ assert.equal(templateSecret.error, null);
 assert.deepEqual(templateSecret.findings, []);
 const jsxText = inspectJsTsSource('src/page.tsx', `
   export function Page() {
-    return <main>Don't treat a user's apostrophe or "quote" as source code.</main>;
+    return <main>Don't treat a user's apostrophe, "quote", or skills/*.yaml glob as source code.</main>;
   }
 `);
 assert.equal(jsxText.error, null);
 assert.deepEqual(jsxText.findings, []);
+const nestedJsxText = inspectJsTsSource('src/nested.tsx', `
+  export const Page = ({ visible, value }) => (
+    <main>{visible ? <span data-value={value}>src/*.tsx</span> : null}</main>
+  );
+`);
+assert.equal(nestedJsxText.error, null);
+assert.deepEqual(nestedJsxText.findings, []);
 
 const multiline = inspectJsTsSource('src/multiline.ts', `
   import { spawn as launch } from 'child_process';
