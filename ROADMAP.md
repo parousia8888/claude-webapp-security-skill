@@ -62,8 +62,9 @@ outside this release.
 v0.5.1 repairs independently reproduced parser and evidence-reproduction defects without changing
 the stable rule count or report schema. JSX child text and CPython-valid raw strings retain source
 coverage, the five-project review exposes a path-independent semantic comparison, and the local TLS
-fixture isolates inherited certificate-file state. Publication and `v1` promotion evidence is
-tracked in the [v0.5.1 patch plan](docs/V0.5.1_PATCH_PLAN.md).
+fixture isolates inherited certificate-file state. The signed release, verified installer and
+guarded signed `v1` promotion are published; the public Action consumer passed. Exact evidence is in
+the [v0.5.1 patch plan](docs/V0.5.1_PATCH_PLAN.md).
 
 ## Correctness backlog
 

@@ -287,7 +287,7 @@ requires deployment authorization acknowledgement:
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/web-app-security-skill@778a7ba73588cdab1d9df281ab362f4fe0925189
+  uses: parousia8888/web-app-security-skill@a9b9575e7a31b118930d49eea05e043a513a5aa3
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -295,20 +295,20 @@ requires deployment authorization acknowledgement:
     fail-on: high
 ```
 
-For repeatable CI, use the immutable v0.5.0 commit above. The signed stable major-version alias now
-resolves to the same v0.5.0 source after both crawl and source modes passed an external consumer:
+For repeatable CI, use the immutable v0.5.1 commit above. The signed stable major-version alias now
+resolves to the same v0.5.1 source after its public passive and authorization consumer passed:
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-Source mode defaults to the bundled adapter. The immutable v0.5.0 Action runs the v3 source
-contract and the stable v0.5.0 rule corpus. External binaries must be installed and pinned by the
-caller; the Action never downloads them:
+Source mode defaults to the bundled adapter. The immutable v0.5.1 Action runs the v3 source
+contract, the stable v0.5.0 rule corpus and the v0.5.1 compatibility fixes. External binaries must be
+installed and pinned by the caller; the Action never downloads them:
 
 ```yaml
 - name: Audit source
-  uses: parousia8888/web-app-security-skill@778a7ba73588cdab1d9df281ab362f4fe0925189
+  uses: parousia8888/web-app-security-skill@a9b9575e7a31b118930d49eea05e043a513a5aa3
   with:
     mode: source
     project: .
@@ -316,9 +316,9 @@ caller; the Action never downloads them:
     fail-on: high
 ```
 
-The moving `v1` tag is updated only after a versioned release passes the real consumer workflow.
-Review release notes before accepting a future update to it; use the full commit above when the
-workflow must not move.
+The moving `v1` tag is promoted with a guarded lease only after the versioned source and installation
+gates pass, then the public consumer must pass before promotion is recorded complete. Review release
+notes before accepting a future update; use the full commit above when the workflow must not move.
 
 ## Trust and release evidence
 
@@ -339,7 +339,7 @@ Verify downloaded release assets:
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
-git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.0
+git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.1
 ```
 
 ## 5 ordinary project journeys

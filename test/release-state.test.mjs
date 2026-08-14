@@ -22,7 +22,7 @@ try {
   const state = JSON.parse(readFileSync(join(ROOT, 'docs', 'release-state.json'), 'utf8'));
   assert.equal(state.publishedRelease.version, '0.5.1');
   assert.equal(state.stableAction.tag, 'v1');
-  assert.equal(state.stableAction.sourceCommit, '778a7ba73588cdab1d9df281ab362f4fe0925189');
+  assert.equal(state.stableAction.sourceCommit, 'a9b9575e7a31b118930d49eea05e043a513a5aa3');
   assert.equal(state.verifiedInstaller.defaultVersion, '0.5.1');
   assert.deepEqual(state.verifiedInstaller.trustedVersions, ['0.3.0', '0.4.0', '0.5.0', '0.5.1']);
   run(process.execPath, [join(ROOT, 'scripts', 'check-release-state.mjs')]);

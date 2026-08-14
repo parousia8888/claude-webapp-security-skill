@@ -259,7 +259,7 @@ Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被�
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/web-app-security-skill@778a7ba73588cdab1d9df281ab362f4fe0925189
+  uses: parousia8888/web-app-security-skill@a9b9575e7a31b118930d49eea05e043a513a5aa3
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -267,19 +267,19 @@ Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被�
     fail-on: high
 ```
 
-需要可重复 CI 时使用上面的 v0.5.0 不可变 commit。签名的稳定大版本别名现已指向同一份
-v0.5.0 源码，并通过外部 consumer 的 crawl 与 source 两种模式：
+需要可重复 CI 时使用上面的 v0.5.1 不可变 commit。签名的稳定大版本别名现已指向同一份
+v0.5.1 源码，并通过公开 consumer 的被动边界与授权拒绝验证：
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-Source mode 默认只用内置 adapter。v0.5.0 不可变 Action 运行 v3 源码合同和 stable v0.5.0
-规则语料。外部二进制必须由调用方固定版本并安装，Action 不会下载：
+Source mode 默认只用内置 adapter。v0.5.1 不可变 Action 运行 v3 源码合同、stable v0.5.0
+规则语料与 v0.5.1 兼容性修复。外部二进制必须由调用方固定版本并安装，Action 不会下载：
 
 ```yaml
 - name: Audit source
-  uses: parousia8888/web-app-security-skill@778a7ba73588cdab1d9df281ab362f4fe0925189
+  uses: parousia8888/web-app-security-skill@a9b9575e7a31b118930d49eea05e043a513a5aa3
   with:
     mode: source
     project: .
@@ -287,8 +287,8 @@ Source mode 默认只用内置 adapter。v0.5.0 不可变 Action 运行 v3 源�
     fail-on: high
 ```
 
-移动的 `v1` tag 只在版本化 release 通过真实 consumer workflow 后更新。以后接受更新前应检查
-release note；工作流不能随版本移动时，使用上面的完整 commit。
+移动的 `v1` tag 只在版本化源码与安装门禁通过后用 guarded lease 提升，并必须再通过公开 consumer
+才记录为完成。以后接受更新前应检查 release note；工作流不能随版本移动时使用上面的完整 commit。
 
 ## 信任与 release 证据
 
@@ -306,7 +306,7 @@ release note；工作流不能随版本移动时，使用上面的完整 commit�
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
-git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.0
+git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.1
 ```
 
 ## 5 个普通项目旅程
