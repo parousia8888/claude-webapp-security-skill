@@ -60,8 +60,8 @@ The detection and explanation boundary remains the v0.5.0 contract:
 
 Exact support and limits are in the [compatibility matrix](docs/compatibility.md), [stable rule
 corpus](docs/stable-rule-corpus.json) and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md).
-Until the v0.5.1 public assets complete post-publication verification, the verified installer below
-continues selecting published v0.5.0 and retains the trusted v0.3.0 and v0.4.0 paths.
+The verified installer below defaults to published v0.5.1 and retains explicit trusted paths for
+v0.3.0, v0.4.0 and v0.5.0.
 
 ## See the result
 
@@ -96,7 +96,7 @@ before execution, then verifies the selected release manifest, checksums, SBOM, 
 archive before installation.
 
 ```bash
-( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/d9239deeb20d708948e80bcb3c09bd986a2b400c/scripts/bootstrap-install.sh?immutable=d9239deeb20d708948e80bcb3c09bd986a2b400c'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" '4dd81d1c49596e7a1c54b8ca009802bcd46da976cb02e9cdc576f0d3e5617fc5'; sh "$p" )
+( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/0a325dfa31f432267820edb0af9f905f85caaad2/scripts/bootstrap-install.sh?immutable=0a325dfa31f432267820edb0af9f905f85caaad2'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" '43d2f7d9290f43a82f9b3460fa0a41be4d2822fd56e20087c8f7d842bd02a695'; sh "$p" )
 ```
 
 Select a surface when needed:
