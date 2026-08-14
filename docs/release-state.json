@@ -2,22 +2,23 @@
   "schemaVersion": 1,
   "repository": "parousia8888/web-app-security-skill",
   "publishedRelease": {
-    "version": "0.5.0",
-    "tag": "v0.5.0",
-    "sourceCommit": "778a7ba73588cdab1d9df281ab362f4fe0925189",
-    "evidence": "docs/releases/v0.5.0.md",
-    "url": "https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.5.0"
+    "version": "0.5.1",
+    "tag": "v0.5.1",
+    "sourceCommit": "a9b9575e7a31b118930d49eea05e043a513a5aa3",
+    "evidence": "docs/releases/v0.5.1.md",
+    "url": "https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.5.1"
   },
   "stableAction": {
     "tag": "v1",
     "sourceCommit": "778a7ba73588cdab1d9df281ab362f4fe0925189"
   },
   "verifiedInstaller": {
-    "defaultVersion": "0.5.0",
+    "defaultVersion": "0.5.1",
     "trustedVersions": [
       "0.3.0",
       "0.4.0",
-      "0.5.0"
+      "0.5.0",
+      "0.5.1"
     ]
   }
 }
