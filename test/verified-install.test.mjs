@@ -268,6 +268,7 @@ try {
   assert.ok(printed.releases['0.4.0']);
   assert.ok(printed.releases['0.5.0']);
   assert.ok(printed.releases['0.5.1']);
+  assert.ok(printed.releases['0.5.2']);
   console.log('verified install ok: pinned assets, clean lifecycle, offline path, tamper and redirect rejection');
 } finally {
   server.close();

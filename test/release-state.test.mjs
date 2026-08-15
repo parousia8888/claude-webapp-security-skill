@@ -20,32 +20,33 @@ function run(program, commandArgs, options = {}) {
 
 try {
   const state = JSON.parse(readFileSync(join(ROOT, 'docs', 'release-state.json'), 'utf8'));
-  assert.equal(state.publishedRelease.version, '0.5.1');
+  assert.equal(state.publishedRelease.version, '0.5.2');
   assert.equal(state.stableAction.tag, 'v1');
   assert.equal(state.stableAction.sourceCommit, 'a9b9575e7a31b118930d49eea05e043a513a5aa3');
-  assert.equal(state.verifiedInstaller.defaultVersion, '0.5.1');
-  assert.deepEqual(state.verifiedInstaller.trustedVersions, ['0.3.0', '0.4.0', '0.5.0', '0.5.1']);
+  assert.equal(state.verifiedInstaller.defaultVersion, '0.5.2');
+  assert.deepEqual(state.verifiedInstaller.trustedVersions,
+    ['0.3.0', '0.4.0', '0.5.0', '0.5.1', '0.5.2']);
   run(process.execPath, [join(ROOT, 'scripts', 'check-release-state.mjs')]);
 
   cpSync(ROOT, candidate, {
     recursive: true,
     filter: (source) => !source.split('/').includes('.git'),
   });
-  writeFileSync(join(candidate, 'VERSION'), '0.5.2\n');
+  writeFileSync(join(candidate, 'VERSION'), '0.5.3\n');
   const pkgPath = join(candidate, 'package.json');
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-  pkg.version = '0.5.2';
+  pkg.version = '0.5.3';
   writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
   const changelogPath = join(candidate, 'CHANGELOG.md');
   const changelog = readFileSync(changelogPath, 'utf8').replace(
     '## [Unreleased]\n',
-    '## [Unreleased]\n\n## [0.5.2] — 2026-08-14\n',
+    '## [Unreleased]\n\n## [0.5.3] — 2026-08-16\n',
   );
   writeFileSync(changelogPath, changelog);
-  const release051 = readFileSync(join(candidate, 'docs', 'releases', 'v0.5.1.md'), 'utf8');
+  const release052 = readFileSync(join(candidate, 'docs', 'releases', 'v0.5.2.md'), 'utf8');
   writeFileSync(
-    join(candidate, 'docs', 'releases', 'v0.5.2.md'),
-    release051.replaceAll('v0.5.1', 'v0.5.2'),
+    join(candidate, 'docs', 'releases', 'v0.5.3.md'),
+    release052.replaceAll('v0.5.2', 'v0.5.3'),
   );
 
   run(process.execPath, [join(candidate, 'scripts', 'generate-launch-evidence.mjs')], { cwd: candidate });
@@ -56,8 +57,8 @@ try {
     readFileSync(join(candidate, 'docs', 'adoption', 'citations.md'), 'utf8'),
     readFileSync(join(candidate, 'docs', 'adoption', 'share-metadata.json'), 'utf8'),
   ].join('\n');
-  assert.match(generated, /v0\.5\.1/);
-  assert.doesNotMatch(generated, /releases\/tag\/v0\.5\.2|v0\.5\.2 records a signed tag/);
+  assert.match(generated, /v0\.5\.2/);
+  assert.doesNotMatch(generated, /releases\/tag\/v0\.5\.3|v0\.5\.3 records a signed tag/);
   console.log('release state ok: candidate version cannot become a published-release claim');
 } finally {
   rmSync(temp, { recursive: true, force: true });
