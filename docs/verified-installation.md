@@ -4,11 +4,11 @@ The recommended README command has three independently reviewable stages. It doe
 merely because they came from the same TLS origin as a checksum file.
 
 1. The README fixes `bootstrap-install.sh` to commit
-   `0a325dfa31f432267820edb0af9f905f85caaad2` and verifies SHA-256
-   `43d2f7d9290f43a82f9b3460fa0a41be4d2822fd56e20087c8f7d842bd02a695` before `sh` runs it.
+   `e98779a4c52a2be38e3dfe490d0ef321eb8e80f6` and verifies SHA-256
+   `fb54e65ca2269c941fd2a13a9bce20ecb67de2789fb318527fbb86a5b3949085` before `sh` runs it.
 2. The bootstrap fixes `install-verified.mjs` to commit
-   `fe2568d354620da45d55581a851eb6215445de6d` and verifies SHA-256
-   `fe5e8d00e4d5b88c7648790bf91e6f6c50909781255a292d3dae09994376ecb6` before Node runs it.
+   `e56a3f64de98152aa945f5a45b58f13e3cdc0bc3` and verifies SHA-256
+   `263b3fa92b07cfffef0dc1e0e4f753019bea707c95c20fcd434ce9ceba102156` before Node runs it.
 3. The verifier selects one explicit version from its built-in trust map. It requires fixed SHA-256
    values for the archive, release manifest, SPDX SBOM and `SHA256SUMS`, then cross-checks repository,
    product, tag, source commit, version, asset sets, archive root and paths before invoking the
@@ -24,9 +24,9 @@ installation. SHA-256 and manifest verification always run and cannot be disable
 After downloading and verifying the bootstrap using the README command, retain it at a known path:
 
 ```bash
-sh ./bootstrap-install.sh --version 0.5.1 --target codex
-sh ./bootstrap-install.sh --version 0.5.1 --target claude
-sh ./bootstrap-install.sh --version 0.5.1 --target cli
+sh ./bootstrap-install.sh --version 0.5.2 --target codex
+sh ./bootstrap-install.sh --version 0.5.2 --target claude
+sh ./bootstrap-install.sh --version 0.5.2 --target cli
 ```
 
 The verifier rejects a version absent from its built-in trust map. It never resolves `latest`, a
@@ -38,17 +38,17 @@ Download these files on a connected machine and transfer them without renaming:
 
 ```text
 SHA256SUMS
-web-app-security-skill-0.5.1.release.json
-web-app-security-skill-0.5.1.spdx.json
-web-app-security-skill-0.5.1.tar.gz
+web-app-security-skill-0.5.2.release.json
+web-app-security-skill-0.5.2.spdx.json
+web-app-security-skill-0.5.2.tar.gz
 ```
 
 Also download `scripts/install-verified.mjs` from commit
-`fe2568d354620da45d55581a851eb6215445de6d` and verify its SHA-256 against the value above. On the
+`e56a3f64de98152aa945f5a45b58f13e3cdc0bc3` and verify its SHA-256 against the value above. On the
 offline machine, run:
 
 ```bash
-node ./install-verified.mjs --version 0.5.1 --from-dir ./release-assets --attestation skip
+node ./install-verified.mjs --version 0.5.2 --from-dir ./release-assets --attestation skip
 ```
 
 The offline path performs no HTTP request. `--attestation skip` records that the optional GitHub
@@ -58,8 +58,8 @@ verification.
 ## Upgrade, force and uninstall
 
 ```bash
-sh ./bootstrap-install.sh --version 0.5.1 --mode upgrade
-sh ./bootstrap-install.sh --version 0.5.1 --force
+sh ./bootstrap-install.sh --version 0.5.2 --mode upgrade
+sh ./bootstrap-install.sh --version 0.5.2 --force
 webapp-security uninstall
 ```
 

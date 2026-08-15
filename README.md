@@ -61,8 +61,8 @@ The detection and explanation boundary remains the v0.5.0 contract:
 
 Exact support and limits are in the [compatibility matrix](docs/compatibility.md), [stable rule
 corpus](docs/stable-rule-corpus.json) and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md).
-Until v0.5.2 public assets pass release verification, the verified installer below continues to
-default to published v0.5.1 and retains explicit trusted paths for v0.3.0, v0.4.0 and v0.5.0.
+The verified installer below defaults to published v0.5.2 and retains explicit trusted paths for
+v0.3.0, v0.4.0, v0.5.0 and v0.5.1.
 
 ## See the result
 
@@ -97,7 +97,7 @@ before execution, then verifies the selected release manifest, checksums, SBOM, 
 archive before installation.
 
 ```bash
-( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/0a325dfa31f432267820edb0af9f905f85caaad2/scripts/bootstrap-install.sh?immutable=0a325dfa31f432267820edb0af9f905f85caaad2'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" '43d2f7d9290f43a82f9b3460fa0a41be4d2822fd56e20087c8f7d842bd02a695'; sh "$p" )
+( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/e98779a4c52a2be38e3dfe490d0ef321eb8e80f6/scripts/bootstrap-install.sh?immutable=e98779a4c52a2be38e3dfe490d0ef321eb8e80f6'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" 'fb54e65ca2269c941fd2a13a9bce20ecb67de2789fb318527fbb86a5b3949085'; sh "$p" )
 ```
 
 Select a surface when needed:
@@ -288,7 +288,7 @@ requires deployment authorization acknowledgement:
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/web-app-security-skill@a9b9575e7a31b118930d49eea05e043a513a5aa3
+  uses: parousia8888/web-app-security-skill@010ef34c2e87b12b7f1e2502c0260074d131dd01
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -296,20 +296,20 @@ requires deployment authorization acknowledgement:
     fail-on: high
 ```
 
-For repeatable CI, use the immutable v0.5.1 commit above. The signed stable major-version alias now
-resolves to the same v0.5.1 source after its public passive and authorization consumer passed:
+For repeatable CI, use the immutable v0.5.2 commit above. The signed stable major-version alias is
+promoted only after its public passive and authorization consumer passes:
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-Source mode defaults to the bundled adapter. The immutable v0.5.1 Action runs the v3 source
-contract, the stable v0.5.0 rule corpus and the v0.5.1 compatibility fixes. External binaries must be
+Source mode defaults to the bundled adapter. The immutable v0.5.2 Action runs the v3 source
+contract, the stable v0.5.0 rule corpus and the v0.5.1/v0.5.2 correctness fixes. External binaries must be
 installed and pinned by the caller; the Action never downloads them:
 
 ```yaml
 - name: Audit source
-  uses: parousia8888/web-app-security-skill@a9b9575e7a31b118930d49eea05e043a513a5aa3
+  uses: parousia8888/web-app-security-skill@010ef34c2e87b12b7f1e2502c0260074d131dd01
   with:
     mode: source
     project: .
@@ -340,7 +340,7 @@ Verify downloaded release assets:
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
-git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.1
+git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.2
 ```
 
 ## 5 ordinary project journeys

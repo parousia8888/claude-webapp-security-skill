@@ -60,9 +60,8 @@ v0.5.2 是基于 v0.5.1 证据与源码检测边界的正确性补丁：
   漏洞，也不构成 precision/recall 指标。
 
 准确支持范围见[兼容矩阵](docs/compatibility.md)、[稳定规则语料](docs/stable-rule-corpus.json)和
-[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。在 v0.5.2 公开资产通过发布验证前，
-下面的可信安装器继续默认选择已发布的 v0.5.1，并保留可显式安装的 v0.3.0、v0.4.0 与 v0.5.0
-信任路径。
+[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。下面的可信安装器默认选择已发布的
+v0.5.2，并保留可显式安装的 v0.3.0、v0.4.0、v0.5.0 与 v0.5.1 信任路径。
 
 ## 查看结果
 
@@ -94,7 +93,7 @@ bootstrap 并在执行前验证 SHA-256，然后验证选定 release 的 manifes
 归档，再进入安装。
 
 ```bash
-( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/0a325dfa31f432267820edb0af9f905f85caaad2/scripts/bootstrap-install.sh?immutable=0a325dfa31f432267820edb0af9f905f85caaad2'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" '43d2f7d9290f43a82f9b3460fa0a41be4d2822fd56e20087c8f7d842bd02a695'; sh "$p" )
+( set -eu; p="$(mktemp "${TMPDIR:-/tmp}/web-app-security-bootstrap.XXXXXX")"; trap 'rm -f "$p"' EXIT HUP INT TERM; curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --output "$p" 'https://raw.githubusercontent.com/parousia8888/web-app-security-skill/e98779a4c52a2be38e3dfe490d0ef321eb8e80f6/scripts/bootstrap-install.sh?immutable=e98779a4c52a2be38e3dfe490d0ef321eb8e80f6'; node -e 'const c=require("node:crypto"),f=require("node:fs"),p=process.argv[1],e=process.argv[2],a=c.createHash("sha256").update(f.readFileSync(p)).digest("hex");if(a!==e){console.error(`bootstrap SHA-256 mismatch: ${a}`);process.exit(1)}' "$p" 'fb54e65ca2269c941fd2a13a9bce20ecb67de2789fb318527fbb86a5b3949085'; sh "$p" )
 ```
 
 也可以只装单一入口：
@@ -263,7 +262,7 @@ Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被�
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/web-app-security-skill@a9b9575e7a31b118930d49eea05e043a513a5aa3
+  uses: parousia8888/web-app-security-skill@010ef34c2e87b12b7f1e2502c0260074d131dd01
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -271,19 +270,19 @@ Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被�
     fail-on: high
 ```
 
-需要可重复 CI 时使用上面的 v0.5.1 不可变 commit。签名的稳定大版本别名现已指向同一份
-v0.5.1 源码，并通过公开 consumer 的被动边界与授权拒绝验证：
+需要可重复 CI 时使用上面的 v0.5.2 不可变 commit。签名的稳定大版本别名只会在公开 consumer
+通过被动边界与授权拒绝验证后提升：
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-Source mode 默认只用内置 adapter。v0.5.1 不可变 Action 运行 v3 源码合同、stable v0.5.0
-规则语料与 v0.5.1 兼容性修复。外部二进制必须由调用方固定版本并安装，Action 不会下载：
+Source mode 默认只用内置 adapter。v0.5.2 不可变 Action 运行 v3 源码合同、stable v0.5.0
+规则语料与 v0.5.1/v0.5.2 正确性修复。外部二进制必须由调用方固定版本并安装，Action 不会下载：
 
 ```yaml
 - name: Audit source
-  uses: parousia8888/web-app-security-skill@a9b9575e7a31b118930d49eea05e043a513a5aa3
+  uses: parousia8888/web-app-security-skill@010ef34c2e87b12b7f1e2502c0260074d131dd01
   with:
     mode: source
     project: .
@@ -310,7 +309,7 @@ Source mode 默认只用内置 adapter。v0.5.1 不可变 Action 运行 v3 源�
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
-git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.1
+git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.2
 ```
 
 ## 5 个普通项目旅程
