@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-08-16
+
+### Fixed
+- Risk-domain summaries in v3 Markdown and HTML reports now render state totals and severity
+  breakdowns instead of JavaScript object coercions such as `[object Object]`; zero-count states are
+  omitted.
+- Node package manifests covered by a root `pnpm-lock.yaml` are no longer reported as confirmed
+  missing-lockfile findings when `pnpm-workspace.yaml` includes them. Exclusion patterns are
+  honored, and unreadable or unsupported workspace metadata fails closed as incomplete evidence.
+- Nested JavaScript/TypeScript template literals, including SSR HTML and TSX brace expressions, no
+  longer make the containing file partial. Executable expressions inside templates remain scanned.
+- A uniquely identifiable finding moved to another path is now retested as `unchanged` with
+  `condition_moved`, rather than producing a false `fixed` plus `new` pair. Ambiguous duplicate
+  matches are deliberately left unmatched.
+
+### Security boundary
+- The stable 30-rule corpus, finding/report schemas, evidence-state definitions, passive network
+  defaults and review-only repair behavior are unchanged from v0.5.1.
+
 ## [0.5.1] — 2026-08-14
 
 ### Fixed

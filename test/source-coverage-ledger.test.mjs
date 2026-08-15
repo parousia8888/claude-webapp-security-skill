@@ -110,6 +110,30 @@ try {
   assert.ok(result.report.coverage.find((entry) => entry.ruleId === 'node-inspector-public-bind')
     .reasons.some((reason) => reason.code === 'manifest_parse_error'));
 
+  const pnpmWorkspace = join(temp, 'pnpm-workspace');
+  write(join(pnpmWorkspace, 'package.json'), '{"private":true}\n');
+  write(join(pnpmWorkspace, 'pnpm-lock.yaml'), 'lockfileVersion: 9\n');
+  write(join(pnpmWorkspace, 'pnpm-workspace.yaml'), "packages:\n  - 'apps/*'\n  - '!apps/legacy'\n");
+  write(join(pnpmWorkspace, 'apps', 'api', 'package.json'), '{"private":true}\n');
+  write(join(pnpmWorkspace, 'apps', 'legacy', 'package.json'), '{"private":true}\n');
+  const pnpmAudit = auditSource(pnpmWorkspace);
+  assert.deepEqual(pnpmAudit.findings.filter((finding) =>
+    finding.ruleId === 'dependency-lockfile-missing').map((finding) => finding.location.path),
+  ['apps/legacy/package.json']);
+
+  const malformedPnpm = join(temp, 'malformed-pnpm-workspace');
+  write(join(malformedPnpm, 'package.json'), '{"private":true}\n');
+  write(join(malformedPnpm, 'pnpm-lock.yaml'), 'lockfileVersion: 9\n');
+  write(join(malformedPnpm, 'pnpm-workspace.yaml'), 'packages: [apps/*\n');
+  write(join(malformedPnpm, 'apps', 'api', 'package.json'), '{"private":true}\n');
+  const malformedPnpmAudit = auditSource(malformedPnpm);
+  assert.equal(malformedPnpmAudit.findings.some((finding) =>
+    finding.ruleId === 'dependency-lockfile-missing' && finding.location?.path === 'apps/api/package.json'), false);
+  assert.ok(malformedPnpmAudit.coverage['dependency-lockfile-missing'].reasons.some((reason) =>
+    reason.code === 'pnpm_workspace_parse_error'));
+  assert.ok(malformedPnpmAudit.findings.some((finding) =>
+    finding.ruleId === 'source-evidence-incomplete' && finding.state === 'unknown'));
+
   const oversize = join(temp, 'oversize');
   supported(oversize);
   write(join(oversize, 'next.config.mjs'), `export default { sourcemap: true };\n${'x'.repeat(2048)}`);

@@ -157,27 +157,109 @@ function workspacePatterns(manifest) {
   return [];
 }
 
+function yamlContentBeforeComment(value) {
+  let quote = null;
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (quote === '"' && character === '\\') {
+      index += 1;
+      continue;
+    }
+    if (quote && character === quote) quote = null;
+    else if (!quote && (character === "'" || character === '"')) quote = character;
+    else if (!quote && character === '#') return value.slice(0, index);
+  }
+  if (quote) throw new Error('unterminated quoted scalar');
+  return value;
+}
+
+function pnpmWorkspaceScalar(value) {
+  const clean = yamlContentBeforeComment(value).trim();
+  if (!clean) throw new Error('empty workspace pattern');
+  if (clean.startsWith("'")) {
+    if (!clean.endsWith("'") || clean.length < 2) throw new Error('invalid single-quoted pattern');
+    return clean.slice(1, -1).replace(/''/g, "'");
+  }
+  if (clean.startsWith('"')) {
+    const parsed = JSON.parse(clean);
+    if (typeof parsed !== 'string') throw new Error('workspace pattern must be a string');
+    return parsed;
+  }
+  if (/^[\[\]{}>,|&*@`]/.test(clean) || /:\s/.test(clean)) {
+    throw new Error('unsupported workspace pattern syntax');
+  }
+  return clean;
+}
+
+function parsePnpmWorkspacePatterns(text) {
+  const lines = text.split(/\r?\n/);
+  let packagesIndent = null;
+  const patterns = [];
+  for (const rawLine of lines) {
+    if (/^\s*#/.test(rawLine) || !rawLine.trim()) continue;
+    if (/^ *\t/.test(rawLine)) throw new Error('tab indentation is unsupported');
+    const indentation = /^ */.exec(rawLine)[0].length;
+    if (packagesIndent === null) {
+      if (indentation !== 0) continue;
+      const match = /^packages\s*:\s*(.*)$/.exec(rawLine);
+      if (!match) continue;
+      packagesIndent = indentation;
+      const inlineValue = yamlContentBeforeComment(match[1]).trim();
+      if (inlineValue) {
+        if (inlineValue === '[]') return [];
+        const inline = JSON.parse(inlineValue);
+        if (!Array.isArray(inline) || inline.some((value) => typeof value !== 'string')) {
+          throw new Error('packages must be a string list');
+        }
+        return inline;
+      }
+      continue;
+    }
+    const content = yamlContentBeforeComment(rawLine.slice(indentation)).trim();
+    if (!content) continue;
+    if (indentation < packagesIndent || (indentation === packagesIndent && !content.startsWith('-'))) break;
+    const match = /^-\s+(.+)$/.exec(content);
+    if (!match) throw new Error('packages must contain only string list items');
+    patterns.push(pnpmWorkspaceScalar(match[1]));
+  }
+  return patterns;
+}
+
 function globMatchesPath(pattern, path) {
-  if (typeof pattern !== 'string' || pattern.startsWith('!')) return false;
-  const escaped = pattern.replace(/\\/g, '/').replace(/^\.\//, '').replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  if (typeof pattern !== 'string') return false;
+  const escaped = pattern.replace(/^!/, '').replace(/\\/g, '/').replace(/^\.\//, '').replace(/[.+^${}()|[\]\\]/g, '\\$&');
   const expression = escaped.replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*');
   return new RegExp(`^${expression}/?$`).test(path);
 }
 
-function coveredByWorkspace(manifest, parsedPackages, lockRoots) {
+function workspaceIncludes(patterns, path) {
+  return patterns.some((pattern) => !pattern.startsWith('!') && globMatchesPath(pattern, path))
+    && !patterns.some((pattern) => pattern.startsWith('!') && globMatchesPath(pattern, path));
+}
+
+function coveredByWorkspace(manifest, parsedPackages, pnpmWorkspaces, lockRoots) {
   const manifestRoot = posix(dirname(manifest.path));
-  if (manifestRoot === '.' || lockRoots.has(manifestRoot)) return lockRoots.has(manifestRoot);
+  if (manifestRoot === '.' || lockRoots.has(manifestRoot)) {
+    return { covered: lockRoots.has(manifestRoot), uncertainty: null };
+  }
   const segments = manifestRoot.split('/');
+  let uncertainty = null;
   for (let depth = segments.length - 1; depth >= 0; depth -= 1) {
     const ancestor = depth ? segments.slice(0, depth).join('/') : '.';
     if (!lockRoots.has(ancestor)) continue;
     const ancestorManifestPath = ancestor === '.' ? 'package.json' : `${ancestor}/package.json`;
     const parsed = parsedPackages.get(ancestorManifestPath);
-    if (!parsed) continue;
     const relativeRoot = ancestor === '.' ? manifestRoot : manifestRoot.slice(ancestor.length + 1);
-    if (workspacePatterns(parsed).some((pattern) => globMatchesPath(pattern, relativeRoot))) return true;
+    if (parsed && workspaceIncludes(workspacePatterns(parsed), relativeRoot)) {
+      return { covered: true, uncertainty: null };
+    }
+    const pnpm = pnpmWorkspaces.get(ancestor);
+    if (pnpm?.outcome === 'scanned' && workspaceIncludes(pnpm.patterns, relativeRoot)) {
+      return { covered: true, uncertainty: null };
+    }
+    if (pnpm && pnpm.outcome !== 'scanned') uncertainty ||= pnpm;
   }
-  return false;
+  return { covered: false, uncertainty };
 }
 
 export function auditSource(projectRoot, limits = DEFAULT_SOURCE_TRAVERSAL_LIMITS) {
@@ -226,6 +308,25 @@ export function auditSource(projectRoot, limits = DEFAULT_SOURCE_TRAVERSAL_LIMIT
   }
   const parsedPackages = new Map([...packageResults.entries()]
     .filter(([, result]) => result.outcome === 'scanned').map(([path, result]) => [path, result.parsed]));
+  const pnpmWorkspaces = new Map();
+  for (const file of files.filter((item) => item.name === 'pnpm-workspace.yaml')) {
+    const workspaceRoot = posix(dirname(file.path));
+    const loaded = load(file);
+    if (loaded.outcome !== 'scanned') {
+      pnpmWorkspaces.set(workspaceRoot, { ...loaded, path: file.path });
+      continue;
+    }
+    try {
+      pnpmWorkspaces.set(workspaceRoot, {
+        outcome: 'scanned', code: null, path: file.path,
+        patterns: parsePnpmWorkspacePatterns(loaded.text),
+      });
+    } catch {
+      pnpmWorkspaces.set(workspaceRoot, {
+        outcome: 'errors', code: 'pnpm_workspace_parse_error', path: file.path,
+      });
+    }
+  }
 
   for (const file of files) {
     const classification = classifyJsTsSource(file.path);
@@ -287,16 +388,23 @@ export function auditSource(projectRoot, limits = DEFAULT_SOURCE_TRAVERSAL_LIMIT
     const result = manifest.name === 'package.json'
       ? packageResults.get(manifest.path)
       : { outcome: 'scanned', code: null };
-    account(trackers['dependency-lockfile-missing'], result.outcome, result.code, manifest.path);
     if (result.outcome !== 'scanned') {
+      account(trackers['dependency-lockfile-missing'], result.outcome, result.code, manifest.path);
       noteIntegrity(result.outcome, result.code, manifest.path);
       continue;
     }
     const manifestRoot = posix(dirname(manifest.path));
-    const hasLockfile = manifest.name === 'package.json'
-      ? coveredByWorkspace(manifest, parsedPackages, lockRoots)
-      : lockRoots.has(manifestRoot);
-    if (!hasLockfile) {
+    const workspace = manifest.name === 'package.json'
+      ? coveredByWorkspace(manifest, parsedPackages, pnpmWorkspaces, lockRoots)
+      : { covered: lockRoots.has(manifestRoot), uncertainty: null };
+    if (workspace.uncertainty) {
+      account(trackers['dependency-lockfile-missing'], workspace.uncertainty.outcome,
+        workspace.uncertainty.code, manifest.path);
+      noteIntegrity(workspace.uncertainty.outcome, workspace.uncertainty.code, workspace.uncertainty.path);
+      continue;
+    }
+    account(trackers['dependency-lockfile-missing'], 'scanned', null, manifest.path);
+    if (!workspace.covered) {
       findings.push(createFinding({
         ruleId: 'dependency-lockfile-missing',
         title: 'Dependency manifest has no adjacent lockfile',

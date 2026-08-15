@@ -62,6 +62,44 @@ function findingFingerprint({ rule, location, evidence }) {
   });
 }
 
+function movementFingerprint(finding) {
+  if (!finding.location?.path || typeof finding.evidence?.construct !== 'string') return null;
+  const { subject: _subject, line: _line, ...pathIndependentEvidence } = finding.evidence;
+  return digestValue({
+    version: 1,
+    ruleId: finding.rule.id,
+    ruleRevision: finding.rule.revision,
+    adapterId: finding.adapter.id,
+    evidence: stableValue(pathIndependentEvidence),
+  });
+}
+
+function uniqueMovementMatches(currentFindings, previousFindings) {
+  const previousFingerprints = new Set(previousFindings.map((finding) => finding.fingerprint));
+  const currentFingerprints = new Set(currentFindings.map((finding) => finding.fingerprint));
+  const group = (findings, excluded) => {
+    const groups = new Map();
+    for (const finding of findings) {
+      if (excluded.has(finding.fingerprint)) continue;
+      const key = movementFingerprint(finding);
+      if (!key) continue;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(finding);
+    }
+    return groups;
+  };
+  const currentGroups = group(currentFindings, previousFingerprints);
+  const previousGroups = group(previousFindings, currentFingerprints);
+  const matches = new Map();
+  for (const [key, current] of currentGroups) {
+    const previous = previousGroups.get(key);
+    if (current.length === 1 && previous?.length === 1) {
+      matches.set(current[0].fingerprint, previous[0]);
+    }
+  }
+  return matches;
+}
+
 function emptyBaseline(state = 'new', coverage = null) {
   return {
     state,
@@ -143,7 +181,8 @@ function baselineFor(state, previous, coverage, reasonCode) {
     compatibility: 'compatible',
     currentCheck: 'completed',
     coverageRef: coverage.id,
-    reasonCode: state === 'regressed' ? 'condition_reappeared_after_fixed' : 'same_condition_still_present',
+    reasonCode: reasonCode
+      || (state === 'regressed' ? 'condition_reappeared_after_fixed' : 'same_condition_still_present'),
   };
   if (state === 'fixed') return {
     state,
@@ -175,11 +214,14 @@ export function compareFindingsV2(currentFindings, currentCoverage, baselineRepo
   const coverage = coverageMap(currentCoverage);
   const previousByFingerprint = new Map(baselineReport.findings.map((finding) => [finding.fingerprint, finding]));
   const previousCoverage = coverageMap(baselineReport.coverage);
-  const currentFingerprints = new Set(currentFindings.map((finding) => finding.fingerprint));
+  const movedPrevious = uniqueMovementMatches(currentFindings, baselineReport.findings);
+  const matchedPreviousFingerprints = new Set();
   const compared = currentFindings.map((finding) => {
     const check = coverage.get(finding.rule.id);
     const oldCheck = previousCoverage.get(finding.rule.id);
-    const previous = previousByFingerprint.get(finding.fingerprint);
+    const exactPrevious = previousByFingerprint.get(finding.fingerprint);
+    const previous = exactPrevious || movedPrevious.get(finding.fingerprint);
+    if (previous) matchedPreviousFingerprints.add(previous.fingerprint);
     const currentAdapter = currentRuleset.adapters.find((item) => item.id === check?.adapterId);
     const previousAdapter = baselineReport.ruleset.adapters.find((item) => item.id === oldCheck?.adapterId);
     if (!oldCheck) return { ...clone(finding), baseline: baselineFor('new', null, check) };
@@ -196,11 +238,12 @@ export function compareFindingsV2(currentFindings, currentCoverage, baselineRepo
     }
     if (!previous) return { ...clone(finding), baseline: baselineFor('new', null, check) };
     const state = previous.baseline?.state === 'fixed' ? 'regressed' : 'unchanged';
-    return { ...clone(finding), baseline: baselineFor(state, previous, check) };
+    const reasonCode = !exactPrevious && state === 'unchanged' ? 'condition_moved' : null;
+    return { ...clone(finding), baseline: baselineFor(state, previous, check, reasonCode) };
   });
 
   for (const previous of baselineReport.findings) {
-    if (currentFingerprints.has(previous.fingerprint)) continue;
+    if (matchedPreviousFingerprints.has(previous.fingerprint)) continue;
     const check = coverage.get(previous.rule.id);
     const oldCheck = previousCoverage.get(previous.rule.id);
     const currentAdapter = currentRuleset.adapters.find((item) => item.id === check?.adapterId);

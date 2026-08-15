@@ -52,6 +52,7 @@ export function tokenizeJsTs(text, { jsx = false } = {}) {
   const tokens = [];
   let index = 0;
   let line = 1;
+  const templateStack = [];
   let jsxMode = 'code';
   let pendingJsxClosing = false;
   let pendingJsxReturnMode = 'code';
@@ -61,6 +62,30 @@ export function tokenizeJsTs(text, { jsx = false } = {}) {
   const push = (type, value, start, startLine) => tokens.push({ type, value, start, line: startLine });
   while (index < text.length) {
     const character = text[index];
+    const template = templateStack.at(-1);
+    if (template && !template.inExpression) {
+      if (character === '\\') {
+        if (text[index + 1] === '\n') line += 1;
+        index += Math.min(2, text.length - index);
+        continue;
+      }
+      if (character === '`') {
+        templateStack.pop();
+        index += 1;
+        continue;
+      }
+      if (character === '$' && text[index + 1] === '{') {
+        template.inExpression = true;
+        template.expressionDepth = 1;
+        push('punct', '{', index + 1, line);
+        if (jsx && jsxExpressionDepth > 0) jsxExpressionDepth += 1;
+        index += 2;
+        continue;
+      }
+      if (character === '\n') line += 1;
+      index += 1;
+      continue;
+    }
     if (jsx && jsxMode === 'text') {
       if (character === '<' && jsxTagMayStart(text, index, tokens.at(-1), true)) {
         push('punct', '<', index, line);
@@ -125,8 +150,13 @@ export function tokenizeJsTs(text, { jsx = false } = {}) {
       if (!closed) return { tokens, error: { code: 'unterminated_block_comment', line: startLine } };
       continue;
     }
-    if ((character === "'" || character === '"' || character === '`')
-        && (character === '`' || regexMayStart(tokens.at(-1)))) {
+    if (character === '`') {
+      push('template', '<template-literal>', index, line);
+      templateStack.push({ startLine: line, inExpression: false, expressionDepth: 0 });
+      index += 1;
+      continue;
+    }
+    if ((character === "'" || character === '"') && regexMayStart(tokens.at(-1))) {
       const quote = character;
       const start = index;
       const startLine = line;
@@ -154,7 +184,7 @@ export function tokenizeJsTs(text, { jsx = false } = {}) {
         index += 1;
       }
       if (!closed) return { tokens, error: { code: 'unterminated_string_literal', line: startLine } };
-      push(quote === '`' ? 'template' : 'string', value, start, startLine);
+      push('string', value, start, startLine);
       continue;
     }
     if (character === '/' && regexMayStart(tokens.at(-1))) {
@@ -203,6 +233,14 @@ export function tokenizeJsTs(text, { jsx = false } = {}) {
     const value = operator || character;
     push('punct', value, index, line);
     index += value.length;
+    const activeTemplate = templateStack.at(-1);
+    if (activeTemplate?.inExpression) {
+      if (value === '{') activeTemplate.expressionDepth += 1;
+      if (value === '}') {
+        activeTemplate.expressionDepth -= 1;
+        if (activeTemplate.expressionDepth === 0) activeTemplate.inExpression = false;
+      }
+    }
     if (jsx && jsxMode === 'tag' && value === '>') {
       if (pendingJsxClosing) {
         const element = jsxElements.pop();
@@ -223,6 +261,9 @@ export function tokenizeJsTs(text, { jsx = false } = {}) {
         if (jsxExpressionDepth === 0) jsxMode = jsxExpressionReturnMode;
       }
     }
+  }
+  if (templateStack.length) {
+    return { tokens, error: { code: 'unterminated_string_literal', line: templateStack.at(-1).startLine } };
   }
   return { tokens, error: null };
 }

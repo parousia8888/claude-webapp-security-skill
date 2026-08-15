@@ -174,8 +174,13 @@ function listLines(values, fallback = 'None recorded.') {
 function domainSummaryLines(report) {
   return Object.entries(report.summary.byDomain).flatMap(([domain, summary]) => {
     if (!summary.total) return [];
-    const states = Object.entries(summary.byState).filter(([, count]) => count)
-      .map(([state, count]) => `${state}=${count}`).join(', ');
+    const states = Object.entries(summary.byState).flatMap(([state, stateSummary]) => {
+      if (!stateSummary.total) return [];
+      const severities = Object.entries(stateSummary.bySeverity)
+        .filter(([, count]) => count)
+        .map(([severity, count]) => `${severity}=${count}`).join(', ');
+      return `${state}=${stateSummary.total}${severities ? ` (${severities})` : ''}`;
+    }).join('; ');
     return [`${domain}: total=${summary.total}${states ? `; ${states}` : ''}`];
   });
 }

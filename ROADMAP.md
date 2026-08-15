@@ -66,6 +66,15 @@ fixture isolates inherited certificate-file state. The signed release, verified 
 guarded signed `v1` promotion are published; the public Action consumer passed. Exact evidence is in
 the [v0.5.1 patch plan](docs/V0.5.1_PATCH_PLAN.md).
 
+## v0.5.2 correctness patch
+
+v0.5.2 repairs four independently reproduced correctness gaps without changing the stable rule
+count or evidence-state definitions: v3 state summaries render structured counts, pnpm workspace
+packages inherit an applicable root lockfile, nested JS/TS templates retain file coverage, and a
+unique path-only move no longer makes a condition look fixed. Ambiguous movement remains
+unreconciled, and unavailable workspace or tokenizer evidence continues to fail closed. Exact
+release progress and evidence are in the [v0.5.2 patch plan](docs/V0.5.2_PATCH_PLAN.md).
+
 ## Correctness backlog
 
 Included in the published v0.4.0 release:

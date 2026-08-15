@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="#查看结果">Demo</a> ·
-  <a href="#v051-新增内容">v0.5.1</a> ·
+  <a href="#v052-新增内容">v0.5.2</a> ·
   <a href="#安装">安装</a> ·
   <a href="#执行第一个项目">首个项目</a> ·
   <a href="docs/tutorial.zh-CN.md">完整教程</a> ·
@@ -33,16 +33,19 @@
 
 <p align="center"><a href="docs/demo-evidence.md">查看该演示对应的生成报告与补丁证据。</a></p>
 
-## v0.5.1 新增内容
+## v0.5.2 新增内容
 
-v0.5.1 是基于 v0.5.0“更多源码检测 + 看得懂的修复提案”能力边界的兼容性补丁：
+v0.5.2 是基于 v0.5.1 证据与源码检测边界的正确性补丁：
 
-- **源码覆盖更可靠：**`skills/*.yaml` 这类 JSX 子文本不会再被当成块注释；常见且能通过
-  CPython 编译的 raw 正则字符串也不会再让整个文件的语言规则降级为 partial。
-- **复核证据可重复验证：**五项目复核把作者原始报告的字节 SHA-256 与稳定语义摘要分开，
-  第三方无需复现随机 ephemeral subject 也能校验规则集、finding 身份与状态。
-- **TLS fixture 更隔离：**本地证书测试在选择自有 fixture CA 前清理继承的
-  `SSL_CERT_FILE`。
+- **报告恢复可读：**v3 Markdown 和 HTML 的风险摘要会显示真实的状态总数与严重性分布，不再输出
+  `[object Object]`。
+- **pnpm workspace 证据正确：**被根目录 `pnpm-lock.yaml` 覆盖的包不会再被确认成缺少 lockfile；
+  include/exclude pattern 都会处理，无法解析的 workspace 元数据会变成证据不完整，而不是 clean 或
+  confirmed finding。
+- **SSR 与 TSX 覆盖更可靠：**嵌套模板字符串不会再中断整个文件的分析，同时 `${...}` 内的可执行
+  代码仍会进入规则检查。
+- **复测能识别改名：**能唯一对应的风险条件移动到其他文件后会保持
+  `unchanged / condition_moved`，只改文件名不能让风险看起来已经修复。
 
 检测和解释能力继续遵守 v0.5.0 合同：
 
@@ -57,8 +60,9 @@ v0.5.1 是基于 v0.5.0“更多源码检测 + 看得懂的修复提案”能力
   漏洞，也不构成 precision/recall 指标。
 
 准确支持范围见[兼容矩阵](docs/compatibility.md)、[稳定规则语料](docs/stable-rule-corpus.json)和
-[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。下面的可信安装器现已默认选择发布版
-v0.5.1，并保留可显式安装的 v0.3.0、v0.4.0 与 v0.5.0 信任路径。
+[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。在 v0.5.2 公开资产通过发布验证前，
+下面的可信安装器继续默认选择已发布的 v0.5.1，并保留可显式安装的 v0.3.0、v0.4.0 与 v0.5.0
+信任路径。
 
 ## 查看结果
 

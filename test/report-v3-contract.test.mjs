@@ -55,7 +55,8 @@ const cookieExplanation = {
 const cookie = createFindingV3({
   ruleset, adapterId: ADAPTER.id, rule: RULES[0], title: 'Session cookie may be readable by scripts',
   severity: 'high', state: 'suspected', summary: 'The fixture omits HttpOnly.',
-  location: { path: 'src/session.ts', line: 7 }, evidence: { subject: 'cookie-options', observed: '<script>' },
+  location: { path: 'src/session.ts', line: 7 },
+  evidence: { subject: 'src/session.ts:7:cookie_options', construct: 'cookie_options', observed: '<script>' },
   remediation: 'Enable HttpOnly after reviewing browser dependencies.', retest: 'Repeat the cookie check.',
   explanation: cookieExplanation,
 });
@@ -103,9 +104,18 @@ for (const output of [JSON.stringify(report), markdown, html, sarif, junit]) {
   }
 }
 assert.doesNotMatch(markdown, /"observed":"<script>"/, 'beginner Markdown omits raw evidence JSON');
+assert.match(markdown,
+  /security_exposure: total=1; suspected=1 \(high=1\)/,
+  'Markdown renders numeric v3 state and severity summaries');
+assert.match(markdown,
+  /evidence_integrity: total=1; unknown=1 \(high=1\)/,
+  'Markdown omits empty evidence states from each domain');
+assert.doesNotMatch(markdown, /\[object Object\]/);
 assert.match(technical, /Technical evidence/);
 assert.match(technical, /&lt;script&gt;|<script>/);
 assert.doesNotMatch(html, /<script>/, 'HTML escapes evidence and explanation content');
+assert.match(html, /security_exposure: total=1; suspected=1 \(high=1\)/);
+assert.doesNotMatch(html, /\[object Object\]/);
 assert.match(html, /What could happen/);
 assert.match(sarif, /Possible side effects/);
 assert.match(junit, /technicalTerm/);
@@ -127,6 +137,41 @@ const compared = compareFindingsV3([cookie], [ledger[0]], v2, ruleset,
   () => cookieExplanation);
 assert.equal(compared[0].baseline.state, 'unchanged');
 assert.equal(compared[0].schemaVersion, 3);
+const movedCookie = createFindingV3({
+  ruleset, adapterId: ADAPTER.id, rule: RULES[0], title: cookie.title, severity: cookie.severity,
+  state: cookie.state, summary: cookie.summary, location: { path: 'src/moved-session.ts', line: 11 },
+  evidence: { subject: 'src/moved-session.ts:11:cookie_options', construct: 'cookie_options', observed: '<script>' },
+  remediation: cookie.remediation, retest: cookie.retest, explanation: cookieExplanation,
+});
+const moved = compareFindingsV3([movedCookie], [ledger[0]], v2, ruleset,
+  () => cookieExplanation);
+assert.equal(moved.length, 1);
+assert.equal(moved[0].location.path, 'src/moved-session.ts');
+assert.equal(moved[0].baseline.state, 'unchanged');
+assert.equal(moved[0].baseline.reasonCode, 'condition_moved');
+assert.equal(moved[0].baseline.priorFingerprint, cookie.fingerprint);
+
+const secondV2Finding = createFindingV2({
+  ruleset, adapterId: ADAPTER.id, rule: RULES[0], title: cookie.title, severity: cookie.severity,
+  state: cookie.state, summary: cookie.summary, location: { path: 'src/second-session.ts', line: 9 },
+  evidence: { subject: 'src/second-session.ts:9:cookie_options', construct: 'cookie_options', observed: '<script>' },
+  remediation: cookie.remediation, retest: cookie.retest,
+});
+const ambiguousBaseline = createReportV2({
+  version: '0.4.0', generatedAt: '1970-01-01T00:00:00.000Z', mode: 'audit', subject,
+  ruleset, scope: { checkModes: ['fixture'], networkAccessPerformed: false }, coverage: ledger,
+  findings: initializeFindingsV2([v2Finding, secondV2Finding], ledger), limitations: ['v2 fixture.'],
+});
+const secondMovedCookie = createFindingV3({
+  ruleset, adapterId: ADAPTER.id, rule: RULES[0], title: cookie.title, severity: cookie.severity,
+  state: cookie.state, summary: cookie.summary, location: { path: 'src/second-moved-session.ts', line: 13 },
+  evidence: { subject: 'src/second-moved-session.ts:13:cookie_options', construct: 'cookie_options', observed: '<script>' },
+  remediation: cookie.remediation, retest: cookie.retest, explanation: cookieExplanation,
+});
+const ambiguous = compareFindingsV3([movedCookie, secondMovedCookie], ledger,
+  ambiguousBaseline, ruleset, () => cookieExplanation);
+assert.equal(ambiguous.filter((finding) => finding.baseline.state === 'new').length, 2);
+assert.equal(ambiguous.filter((finding) => finding.baseline.state === 'fixed').length, 2);
 assert.throws(() => assertComparableBaselineV3({ ...subject, id: 'project-fedcba9876543210' }, v2, rawV2), /does not match/);
 
 const temp = mkdtempSync(join(tmpdir(), 'web-app-security-v3-'));

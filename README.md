@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="#see-the-result">Demo</a> ·
-  <a href="#whats-new-in-v051">v0.5.1</a> ·
+  <a href="#whats-new-in-v052">v0.5.2</a> ·
   <a href="#install">Install</a> ·
   <a href="#run-the-first-project">First project</a> ·
   <a href="docs/tutorial.md">Tutorial</a> ·
@@ -31,18 +31,19 @@
 
 <p align="center"><a href="docs/demo-evidence.md">Read the generated reports and patch behind this demo.</a></p>
 
-## What's new in v0.5.1
+## What's new in v0.5.2
 
-v0.5.1 is a compatibility patch over the v0.5.0 source-detection and understandable-remediation
-release:
+v0.5.2 is a correctness patch over the v0.5.1 evidence and source-detection boundary:
 
-- **More reliable source coverage:** JSX child text such as `skills/*.yaml` stays text, and common
-  CPython-valid raw regular expressions no longer make a whole file's language rules partial.
-- **Reproducible review evidence:** the five-project review now separates the author's original
-  report byte SHA-256 from a stable semantic digest that third parties can verify without sharing a
-  random ephemeral subject.
-- **More isolated TLS fixtures:** local certificate tests clear inherited `SSL_CERT_FILE` state
-  before selecting their owned fixture CA.
+- **Readable reports again:** v3 Markdown and HTML risk summaries show real state totals and
+  severity breakdowns instead of `[object Object]`.
+- **Correct pnpm workspace evidence:** a package covered by the root `pnpm-lock.yaml` is not called a
+  confirmed missing-lockfile fact. Include/exclude patterns are honored; workspace metadata that
+  cannot be parsed becomes incomplete evidence, not a clean result or a confirmed finding.
+- **More reliable SSR and TSX coverage:** nested template literals no longer stop analysis of the
+  whole file, while executable code inside `${...}` remains scanned.
+- **Rename-aware retesting:** a uniquely matched condition moved to another file stays
+  `unchanged / condition_moved`; a file rename alone cannot make that condition look fixed.
 
 The detection and explanation boundary remains the v0.5.0 contract:
 
@@ -60,8 +61,8 @@ The detection and explanation boundary remains the v0.5.0 contract:
 
 Exact support and limits are in the [compatibility matrix](docs/compatibility.md), [stable rule
 corpus](docs/stable-rule-corpus.json) and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md).
-The verified installer below defaults to published v0.5.1 and retains explicit trusted paths for
-v0.3.0, v0.4.0 and v0.5.0.
+Until v0.5.2 public assets pass release verification, the verified installer below continues to
+default to published v0.5.1 and retains explicit trusted paths for v0.3.0, v0.4.0 and v0.5.0.
 
 ## See the result
 

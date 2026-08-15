@@ -62,6 +62,19 @@ const templateSecret = inspectJsTsSource('src/template.ts',
   'const jwtSecret = `prefix-${process.env.SECRET}`;\n');
 assert.equal(templateSecret.error, null);
 assert.deepEqual(templateSecret.findings, []);
+const nestedTemplate = inspectJsTsSource('src/ssr.ts',
+  'const html = `${`</b>`}</div>`;\n');
+assert.equal(nestedTemplate.error, null);
+assert.deepEqual(nestedTemplate.findings, []);
+const jsxTemplate = inspectJsTsSource('src/ssr.tsx',
+  'const Page = ({ value }) => <div>{`${`</b>`}${value}`}</div>;\n');
+assert.equal(jsxTemplate.error, null);
+assert.deepEqual(jsxTemplate.findings, []);
+const expressionFinding = inspectJsTsSource('src/template-expression.ts',
+  'const result = `${eval(userInput)}`;\n');
+assert.equal(expressionFinding.error, null);
+assert.deepEqual(expressionFinding.findings.map((finding) => finding.ruleId),
+  ['js-dynamic-code-execution']);
 const jsxText = inspectJsTsSource('src/page.tsx', `
   export function Page() {
     return <main>Don't treat a user's apostrophe, "quote", or skills/*.yaml glob as source code.</main>;
@@ -114,6 +127,7 @@ assert.deepEqual(classifyJsTsSource('src/component.test.tsx'),
 assert.deepEqual(classifyJsTsSource('README.md'),
   { eligible: false, reason: 'unsupported_js_ts_extension' });
 assert.equal(tokenizeJsTs('const x = "unterminated').error.code, 'unterminated_string_literal');
+assert.equal(tokenizeJsTs('const x = `unterminated').error.code, 'unterminated_string_literal');
 assert.equal(tokenizeJsTs('/* unterminated').error.code, 'unterminated_block_comment');
 
 const temp = mkdtempSync(join(tmpdir(), 'webapp-security-js-ts-'));
