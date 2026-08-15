@@ -296,8 +296,8 @@ requires deployment authorization acknowledgement:
     fail-on: high
 ```
 
-For repeatable CI, use the immutable v0.5.2 commit above. The signed stable major-version alias is
-promoted only after its public passive and authorization consumer passes:
+For repeatable CI, use the immutable v0.5.2 commit above. The signed stable major-version alias now
+resolves to the same v0.5.2 source after its public passive and authorization consumer passed:
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1

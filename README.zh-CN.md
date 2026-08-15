@@ -270,8 +270,8 @@ Composite Action 保持 v0.3 crawl 输入与输出兼容。Crawl mode 默认被�
     fail-on: high
 ```
 
-需要可重复 CI 时使用上面的 v0.5.2 不可变 commit。签名的稳定大版本别名只会在公开 consumer
-通过被动边界与授权拒绝验证后提升：
+需要可重复 CI 时使用上面的 v0.5.2 不可变 commit。签名的稳定大版本别名现已指向同一份
+v0.5.2 源码，并通过公开 consumer 的被动边界与授权拒绝验证：
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
