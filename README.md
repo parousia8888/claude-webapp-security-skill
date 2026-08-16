@@ -23,14 +23,51 @@
 
 <p align="center">
   For web product owners and builders using AI coding agents; no offensive-security background is
-  required. Start with the local result below, then install and run the first-project prompt.
+  required. Run a local source-only first pass from the root of a project you may inspect.
 </p>
+
+```bash
+npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+```
+
+`--fail-on never` lets the first report finish without turning a suspected lead into a failing CI
+claim. This command reads local project files, does not contact a deployment and does not edit code.
+For each actionable result, the report gives you:
+
+- the security term, a plain-language explanation and a realistic consequence;
+- what the evidence proves and what still needs human or runtime confirmation;
+- a reviewable change, likely product side effects, rollback conditions, and separate security and
+  normal-behavior retests.
 
 <p align="center">
   <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="Owned local source fixture: a suspected HIGH OS command injection lead is explained, changed from shell execution to argument-separated execution, then security and normal product behavior are retested"></a>
 </p>
 
 <p align="center"><a href="docs/demo-evidence.md">Read the generated reports and patch behind this demo.</a></p>
+
+## See the result
+
+Audit an intentionally unsafe local source file, inspect the explanation and proposed change, then
+run both the security retest and the fixture's normal behavior test. Nothing reaches the network
+and no project dependency is installed.
+
+| Input | Finding | Evidence | Reviewable change | Retest |
+|---|---|---|---|---|
+| `src/export-report.mjs` | OS command injection lead (CWE-78), HIGH | `suspected`; input flow and reachability are not proven | replace shell parsing with `execFile` and separate arguments; quoting/platform behavior may change | security `fixed`; functional `passed` |
+
+```bash
+git clone https://github.com/parousia8888/web-app-security-skill.git
+cd web-app-security-skill
+npm run demo -- --out ./demo-output
+```
+
+Read the [generated before / proposed change / retest evidence](docs/demo-evidence.md), then inspect
+`demo-output/demo-result.json`, `summary.md`, `before.json`, `hardening.patch`, `after.json`, and
+`functional-retest.txt`. Every public demo fact is derived from `demo-result.json`; the repository
+check reruns the fixture and fails if any surface disagrees.
+
+For the complete install-to-uninstall path, follow the tested
+[first project tutorial](docs/tutorial.md).
 
 ## What's new in v0.5.3
 
@@ -66,37 +103,17 @@ rules are deferred behind the [documented architecture gates](docs/architecture/
 The signed v0.5.3 GitHub assets and provenance, verified installer, public npm package and signed
 `v1` Action alias have passed their public checks. The installer below defaults to v0.5.3.
 
-## See the result
-
-Audit an intentionally unsafe local source file, inspect the explanation and proposed change, then
-run both the security retest and the fixture's normal behavior test. Nothing reaches the network
-and no project dependency is installed.
-
-| Input | Finding | Evidence | Reviewable change | Retest |
-|---|---|---|---|---|
-| `src/export-report.mjs` | OS command injection lead (CWE-78), HIGH | `suspected`; input flow and reachability are not proven | replace shell parsing with `execFile` and separate arguments; quoting/platform behavior may change | security `fixed`; functional `passed` |
-
-```bash
-git clone https://github.com/parousia8888/web-app-security-skill.git
-cd web-app-security-skill
-npm run demo -- --out ./demo-output
-```
-
-Read the [generated before / proposed change / retest evidence](docs/demo-evidence.md), then inspect
-`demo-output/demo-result.json`, `summary.md`, `before.json`, `hardening.patch`, `after.json`, and
-`functional-retest.txt`. Every public demo fact is derived from `demo-result.json`; the repository
-check reruns the fixture and fails if any surface disagrees.
-
-For the complete install-to-uninstall path, follow the tested
-[first project tutorial](docs/tutorial.md).
-
 ## Install
+
+### Zero-install CLI trial
 
 Try the CLI without keeping an installation:
 
 ```bash
 npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
 ```
+
+### Claude Code plugin
 
 Install the Claude Code plugin from this repository marketplace in one shell line:
 
@@ -110,6 +127,8 @@ Inside an existing Claude Code session, the equivalent commands are:
 /plugin marketplace add parousia8888/web-app-security-skill
 /plugin install web-app-security-skill@web-app-security
 ```
+
+### Verified multi-surface installation
 
 For a signature- and checksum-verified multi-surface installation, the command below installs the
 skill for Claude Code and Codex, plus the ordinary CLI under

@@ -110,7 +110,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G4 | Reusable English/Chinese publication and upstream case-study kit | completed | `2618447` + checks below |
 | G5 | Priority fail-closed correctness fixes and v0.5.3 release evidence | completed | v0.5.3 source `621e0bc` + stable state `9c6dc2b` |
 | G6 | Published-state, tutorial, support-matrix and ledger alignment | completed | `aecaadf` + CI evidence below |
-| G7 | First-screen npx path and ordinary-language result contract | pending | implementation pending |
+| G7 | First-screen npx path and ordinary-language result contract | in progress | focused checks passed; remote evidence pending |
 | G8 | Legible lightweight demo and accurate GitHub public packaging | pending | implementation pending |
 | G9 | Channel-specific generated copy and regression-accountability article | pending | implementation pending |
 | G10 | Five-to-ten-person target-user validation kit and stop rules | pending | real sessions remain external |
@@ -525,9 +525,15 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: pending.
-- Implementation: pending.
-- Tests: pending.
+- Status: in progress.
+- Implementation: both READMEs now put the complete explicit-version npx audit before the demo and
+  explain, in ordinary language, the problem, consequence, evidence boundary, proposed change,
+  likely product side effects, rollback and separate security/functional retests. Release notes now
+  follow the real demo, and the install section distinguishes zero-install, Claude plugin and the
+  higher-assurance verified multi-surface path. The public-surface checker locks this ordering and
+  explanation contract.
+- Tests: `node scripts/check-public-surfaces.mjs`, `node scripts/check-release-contract.mjs` and
+  `git diff --check` passed.
 - Commit / CI: pending.
 - Remaining risks: first-screen comprehension remains a design hypothesis until G10 sessions.
 

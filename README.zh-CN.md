@@ -23,16 +23,49 @@
 
 <p align="center">
   面向使用 AI coding agent 的 Web 产品作者与开发者，不要求具备攻防背景。先查看下方本地结果，
-  然后安装并执行首个项目提示词。
+  在你有权检查的项目根目录先执行一次本地源码检查。
 </p>
 
 > 把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。
+
+```bash
+npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+```
+
+`--fail-on never` 让第一次报告完整生成，不会把 suspected 线索直接当成 CI 失败。该命令只读取本地
+项目文件，不访问部署实例，也不修改代码。每条可处理结果都会告诉你：
+
+- 行业术语、白话解释，以及问题成立时可能造成的实际后果；
+- 当前证据证明了什么，还有什么需要人工或运行时确认；
+- 可审查的修改建议、可能影响的正常功能、回滚条件，以及分开的安全复测和功能复测。
 
 <p align="center">
   <a href="docs/demo-evidence.md"><img src="docs/assets/demo.gif" alt="自有本地源码 fixture：发现一条 suspected HIGH 命令注入线索，用专业术语和白话解释，提出取消 shell 解析的修改，再分别复测安全条件和正常产品行为"></a>
 </p>
 
 <p align="center"><a href="docs/demo-evidence.md">查看该演示对应的生成报告与补丁证据。</a></p>
+
+## 查看结果
+
+命令会检查一个故意留下不安全写法的本地源码文件，展示解释和修改提案，再分别执行安全复测与正常
+功能测试。全程不访问外网，也不安装项目依赖。
+
+| 输入 | Finding | 证据 | 可审查变更 | 复测 |
+|---|---|---|---|---|
+| `src/export-report.mjs` | OS command injection lead (CWE-78)，HIGH | `suspected`；未证明输入流和可达性 | 用 `execFile` 和分离参数取消 shell 解析；命令 quoting 与跨平台行为可能改变 | security `fixed`；functional `passed` |
+
+```bash
+git clone https://github.com/parousia8888/web-app-security-skill.git
+cd web-app-security-skill
+npm run demo -- --out ./demo-output
+```
+
+阅读[生成的加固前 / 变更建议 / 复测证据](docs/demo-evidence.md)，再检查
+`demo-output/demo-result.json`、`summary.md`、`before.json`、`hardening.patch`、`after.json` 与
+`functional-retest.txt`。所有公开 demo 事实都来自 `demo-result.json`；仓库门禁会重跑 fixture，
+并在任一公开面不一致时失败。
+
+完整的安装到卸载流程见经过测试的[第一个项目教程](docs/tutorial.zh-CN.md)。
 
 ## v0.5.3 新增内容
 
@@ -63,35 +96,17 @@ v0.5.0 的解释合同继续保留：每个 v3 源码 finding 同时给出行业
 provenance、可信安装器、公开 npm 包和签名 `v1` Action 别名都已通过各自的公网检查；下面的
 可信安装器默认安装 v0.5.3。
 
-## 查看结果
-
-命令会检查一个故意留下不安全写法的本地源码文件，展示解释和修改提案，再分别执行安全复测与正常
-功能测试。全程不访问外网，也不安装项目依赖。
-
-| 输入 | Finding | 证据 | 可审查变更 | 复测 |
-|---|---|---|---|---|
-| `src/export-report.mjs` | OS command injection lead (CWE-78)，HIGH | `suspected`；未证明输入流和可达性 | 用 `execFile` 和分离参数取消 shell 解析；命令 quoting 与跨平台行为可能改变 | security `fixed`；functional `passed` |
-
-```bash
-git clone https://github.com/parousia8888/web-app-security-skill.git
-cd web-app-security-skill
-npm run demo -- --out ./demo-output
-```
-
-阅读[生成的加固前 / 变更建议 / 复测证据](docs/demo-evidence.md)，再检查
-`demo-output/demo-result.json`、`summary.md`、`before.json`、`hardening.patch`、`after.json` 与
-`functional-retest.txt`。所有公开 demo 事实都来自 `demo-result.json`；仓库门禁会重跑 fixture，
-并在任一公开面不一致时失败。
-
-完整的安装到卸载流程见经过测试的[第一个项目教程](docs/tutorial.zh-CN.md)。
-
 ## 安装
+
+### npx 零安装试用
 
 不保留安装，直接试跑 CLI：
 
 ```bash
 npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
 ```
+
+### Claude Code plugin
 
 一条 shell 命令从本仓库 marketplace 安装 Claude Code plugin：
 
@@ -105,6 +120,8 @@ claude plugin marketplace add parousia8888/web-app-security-skill --scope user &
 /plugin marketplace add parousia8888/web-app-security-skill
 /plugin install web-app-security-skill@web-app-security
 ```
+
+### 可信多入口安装
 
 如需签名与 checksum 验证的多入口安装，下面的命令会同时安装 Claude Code skill、Codex skill 和
 `~/.local/bin/webapp-security` 普通 CLI。

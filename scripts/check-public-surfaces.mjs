@@ -11,6 +11,7 @@ const demo = JSON.parse(read('docs/assets/demo.json')).result;
 const en = read('README.md');
 const zh = read('README.zh-CN.md');
 const evidence = read('docs/demo-evidence.md');
+const firstTrial = 'npx --yes web-app-security-skill@0.5.3 audit . --fail-on never';
 
 function fail(message) {
   console.error(`public surfaces: ${message}`);
@@ -58,6 +59,22 @@ for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
         .replace(/\s+/g, '-') === anchor[1]);
       if (!derived) fail(`${path} navigation anchor does not resolve: #${anchor[1]}`);
     }
+  }
+}
+
+for (const [path, text, releaseHeading, explanationMarkers] of [
+  ['README.md', en, "## What's new in v0.5.3",
+    ['plain-language explanation', 'what the evidence proves', 'likely product side effects', 'normal-behavior retests']],
+  ['README.zh-CN.md', zh, '## v0.5.3 新增内容',
+    ['白话解释', '当前证据证明了什么', '可能影响的正常功能', '功能复测']],
+]) {
+  const trialIndex = text.indexOf(firstTrial);
+  const demoIndex = text.indexOf('docs/assets/demo.gif');
+  const releaseIndex = text.indexOf(releaseHeading);
+  if (trialIndex === -1 || trialIndex > demoIndex) fail(`${path} does not put the complete npx trial before the demo`);
+  if (releaseIndex === -1 || releaseIndex < demoIndex) fail(`${path} puts release notes before first-use evidence`);
+  for (const marker of explanationMarkers) {
+    if (!text.slice(0, demoIndex).includes(marker)) fail(`${path} first screen is missing ${marker}`);
   }
 }
 
