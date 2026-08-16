@@ -5,6 +5,7 @@
   <a href="https://github.com/parousia8888/web-app-security-skill/tags"><img src="https://img.shields.io/github/v/tag/parousia8888/web-app-security-skill?sort=semver" alt="latest tag"></a>
   <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
+  <a href="https://www.npmjs.com/package/web-app-security-skill"><img src="https://img.shields.io/npm/v/web-app-security-skill" alt="npm version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
   <a href="#trust-and-release-evidence"><img src="https://img.shields.io/badge/SBOM-SPDX%202.3-5965d8" alt="SPDX 2.3 SBOM"></a>
 </p>
@@ -62,9 +63,8 @@ Exact support and limits are in the [compatibility matrix](docs/compatibility.md
 corpus](docs/stable-rule-corpus.json), [ground-truth pattern benchmark](docs/benchmarks/v0.5.3-ground-truth.md)
 and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md). MCP and additional stable
 rules are deferred behind the [documented architecture gates](docs/architecture/mcp-and-rule-expansion.md).
-The signed v0.5.3 GitHub assets and provenance have passed public verification, so the verified
-installer below now defaults to v0.5.3. The signed `v1` Action alias has passed its public consumer;
-npm publication remains gated on a public-registry consumer.
+The signed v0.5.3 GitHub assets and provenance, verified installer, public npm package and signed
+`v1` Action alias have passed their public checks. The installer below defaults to v0.5.3.
 
 ## See the result
 

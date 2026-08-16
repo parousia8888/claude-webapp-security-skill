@@ -5,6 +5,7 @@
   <a href="https://github.com/parousia8888/web-app-security-skill/tags"><img src="https://img.shields.io/github/v/tag/parousia8888/web-app-security-skill?sort=semver" alt="latest tag"></a>
   <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml"><img src="https://github.com/parousia8888/web-app-security-skill/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
+  <a href="https://www.npmjs.com/package/web-app-security-skill"><img src="https://img.shields.io/npm/v/web-app-security-skill" alt="npm version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
   <a href="#信任与-release-证据"><img src="https://img.shields.io/badge/SBOM-SPDX%202.3-5965d8" alt="SPDX 2.3 SBOM"></a>
 </p>
@@ -59,8 +60,8 @@ v0.5.0 的解释合同继续保留：每个 v3 源码 finding 同时给出行业
 [ground-truth pattern benchmark](docs/benchmarks/v0.5.3-ground-truth.md)和
 [普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。MCP 与新增 stable 规则需要先满足
 [架构决策中的门槛](docs/architecture/mcp-and-rule-expansion.md)。v0.5.3 的签名 GitHub 资产与
-provenance 已通过公网验证，所以下面的可信安装器现在默认安装 v0.5.3；签名的 `v1` Action 别名
-已经通过公网 consumer，npm 发布仍等待公网 registry consumer。
+provenance、可信安装器、公开 npm 包和签名 `v1` Action 别名都已通过各自的公网检查；下面的
+可信安装器默认安装 v0.5.3。
 
 ## 查看结果
 

@@ -63,6 +63,19 @@ if (stable.tag !== 'v1' || !/^[a-f0-9]{40}$/.test(stable.sourceCommit || '')) {
   fail('stable Action state is invalid');
 }
 
+const npmPackage = state.npmPackage || {};
+if (npmPackage.name !== 'web-app-security-skill') fail('npm package identity drifted');
+if (!semver.test(npmPackage.version || '') || npmPackage.version !== published.version) {
+  fail('npm package version disagrees with the published release');
+}
+if (npmPackage.url !== `https://www.npmjs.com/package/${npmPackage.name}/v/${npmPackage.version}`) {
+  fail('npm package URL disagrees with its identity');
+}
+if (!/^[a-f0-9]{40}$/.test(npmPackage.shasum || '')) fail('npm package shasum is invalid');
+if (!/^sha512-[A-Za-z0-9+/]+={0,2}$/.test(npmPackage.integrity || '')) {
+  fail('npm package integrity is invalid');
+}
+
 const installer = state.verifiedInstaller || {};
 if (!semver.test(installer.defaultVersion || '')) fail('verified installer default version is invalid');
 if (!Array.isArray(installer.trustedVersions) || !installer.trustedVersions.length
@@ -109,5 +122,5 @@ if (existsSync(`${ROOT}/.git`)) {
 
 if (!failed) {
   const relation = currentVersion === published.version ? 'published' : 'candidate';
-  console.log(`release state ok: current ${currentVersion} (${relation}), published ${published.version}, installer ${installer.defaultVersion}, Action ${stable.tag}`);
+  console.log(`release state ok: current ${currentVersion} (${relation}), published ${published.version}, npm ${npmPackage.version}, installer ${installer.defaultVersion}, Action ${stable.tag}`);
 } else process.exit(1);

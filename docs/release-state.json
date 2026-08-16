@@ -12,6 +12,13 @@
     "tag": "v1",
     "sourceCommit": "621e0bc2ad044f9390fa9d567bf4b9fca138a959"
   },
+  "npmPackage": {
+    "name": "web-app-security-skill",
+    "version": "0.5.3",
+    "url": "https://www.npmjs.com/package/web-app-security-skill/v/0.5.3",
+    "shasum": "7fb87e4915ce654c3f9e4cb03f7f01688a8e9f03",
+    "integrity": "sha512-VgrPSSmQ5HsW6neJsp4Kcc8R5YNcecCXohvCSXwSXfG6TEQ+3pYgK+WGmT7gV1E3OSMRcGO4L70uof4Hv9yRRw=="
+  },
   "verifiedInstaller": {
     "defaultVersion": "0.5.3",
     "trustedVersions": [

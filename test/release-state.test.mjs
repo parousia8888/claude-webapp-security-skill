@@ -23,6 +23,11 @@ try {
   assert.equal(state.publishedRelease.version, '0.5.3');
   assert.equal(state.stableAction.tag, 'v1');
   assert.equal(state.stableAction.sourceCommit, '621e0bc2ad044f9390fa9d567bf4b9fca138a959');
+  assert.equal(state.npmPackage.name, 'web-app-security-skill');
+  assert.equal(state.npmPackage.version, '0.5.3');
+  assert.equal(state.npmPackage.shasum, '7fb87e4915ce654c3f9e4cb03f7f01688a8e9f03');
+  assert.equal(state.npmPackage.integrity,
+    'sha512-VgrPSSmQ5HsW6neJsp4Kcc8R5YNcecCXohvCSXwSXfG6TEQ+3pYgK+WGmT7gV1E3OSMRcGO4L70uof4Hv9yRRw==');
   assert.equal(state.verifiedInstaller.defaultVersion, '0.5.3');
   assert.deepEqual(state.verifiedInstaller.trustedVersions,
     ['0.3.0', '0.4.0', '0.5.0', '0.5.1', '0.5.2', '0.5.3']);
