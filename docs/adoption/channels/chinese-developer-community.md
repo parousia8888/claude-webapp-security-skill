@@ -20,7 +20,7 @@ Web App Security Skill 是一个开源 agent skill 与 CLI，目标是让 Web �
 
 案例证据包括 5 个固定 commit 的普通项目旅程和 5 个源码方法论案例，其中两个项目按设计重叠。普通项目旅程不探测托管实例、不执行项目依赖；仅 OSV-Scanner 可查询公共 advisory 服务，并公开 confirmed 事实、误报关闭、suspected 与 unknown。
 
-供应链方面，v0.5.2 提供签名 tag、可复现源码包、SPDX SBOM、SHA-256 校验和、release manifest 与构建 provenance；推荐安装路径在执行前校验固定 bootstrap，再验证 release。
+供应链方面，v0.5.3 提供签名 tag、可复现源码包、SPDX SBOM、SHA-256 校验和、release manifest 与构建 provenance；推荐安装路径在执行前校验固定 bootstrap，再验证 release。
 
 - 项目：https://github.com/parousia8888/web-app-security-skill
 - Demo：https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md

@@ -64,6 +64,7 @@ try {
   assert.ok(trust.releases['0.5.0']);
   assert.ok(trust.releases['0.5.1']);
   assert.ok(trust.releases['0.5.2']);
+  assert.ok(trust.releases['0.5.3']);
 
   result = await run([], {
     ...common,

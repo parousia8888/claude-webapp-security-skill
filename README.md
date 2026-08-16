@@ -62,8 +62,9 @@ Exact support and limits are in the [compatibility matrix](docs/compatibility.md
 corpus](docs/stable-rule-corpus.json), [ground-truth pattern benchmark](docs/benchmarks/v0.5.3-ground-truth.md)
 and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md). MCP and additional stable
 rules are deferred behind the [documented architecture gates](docs/architecture/mcp-and-rule-expansion.md).
-Until v0.5.3 assets and public consumers pass release verification, the verified installer below
-continues to default to published v0.5.2.
+The signed v0.5.3 GitHub assets and provenance have passed public verification, so the verified
+installer below now defaults to v0.5.3. npm and the moving `v1` Action alias remain separately gated
+until their public consumers pass.
 
 ## See the result
 

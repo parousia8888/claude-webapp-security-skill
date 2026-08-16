@@ -58,8 +58,9 @@ v0.5.0 的解释合同继续保留：每个 v3 源码 finding 同时给出行业
 准确支持范围见[兼容矩阵](docs/compatibility.md)、[稳定规则语料](docs/stable-rule-corpus.json)、
 [ground-truth pattern benchmark](docs/benchmarks/v0.5.3-ground-truth.md)和
 [普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。MCP 与新增 stable 规则需要先满足
-[架构决策中的门槛](docs/architecture/mcp-and-rule-expansion.md)。在 v0.5.3 资产与公网 consumer 完成
-验证前，下面的可信安装器继续默认使用已发布的 v0.5.2。
+[架构决策中的门槛](docs/architecture/mcp-and-rule-expansion.md)。v0.5.3 的签名 GitHub 资产与
+provenance 已通过公网验证，所以下面的可信安装器现在默认安装 v0.5.3；npm 与移动 `v1` Action
+别名仍各自等待公网 consumer 通过后再提升。
 
 ## 查看结果
 
