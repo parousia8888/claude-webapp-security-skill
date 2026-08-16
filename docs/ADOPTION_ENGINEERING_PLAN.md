@@ -561,8 +561,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 - Implementation: the repository GIF encoder now uses a real bounded GIF LZW dictionary instead of
   literal-only codes, reducing the same five-frame 840x472 demo from 2,742,052 to 29,581 bytes. A
   deterministic indexed-PNG encoder and generator produce a 1280x640, 3,288-byte social preview
-  from the published release state. `docs/github-metadata.json` records the asset, pending live upload
-  and pending homepage owner decision. The adoption generator now prepares a human-readable GitHub
+  from the published release state. `docs/github-metadata.json` records the asset and pending
+  homepage owner decision. The adoption generator now prepares a human-readable GitHub
   Release lead while retaining the existing evidence section.
 - Tests: `node test/demo-gif.test.mjs`, `node test/social-preview.test.mjs`,
   `node test/adoption-assets.test.mjs`, the social-preview drift check and `git diff --check` passed.
@@ -570,8 +570,12 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   sheet and full-resolution social preview found no clipping or incoherent overlap.
 - Commit / CI: implementation `5b0686360668535fdaa2ed868e886495f0a3d96e`; CI run
   `31943711488` passed the Ubuntu/macOS Node 22/24 matrix and CodeQL run `31943711476` passed.
-- Remaining risks: GitHub social-preview upload and live Release-body edits require owner-authorized
-  external actions and are not completed by committing assets.
+- External actions: owner-authorized upload completed 2026-08-16T11:55:09Z with the generated asset
+  SHA-256 recorded in `docs/github-metadata.json`; GitHub GraphQL returned the recorded public Open
+  Graph image URL. The generated lead was applied to the live v0.5.3 Release and the retained body
+  was read back byte-for-byte with its SHA-256 recorded.
+- Remaining risks: the repository homepage remains an owner decision, and GitHub or third-party
+  social-card cache refresh timing remains outside repository control.
 
 ## G9 - Channel copy and regression-accountability article
 
@@ -700,7 +704,7 @@ repository automation alone:
 | Publish community posts | G4 | live URLs and capture times; edits recorded separately |
 | Contact an upstream project about a suspected vulnerability | G4 | private disclosure record and coordinated public state |
 | Tag/release v0.5.3 and move `v1` | G5 | completed: signed tag, release assets/attestation, CI, public consumer run |
-| Upload GitHub social preview or edit live public pages | G8 | live screenshot/URL and capture time |
+| Upload GitHub social preview or edit live public pages | G8 | completed 2026-08-16: public Open Graph image URL, Release URL, capture time and body/asset digests in `docs/github-metadata.json` |
 | Run five-to-ten target-user sessions | G10 | consented schema-valid records and privacy-safe aggregate |
 | Submit listings or publish channel drafts | G11 | current-rule review, live URL, timestamp and source-draft identity |
 
@@ -734,5 +738,5 @@ publication, a community post, or an upstream response must never be invented to
 - Final verification: from clean G11 record commit `741ae8a`, the single planned `npm run check`
   invocation passed lint, the full test set and the Bash smoke contract. Skill Creator
   `quick_validate.py` also passed, and the checks left the worktree clean.
-- External boundary: no usability session, directory submission, community publication, social
-  preview upload, live Release edit or independent adoption result is claimed by this completion.
+- External boundary: no usability session, directory submission, community publication, homepage
+  change or independent adoption result is claimed by this completion.
