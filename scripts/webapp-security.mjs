@@ -146,7 +146,8 @@ const include = [
   'docs/repair-record.schema.json',
   'docs/adapter-protocol.md', 'docs/alert-policy.md', 'docs/rule-taxonomy.md',
   'docs/stable-source-rules.json', 'docs/stable-rule-corpus.json',
-  'docs/benchmarks/v0.5.3-ground-truth.json', 'docs/benchmarks/v0.5.3-ground-truth.md',
+  'docs/conformance/v0.5.4-rule-contract-conformance.json',
+  'docs/conformance/v0.5.4-rule-contract-conformance.md',
 ];
 
 function stagePayload(spec) {

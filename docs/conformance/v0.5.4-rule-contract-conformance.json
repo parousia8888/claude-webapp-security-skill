@@ -1,35 +1,32 @@
 {
   "schemaVersion": 1,
-  "release": "v0.5.3",
-  "benchmarkType": "synthetic_planted_pattern_contract",
-  "caveat": "Synthetic planted pattern-contract benchmark; it does not measure production-vulnerability precision, recall, reachability or exploitability.",
+  "release": "v0.5.4",
+  "evidenceType": "synthetic_rule_contract_conformance",
+  "limitation": "Author-maintained synthetic rule-contract conformance suite; it verifies declared planted examples. It does not measure production-vulnerability precision, recall, reachability, exploitability or security coverage.",
   "rulesetSemanticDigest": "7e5d8a25b5377afbc4aa2c9e1125ab06135bca837c2b8361cc8a3cac582b5b58",
-  "metrics": {
+  "summary": {
     "risk": {
-      "expectedPositiveCases": 20,
-      "truePositive": 20,
-      "falseNegative": 0,
-      "expectedNegativeCases": 20,
-      "trueNegative": 20,
-      "falsePositive": 0,
+      "contracts": 20,
+      "positivePassed": 20,
+      "positiveFailed": 0,
+      "negativePassed": 20,
+      "negativeFailed": 0,
       "stateMismatches": 0
     },
     "evidenceIntegrity": {
-      "expectedPositiveCases": 2,
-      "truePositive": 2,
-      "falseNegative": 0,
-      "expectedNegativeCases": 2,
-      "trueNegative": 2,
-      "falsePositive": 0,
+      "contracts": 2,
+      "positivePassed": 2,
+      "positiveFailed": 0,
+      "negativePassed": 2,
+      "negativeFailed": 0,
       "stateMismatches": 0
     },
     "combined": {
-      "expectedPositiveCases": 22,
-      "truePositive": 22,
-      "falseNegative": 0,
-      "expectedNegativeCases": 22,
-      "trueNegative": 22,
-      "falsePositive": 0,
+      "contracts": 22,
+      "positivePassed": 22,
+      "positiveFailed": 0,
+      "negativePassed": 22,
+      "negativeFailed": 0,
       "stateMismatches": 0
     }
   },

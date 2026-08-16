@@ -19,7 +19,8 @@ assert.equal(pkg.bin['web-app-security-skill'], 'scripts/webapp-security.mjs');
 assert.equal(pkg.bin['webapp-security'], 'scripts/webapp-security.mjs');
 for (const entry of [
   'SKILL.md', 'VERSION', 'KNOWN_LIMITATIONS.md', 'scripts', 'references', 'rules',
-  'docs/benchmarks/v0.5.3-ground-truth.json', 'docs/benchmarks/v0.5.3-ground-truth.md',
+  'docs/conformance/v0.5.4-rule-contract-conformance.json',
+  'docs/conformance/v0.5.4-rule-contract-conformance.md',
 ]) {
   assert.ok(pkg.files.includes(entry), `npm files is missing ${entry}`);
 }

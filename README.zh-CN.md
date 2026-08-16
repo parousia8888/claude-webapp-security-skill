@@ -78,11 +78,11 @@ v0.5.3 降低首次试用和日常审查的成本，stable 规则数量不变：
 - **只看这次改动：**`--since <ref>` 只保留 Git 新增行上的 built-in finding；`--staged` 从隔离的
   Git index 快照审计，不读取 unstaged 内容。两者都会记录 base 和筛选数量；都不支持外部 adapter 或
   baseline/retest 结论。diff 没有 finding 也不能说明整个仓库安全。
-- **可复现 planted benchmark：**20 条 built-in risk 与 2 条证据完整性规则都有固定 TP/FP/FN 的
-  JSON/Markdown 结果。当前 planted case 为 TP=22、FN=0、TN=22、FP=0，证据状态没有错配。这是
-  fixture 合同证据，不是真实项目漏洞检出率。
+- **可复现规则合同一致性检查：**20 条 built-in risk 与 2 条证据完整性规则都有固定的 planted
+  正例、负例和证据状态通过/失败结果，当前 22 条合同全部通过。规则与样例都由作者维护，因此它能
+  证明规则改动没有打破自己声明的行为，不能证明真实项目漏洞检出率。
 - **公开当前限制：**[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md)列出 parser 边界、常见良性命中、
-  增量模式排除项和 benchmark 解读边界。
+  增量模式排除项和合同一致性证据的解读边界。
 
 v0.5.0 的解释合同继续保留：每个 v3 源码 finding 同时给出行业术语、白话含义、实际后果、证据边界、
 待审查提案、替代方案、可能副作用、需要用户决定的事项、安全复测、功能复测和回滚条件。CLI 不直接
@@ -90,7 +90,7 @@ v0.5.0 的解释合同继续保留：每个 v3 源码 finding 同时给出行业
 规则，内置深度集中在 JavaScript/TypeScript 与 Python Web 代码。
 
 准确支持范围见[兼容矩阵](docs/compatibility.md)、[稳定规则语料](docs/stable-rule-corpus.json)、
-[ground-truth pattern benchmark](docs/benchmarks/v0.5.3-ground-truth.md)和
+[规则合同一致性结果](docs/conformance/v0.5.4-rule-contract-conformance.md)和
 [普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。MCP 与新增 stable 规则需要先满足
 [架构决策中的门槛](docs/architecture/mcp-and-rule-expansion.md)。v0.5.3 的签名 GitHub 资产与
 provenance、可信安装器、公开 npm 包和签名 `v1` Action 别名都已通过各自的公网检查；下面的

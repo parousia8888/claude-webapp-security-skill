@@ -5,9 +5,9 @@ import { auditSource } from './source-audit.mjs';
 import { inspectJsTsSource } from './js-ts-source-audit.mjs';
 import { inspectPythonSource } from './python-source-audit.mjs';
 
-const CAVEAT = 'Synthetic planted pattern-contract benchmark; it does not measure production-vulnerability precision, recall, reachability or exploitability.';
+const LIMITATION = 'Author-maintained synthetic rule-contract conformance suite; it verifies declared planted examples. It does not measure production-vulnerability precision, recall, reachability, exploitability or security coverage.';
 
-export function collectBuiltInObservations(root) {
+export function collectRuleContractObservations(root) {
   const positive = new Map();
   const addPositive = (findings) => {
     for (const finding of findings) {
@@ -22,7 +22,7 @@ export function collectBuiltInObservations(root) {
     join(root, 'test', 'fixtures', 'python-rules', 'vulnerable.py'), 'utf8')).findings);
   addPositive(auditSource(join(root, 'test', 'fixtures', 'audit-app')).findings);
 
-  const temporary = mkdtempSync(join(tmpdir(), 'web-app-security-ground-truth-'));
+  const temporary = mkdtempSync(join(tmpdir(), 'web-app-security-rule-contract-'));
   try {
     const incomplete = join(temporary, 'incomplete');
     mkdirSync(join(incomplete, 'src'), { recursive: true });
@@ -53,23 +53,21 @@ export function collectBuiltInObservations(root) {
   }));
 }
 
-function metrics(results) {
-  const expectedPositiveCases = results.length;
-  const truePositive = results.filter((item) => item.positive.passed).length;
-  const falsePositive = results.filter((item) => !item.negative.passed).length;
+function summary(results) {
+  const positivePassed = results.filter((item) => item.positive.passed).length;
+  const negativeFailed = results.filter((item) => !item.negative.passed).length;
   return {
-    expectedPositiveCases,
-    truePositive,
-    falseNegative: expectedPositiveCases - truePositive,
-    expectedNegativeCases: results.length,
-    trueNegative: results.length - falsePositive,
-    falsePositive,
+    contracts: results.length,
+    positivePassed,
+    positiveFailed: results.length - positivePassed,
+    negativePassed: results.length - negativeFailed,
+    negativeFailed,
     stateMismatches: results.filter((item) => item.positive.findingCount > 0
       && !item.positive.stateMatched).length,
   };
 }
 
-export function buildGroundTruthBenchmark(corpus, observations) {
+export function buildRuleContractConformance(corpus, observations) {
   const observed = new Map(observations.map((item) => [item.ruleId, item]));
   const rules = corpus.rules.filter((rule) => rule.adapterType === 'built_in').map((rule) => {
     const item = observed.get(rule.ruleId) || {
@@ -100,63 +98,67 @@ export function buildGroundTruthBenchmark(corpus, observations) {
   const integrity = rules.filter((rule) => rule.kind === 'evidence_integrity');
   return {
     schemaVersion: 1,
-    release: 'v0.5.3',
-    benchmarkType: 'synthetic_planted_pattern_contract',
-    caveat: CAVEAT,
+    release: 'v0.5.4',
+    evidenceType: 'synthetic_rule_contract_conformance',
+    limitation: LIMITATION,
     rulesetSemanticDigest: corpus.rulesetSemanticDigest,
-    metrics: {
-      risk: metrics(risk),
-      evidenceIntegrity: metrics(integrity),
-      combined: metrics(rules),
+    summary: {
+      risk: summary(risk),
+      evidenceIntegrity: summary(integrity),
+      combined: summary(rules),
     },
     rules,
   };
 }
 
-export function validateGroundTruthBenchmark(benchmark) {
+export function validateRuleContractConformance(conformance) {
   const errors = [];
-  if (benchmark?.schemaVersion !== 1) errors.push('benchmark.schemaVersion must be 1');
-  if (benchmark?.benchmarkType !== 'synthetic_planted_pattern_contract') errors.push('benchmark type is invalid');
-  if (benchmark?.caveat !== CAVEAT) errors.push('benchmark caveat is missing or changed');
-  for (const result of benchmark?.rules || []) {
+  if (conformance?.schemaVersion !== 1) errors.push('conformance.schemaVersion must be 1');
+  if (conformance?.evidenceType !== 'synthetic_rule_contract_conformance') {
+    errors.push('conformance evidence type is invalid');
+  }
+  if (conformance?.limitation !== LIMITATION) errors.push('conformance limitation is missing or changed');
+  for (const result of conformance?.rules || []) {
     if (!result.positive.passed) errors.push(`${result.ruleId} planted positive failed`);
     if (!result.negative.passed) errors.push(`${result.ruleId} planted negative produced a finding`);
+    if (result.positive.findingCount > 0 && !result.positive.stateMatched) {
+      errors.push(`${result.ruleId} planted positive used an unexpected evidence state`);
+    }
   }
   for (const [group, expected] of [['risk', 20], ['evidenceIntegrity', 2], ['combined', 22]]) {
-    const value = benchmark?.metrics?.[group];
-    if (value?.expectedPositiveCases !== expected || value?.expectedNegativeCases !== expected) {
-      errors.push(`${group} case count differs from the 20 risk + 2 integrity contract`);
+    const value = conformance?.summary?.[group];
+    if (value?.contracts !== expected) {
+      errors.push(`${group} contract count differs from the 20 risk + 2 integrity contract`);
     }
   }
   return [...new Set(errors)];
 }
 
-function metricLine(label, value) {
-  return `| ${label} | ${value.expectedPositiveCases} | ${value.truePositive} | ${value.falseNegative} | ${value.expectedNegativeCases} | ${value.trueNegative} | ${value.falsePositive} | ${value.stateMismatches} |`;
+function summaryLine(label, value) {
+  return `| ${label} | ${value.contracts} | ${value.positivePassed} | ${value.positiveFailed} | ${value.negativePassed} | ${value.negativeFailed} | ${value.stateMismatches} |`;
 }
 
-export function renderGroundTruthMarkdown(benchmark) {
+export function renderRuleContractMarkdown(conformance) {
   const lines = [
-    '# v0.5.3 ground-truth pattern benchmark', '',
-    `> ${benchmark.caveat}`, '',
-    `Ruleset semantic digest: \`${benchmark.rulesetSemanticDigest}\``, '',
-    '## Results', '',
-    '| Group | Positive cases | TP | FN | Negative cases | TN | FP | State mismatches |',
-    '|---|---:|---:|---:|---:|---:|---:|---:|',
-    metricLine('Risk detection', benchmark.metrics.risk),
-    metricLine('Evidence integrity', benchmark.metrics.evidenceIntegrity),
-    metricLine('Combined', benchmark.metrics.combined), '',
-    'TP means the planted positive emitted the named rule in its expected evidence state. FP means',
-    'the same rule emitted on its planted safe neighbour. These fixture results do not establish',
-    'production vulnerability precision or recall.', '',
+    '# v0.5.4 rule-contract conformance', '',
+    `> ${conformance.limitation}`, '',
+    `Ruleset semantic digest: \`${conformance.rulesetSemanticDigest}\``, '',
+    '## Contract results', '',
+    '| Group | Contracts | Positive passed | Positive failed | Negative passed | Negative failed | State mismatches |',
+    '|---|---:|---:|---:|---:|---:|---:|',
+    summaryLine('Risk detection', conformance.summary.risk),
+    summaryLine('Evidence integrity', conformance.summary.evidenceIntegrity),
+    summaryLine('Combined', conformance.summary.combined), '',
+    'A positive passes when the declared planted example emits the named rule in its expected',
+    'evidence state. A negative passes when the rule stays quiet on its declared safe neighbour.',
+    'These outcomes are rule-contract checks, not vulnerability accuracy measurements.', '',
     '## Rule cases', '',
     '| Rule | Kind | Expected state | Positive | Negative |',
     '|---|---|---|---:|---:|',
-    ...benchmark.rules.map((rule) => `| \`${rule.ruleId}\` | ${rule.kind} | \`${rule.positive.expectedState}\` | ${rule.positive.passed ? 'pass' : 'fail'} | ${rule.negative.passed ? 'pass' : 'fail'} |`),
+    ...conformance.rules.map((rule) => `| \`${rule.ruleId}\` | ${rule.kind} | \`${rule.positive.expectedState}\` | ${rule.positive.passed ? 'pass' : 'fail'} | ${rule.negative.passed ? 'pass' : 'fail'} |`),
     '',
-    'Regenerate with `npm run benchmark:ground-truth`. CI uses the same runner with `--check` to',
+    'Regenerate with `npm run conformance:rules`. CI uses the same runner with `--check` to',
     'compare committed JSON and Markdown bytes.', '',
   ];
   return `${lines.join('\n')}\n`;
 }
-

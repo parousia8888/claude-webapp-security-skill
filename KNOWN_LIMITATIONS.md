@@ -22,13 +22,14 @@ cannot be combined with baseline/retest comparison, and do not establish whole-r
 `--since` excludes untracked files because Git has no diff record for them. `--staged` scans the Git
 index snapshot and therefore excludes unstaged content by design.
 
-## Benchmark interpretation
+## Rule-contract conformance interpretation
 
-The v0.5.3 ground-truth benchmark is a synthetic planted pattern-contract check. Its TP/FP/FN
-counts answer whether each named built-in rule recognizes its committed positive fixture in the
-expected evidence state and stays quiet on its committed safe neighbour. They do not measure
-whole-project vulnerability precision or recall, production reachability, exploitability, language
-coverage or the agent-guided methodology. Ordinary-project review remains separate evidence.
+The rule-contract conformance suite uses author-maintained planted examples. Its pass/fail results
+answer whether each named built-in rule recognizes its declared positive example in the expected
+evidence state and stays quiet on its declared safe neighbour. They do not measure whole-project
+vulnerability precision or recall, production reachability, exploitability, language coverage or
+the agent-guided methodology. Historical real-world regressions and ordinary-project review remain
+separate evidence sets.
 
 ## MCP and rule expansion
 

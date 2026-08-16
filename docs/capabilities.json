@@ -116,12 +116,12 @@
       "evidence": ["scripts/lib/git-diff-scope.mjs", "scripts/project-audit.mjs", "test/incremental-source-audit.test.mjs"]
     },
     {
-      "id": "ground-truth-pattern-benchmark",
-      "name": "Reproducible planted pattern benchmark",
+      "id": "rule-contract-conformance",
+      "name": "Reproducible rule-contract conformance",
       "category": "evidence_reporting",
       "maturity": "stable",
-      "scope": "Regenerates exact JSON and Markdown TP/FP/FN evidence for 20 built-in risk and two evidence-integrity planted positive/negative contracts. It is not a production-vulnerability precision, recall, reachability or exploitability measurement.",
-      "evidence": ["scripts/run-ground-truth-benchmark.mjs", "scripts/lib/ground-truth-benchmark.mjs", "test/ground-truth-benchmark.test.mjs", "docs/benchmarks/v0.5.3-ground-truth.json"]
+      "scope": "Regenerates exact JSON and Markdown pass/fail evidence for 20 built-in risk and two evidence-integrity planted positive/negative rule contracts. It is author-maintained conformance evidence, not a production-vulnerability precision, recall, reachability, exploitability or security-coverage measurement.",
+      "evidence": ["scripts/run-rule-contract-conformance.mjs", "scripts/lib/rule-contract-conformance.mjs", "test/rule-contract-conformance.test.mjs", "docs/conformance/v0.5.4-rule-contract-conformance.json"]
     },
     {
       "id": "structured-reports",

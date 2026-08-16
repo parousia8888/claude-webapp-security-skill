@@ -62,7 +62,7 @@ A proposed stable rule must include all of the following in one reviewable chang
 2. a rule family, domain, default severity, default evidence state, revision and standards mapping;
 3. an `evidenceBoundary` that states what the match proves and what it cannot prove;
 4. at least one planted positive and one neighbouring negative fixture, included in the reproducible
-   ground-truth benchmark;
+   rule-contract conformance suite;
 5. parser or adapter failure behavior that becomes explicit incomplete coverage rather than pass;
 6. plain-language consequence, proposal, alternatives, side effects, security retest, functional
    retest, rollback and owner-decision text;
@@ -96,4 +96,3 @@ evidence, then stable distribution. No planned or experimental item is described
   volume would weaken the product's evidence and explanation contract.
 - Making external scanners implicit dependencies was rejected for this release because zero-download
   default execution and explicit version ownership are current supply-chain boundaries.
-

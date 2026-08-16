@@ -82,12 +82,12 @@ rule count:
   `--staged` audits an isolated index snapshot and excludes unstaged content. Both record their base
   and selection counts. They do not support external adapters or baseline/retest claims, and a clean
   diff does not establish whole-repository safety.
-- **Reproducible planted benchmark:** all 20 built-in risk and 2 evidence-integrity rule contracts
-  publish exact TP/FP/FN JSON and Markdown. The current planted cases are TP=22, FN=0, TN=22 and
-  FP=0, with no state mismatch. This is fixture evidence, not production vulnerability precision or
-  recall.
+- **Reproducible rule-contract conformance:** all 20 built-in risk and 2 evidence-integrity rules
+  publish exact planted-positive, planted-negative and evidence-state pass/fail results. All 22
+  declared contracts currently pass. The author maintains both the rules and examples, so this is
+  change-detection evidence, not production vulnerability accuracy.
 - **Limits are public:** [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) records parser boundaries,
-  recurring expected matches, incremental exclusions and benchmark interpretation.
+  recurring expected matches, incremental exclusions and conformance interpretation.
 
 The v0.5.0 explanation contract remains: every v3 source finding includes the professional term,
 ordinary-language meaning, realistic consequence, evidence boundary, reviewable proposal,
@@ -97,7 +97,7 @@ evidence-integrity rules and 8 opt-in external-adapter rules, with built-in dept
 JavaScript/TypeScript and Python Web code.
 
 Exact support and limits are in the [compatibility matrix](docs/compatibility.md), [stable rule
-corpus](docs/stable-rule-corpus.json), [ground-truth pattern benchmark](docs/benchmarks/v0.5.3-ground-truth.md)
+corpus](docs/stable-rule-corpus.json), [rule-contract conformance](docs/conformance/v0.5.4-rule-contract-conformance.md)
 and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md). MCP and additional stable
 rules are deferred behind the [documented architecture gates](docs/architecture/mcp-and-rule-expansion.md).
 The signed v0.5.3 GitHub assets and provenance, verified installer, public npm package and signed

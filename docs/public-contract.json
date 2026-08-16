@@ -28,7 +28,7 @@
       "Source patterns and external scanner matches are suspected leads unless independently confirmed.",
       "The CLI proposes and records repairs but does not edit project files.",
       "Diff-scoped reports reduce review noise and do not establish whole-repository safety.",
-      "The planted pattern benchmark is not production-vulnerability precision or recall.",
+      "The planted rule-contract conformance suite is not production-vulnerability precision or recall.",
       "No authenticated DAST, automatic BOLA/IDOR proof or unattended production patching is claimed."
     ]
   }
