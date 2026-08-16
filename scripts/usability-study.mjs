@@ -11,7 +11,7 @@ const TARGET_SESSIONS = 5;
 const SESSION_ID = /^S-[A-F0-9]{8}$/;
 const SURFACES = ['claude', 'codex', 'cli'];
 const SYSTEMS = ['linux', 'macos', 'wsl2'];
-const NODE_MAJORS = [20, 22];
+const NODE_MAJORS = [22, 24];
 const OUTCOMES = ['completed', 'blocked', 'abandoned', 'not_attempted'];
 const BLOCKAGES = [
   'none', 'prerequisite', 'install_trust', 'install_conflict', 'command_discovery',
@@ -35,7 +35,7 @@ function usage(code, message) {
 
 Commands:
   init --out <json> --surface <claude|codex|cli> --os <linux|macos|wsl2>
-       --node-major <20|22> --consent [--session-id S-XXXXXXXX]
+       --node-major <22|24> --consent [--session-id S-XXXXXXXX]
   record <json> [observation options]
   validate <json> [json ...]
   aggregate --dir <session-directory> --out <summary.md> --json <summary.json>

@@ -4,7 +4,7 @@
   "sessionId": "S-00000002",
   "consent": { "observationAccepted": true, "dataBoundaryAccepted": true },
   "fixture": { "id": "first-use-clean-room-v1", "repositoryDataShared": false, "networkRequired": false },
-  "environment": { "surface": "claude", "os": "linux", "nodeMajor": 20 },
+  "environment": { "surface": "claude", "os": "linux", "nodeMajor": 24 },
   "installation": { "status": "blocked", "seconds": 310 },
   "firstReport": { "status": "not_attempted", "seconds": null },
   "firstBlockage": "install_conflict",

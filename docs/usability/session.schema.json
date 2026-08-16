@@ -39,7 +39,7 @@
       "properties": {
         "surface": { "enum": ["claude", "codex", "cli"] },
         "os": { "enum": ["linux", "macos", "wsl2"] },
-        "nodeMajor": { "enum": [20, 22] }
+        "nodeMajor": { "enum": [22, 24] }
       }
     },
     "installation": { "$ref": "#/$defs/timedOutcome" },

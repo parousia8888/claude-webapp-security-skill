@@ -5,8 +5,10 @@ Owner: parousia8888
 Started: 2026-08-13  
 Canonical repository: `parousia8888/web-app-security-skill`
 
-This document is the source of truth for the G0-G5 adoption-engineering program that follows the
-completed P0-P7 productization program. Update the relevant completion record immediately after a
+This document is the source of truth for the G0-G11 adoption-engineering program that follows the
+completed P0-P7 productization program. G0-G5 established the original adoption and release
+foundation; G6-G11 align the published v0.5.3 surfaces, first-use conversion, usability evidence and
+selective distribution. Update the relevant completion record immediately after a
 phase passes. Do not mark an external human action as complete from a template, automation, or
 maintainer intention.
 
@@ -106,7 +108,13 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G2 | Verified low-friction install channel and clean-room lifecycle | completed | `11eee87`, `55c3de2`, `02277e8`, `37d822a` + checks below |
 | G3 | Privacy-minimal five-session usability kit and deterministic aggregation | completed | `a51640a` + checks below |
 | G4 | Reusable English/Chinese publication and upstream case-study kit | completed | `2618447` + checks below |
-| G5 | Priority fail-closed correctness fixes and release-candidate evidence | in progress | `f227c3d`, `49cf60f` + readiness record |
+| G5 | Priority fail-closed correctness fixes and v0.5.3 release evidence | completed | v0.5.3 source `621e0bc` + stable state `9c6dc2b` |
+| G6 | Published-state, tutorial, support-matrix and ledger alignment | in progress | focused contract checks pending |
+| G7 | First-screen npx path and ordinary-language result contract | pending | implementation pending |
+| G8 | Legible lightweight demo and accurate GitHub public packaging | pending | implementation pending |
+| G9 | Channel-specific generated copy and regression-accountability article | pending | implementation pending |
+| G10 | Five-to-ten-person target-user validation kit and stop rules | pending | real sessions remain external |
+| G11 | Eligibility-aware listings, staggered publication and observation ledger | pending | external actions remain owner-gated |
 
 ## G0 - Adoption contract and measurable baseline
 
@@ -371,7 +379,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   drafts require human tone/context review immediately before posting; the kit does not establish
   conversion, independent use, upstream validation, precision or general scanner coverage.
 
-## G5 - Correctness and release candidate
+## G5 - Correctness and v0.5.3 release
 
 ### Deliverables
 
@@ -398,7 +406,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: in progress; repository correctness complete, version/release gate pending owner decision.
+- Status: completed 2026-08-16.
 - Implementation: `scripts/verify-crawler-ip.mjs` validates non-empty product-specific CIDRs and
   `creationTime`, preserves custom product/vendor identity and returns exit `3` for unavailable
   evidence. `scripts/aws-exposure-audit.sh` routes nested reads through the counted `UNCHECKED`
@@ -430,7 +438,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   [31658167426](https://github.com/parousia8888/web-app-security-skill/actions/runs/31658167426)
   passed. Live GitHub metadata validation passed after #1/#2/#5 closed and after the release-state
   contract was added.
-- Commit / CI / release: correctness implementation `f227c3d`; issue-state contract `49cf60f`;
+- Pre-release commit / CI record: correctness implementation `f227c3d`; issue-state contract `49cf60f`;
   release-state implementation `0ca668e`.
   Issues #1, #2 and #5 are closed with commit/test/CI evidence. The Marketplace listing is live and
   still reports `v0.3.0`; the signed `v0.3.0` and `v1` tags both resolve to
@@ -452,12 +460,180 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   passed Ubuntu/macOS on Node 20/22 and its
   [CodeQL run 31659018213](https://github.com/parousia8888/web-app-security-skill/actions/runs/31659018213)
   passed, so the recorded evidence is present in the exact remotely verified tree.
-- Remaining risks: `VERSION` is still the already-published `0.3.0`; rebuilding HEAD under that
+- Pre-release state retained for chronology: `VERSION` was still the already-published `0.3.0`; rebuilding that tree under that
   identity is mechanism evidence, not a valid new release candidate. Selecting the next version,
   aligning its exact tree/evidence, publishing it, recording the resulting asset digests in a later
   verifier/bootstrap trust-anchor chain, and moving `v1` remain
   `external_validation_pending` owner-gated actions. Five real user sessions, public channel posts
-  and upstream validation also remain external and are not implied by G5 correctness completion.
+  and upstream validation also remained external and were not implied by repository correctness.
+- Final release evidence: v0.5.3 source commit `621e0bc2ad044f9390fa9d567bf4b9fca138a959`
+  passed the release gate and was published as a signed GitHub release with four verified assets and
+  provenance. npm package `web-app-security-skill@0.5.3` was published and independently installed
+  through a fresh cache. The verified installer trust path was promoted, signed `v1` was moved to the
+  same source commit, and the external Action consumer passed. Stable-state commit
+  `9c6dc2b23ec3749e65bd9abbaa380eab98cc3576` records the npm and Action promotion evidence. Final CI
+  run `31942247550` and CodeQL run `31942247529` passed. Human sessions, community publication and
+  upstream validation remain external; they are tracked in G10-G11 rather than implied by release.
+
+## G6 - Align published facts and the adoption ledger
+
+### Deliverables
+
+- Align `docs/public-contract.json`, both tutorials and the usability environment matrix to the
+  published v0.5.3 state and supported Node 22/24 boundary.
+- Close G5 using the real release, npm, verified-installer, signed `v1`, CI and CodeQL evidence.
+- Extend this canonical plan and its machine check through G11 without creating a parallel roadmap.
+- Replace the historical external handoff register with current completed and pending states.
+
+### Acceptance
+
+- The public contract and release state agree on v0.5.3 and `published` status.
+- Both tutorials download, verify and install v0.5.3 rather than a historical candidate.
+- The usability CLI, schema and fixtures accept Node 22/24 and reject Node 20.
+- The focused adoption and usability checks pass; no full release-artifact rebuild is required.
+
+### Completion record
+
+- Status: in progress.
+- Implementation: public fact alignment and G6-G11 contract extension are being applied.
+- Tests: focused checks pending.
+- Commit / CI: pending.
+- Remaining risks: npm v0.5.3 retains the README embedded at publication time; a later npm version is
+  an owner decision after G10, not a G6 acceptance condition.
+
+## G7 - First-screen trial and explanation path
+
+### Deliverables
+
+- Put `npx --yes web-app-security-skill@0.5.3 audit . --fail-on never` after the product promise and
+  before the GIF in both READMEs.
+- Explain in ordinary language what the report found, what remains unproved, what change is proposed,
+  likely product side effects and how the security and normal behavior retests differ.
+- Move release notes below first use and present the verified installer as the higher-assurance path.
+- Keep explicit-version npm and immutable-commit installation boundaries visible.
+
+### Acceptance
+
+- A visitor can copy the first command without first cloning the repository or reading release notes.
+- English and Chinese first-screen meaning remains aligned and does not promote suspected evidence.
+- Existing public-surface and focused README contract checks pass.
+
+### Completion record
+
+- Status: pending.
+- Implementation: pending.
+- Tests: pending.
+- Commit / CI: pending.
+- Remaining risks: first-screen comprehension remains a design hypothesis until G10 sessions.
+
+## G8 - Demo weight and GitHub public packaging
+
+### Deliverables
+
+- Reduce the deterministic demo transfer size while preserving byte reproducibility, terminal
+  legibility, source traceability and the current real-fixture claim boundary.
+- Add a 1280x640 repository social-preview asset with the product name, first command and bounded
+  evidence message; document the manual GitHub upload separately from repository completion.
+- Prepare a human-readable GitHub Release lead that keeps technical evidence below it.
+- Record the repository homepage choice as an owner decision; do not silently replace it.
+
+### Acceptance
+
+- Every GIF frame remains readable at GitHub README width and the generated digest gate passes.
+- The social asset contains no unverified performance, precision or broad-scanner claim.
+- Repository assets and prepared public copy pass focused generation checks.
+
+### Completion record
+
+- Status: pending.
+- Implementation: pending.
+- Tests: pending.
+- Commit / CI: pending.
+- Remaining risks: GitHub social-preview upload and live Release-body edits require owner-authorized
+  external actions and are not completed by committing assets.
+
+## G9 - Channel copy and regression-accountability article
+
+### Deliverables
+
+- Rewrite channel output through `scripts/generate-adoption-assets.mjs` and structured publication
+  sources; never hand-edit generated channel files.
+- Give Show HN, V2EX, Reddit and X distinct openings centered on first use, readable evidence and
+  bounded capability rather than rule inventory.
+- Add one source-backed article describing four correctness regressions, their minimal reproductions,
+  repairs, planted-failure tests and remaining limits.
+- Add one Japanese Zenn experiment draft; do not mechanically mirror every post in three languages.
+
+### Acceptance
+
+- Copy says `correctness regressions`, not `four P0s`; `external audit` is used only if provenance and
+  publication permission are recorded.
+- No private project path, unpublished code, invented reviewer identity, conversion claim or
+  subjective risk-ranking claim enters generated output.
+- Generator drift and adoption-asset focused tests pass.
+
+### Completion record
+
+- Status: pending.
+- Implementation: pending.
+- Tests: pending.
+- Commit / CI: pending.
+- Remaining risks: prepared drafts do not establish publication, independent endorsement or adoption.
+
+## G10 - Target-user first-use validation
+
+### Deliverables
+
+- Extend the privacy-minimal session schema with entry paths for npx, Claude repository plugin and
+  verified installer while retaining the no-source/no-log data boundary.
+- Run five to ten consented sessions with Web builders who use AI coding tools and do not rely on a
+  security-specialist workflow.
+- Measure command discovery, first-report completion, evidence-state comprehension, patch-side-effect
+  comprehension and security/functional retest distinction.
+- Aggregate only structured observations; keep identities, repository content, paths and terminal
+  logs outside version control.
+
+### Acceptance
+
+- At least four of the first five participants independently reach a first report.
+- Stop broad publication if two participants treat `suspected` as confirmed, or if the same install
+  or command-discovery blockage repeats for two participants.
+- The aggregate reports observations and missing data without converting them into product causality.
+
+### Completion record
+
+- Status: pending; real sessions are `external_validation_pending`.
+- Implementation: pending.
+- Tests: pending.
+- Commit / CI: pending.
+- Remaining risks: fixture success cannot substitute for target-user comprehension.
+
+## G11 - Eligibility-aware discovery and staggered publication
+
+### Deliverables
+
+- Review each external directory's live contribution policy immediately before submission.
+- Defer the `awesome-claude-code` Issue Form until its repository-age gate is met; defer other
+  directories until their real-use, project-age, contribution or positioning requirements are met.
+- Keep MCP registry out of scope until the project actually provides an MCP server.
+- Stagger HN, V2EX and Zenn publication by 48-72 hours and preserve the owner approval gate for each.
+- Capture pre-publication and 24-hour, 72-hour and 7-day GitHub traffic, npm downloads, stars, issues,
+  pull requests and independent references as observations.
+
+### Acceptance
+
+- No listing submission violates the directory's current rules and no community post is automated.
+- Every live action has a URL, timestamp, exact source draft and observation record.
+- Reports describe temporal association only; they do not claim a channel caused a metric change.
+
+### Completion record
+
+- Status: pending; listings and publication are `external_validation_pending`.
+- Implementation: pending.
+- Tests: pending.
+- Commit / CI: pending.
+- Remaining risks: external moderation, timing, audience fit and recommendation remain outside
+  repository control.
 
 ## External handoff register
 
@@ -466,11 +642,14 @@ repository automation alone:
 
 | Action | Prepared in | Completion evidence |
 |---|---|---|
-| Publish an npm package | G2 | registry page, immutable version, provenance, clean external install |
+| Publish npm v0.5.3 | G2/G5 | completed: registry page, immutable version, provenance, fresh-cache external install |
 | Run five independent human sessions | G3 | five consented schema-valid records, aggregate summary |
 | Publish community posts | G4 | live URLs and capture times; edits recorded separately |
 | Contact an upstream project about a suspected vulnerability | G4 | private disclosure record and coordinated public state |
-| Tag/release and move `v1` | G5 | signed tag, release assets/attestation, CI, public consumer run |
+| Tag/release v0.5.3 and move `v1` | G5 | completed: signed tag, release assets/attestation, CI, public consumer run |
+| Upload GitHub social preview or edit live public pages | G8 | live screenshot/URL and capture time |
+| Run five-to-ten target-user sessions | G10 | consented schema-valid records and privacy-safe aggregate |
+| Submit listings or publish channel drafts | G11 | current-rule review, live URL, timestamp and source-draft identity |
 
 External actions stay pending unless their actual evidence exists. A maintainer may choose not to
 perform any of them without invalidating completed repository engineering.
@@ -484,10 +663,13 @@ perform any of them without invalidating completed repository engineering.
 - Stop a case publication if disclosure authorization is absent or evidence is only suspected.
 - Stop a release if version, commit, evidence note, SBOM, checksum, signature, Marketplace metadata,
   or `v1` consumer evidence disagree.
+- Stop broad publication when the G10 completion or comprehension thresholds fail.
+- Stop a directory submission when the project does not meet that directory's current eligibility
+  or contribution rules.
 
 ## Program completion
 
-The repository-engineering program is complete when G0-G5 records are complete, the worktree is
-clean, required CI and live public checks pass, and external-only items are either evidenced or
+The expanded repository-engineering program is complete when G0-G11 records are complete, the
+worktree is clean, required CI and live public checks pass, and external-only items are either evidenced or
 explicitly retained as `external_validation_pending`. Star growth, a five-session result, an npm
 publication, a community post, or an upstream response must never be invented to close the program.

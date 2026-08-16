@@ -43,10 +43,17 @@ try {
   assert.equal(result.status, 0, result.stderr);
 
   const noConsent = join(temp, 'no-consent.json');
-  result = run(['init', '--out', noConsent, '--surface', 'cli', '--os', 'linux', '--node-major', '20']);
+  result = run(['init', '--out', noConsent, '--surface', 'cli', '--os', 'linux', '--node-major', '24']);
   assert.equal(result.status, 2);
   assert.match(result.stderr, /requires --consent/);
   assert.equal(existsSync(noConsent), false);
+
+  const unsupportedNode = join(temp, 'unsupported-node.json');
+  result = run(['init', '--out', unsupportedNode, '--surface', 'cli', '--os', 'linux',
+    '--node-major', '20', '--consent']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /environment\.nodeMajor is invalid/);
+  assert.equal(existsSync(unsupportedNode), false);
 
   result = run(['validate', join(FIXTURES, 'invalid-sensitive.json')]);
   assert.equal(result.status, 2);
@@ -117,6 +124,7 @@ try {
 
   const schema = read(join(ROOT, 'docs', 'usability', 'session.schema.json'));
   assert.equal(schema.additionalProperties, false);
+  assert.deepEqual(schema.properties.environment.properties.nodeMajor.enum, [22, 24]);
   const schemaText = JSON.stringify(schema);
   for (const forbidden of ['name', 'email', 'ipAddress', 'repositoryUrl', 'sourceCode', 'secret', 'terminalLog', 'freeText']) {
     assert.equal(schemaText.includes(`\"${forbidden}\"`), false, `schema must not accept ${forbidden}`);
