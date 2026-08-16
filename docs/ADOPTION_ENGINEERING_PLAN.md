@@ -109,7 +109,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G3 | Privacy-minimal five-session usability kit and deterministic aggregation | completed | `a51640a` + checks below |
 | G4 | Reusable English/Chinese publication and upstream case-study kit | completed | `2618447` + checks below |
 | G5 | Priority fail-closed correctness fixes and v0.5.3 release evidence | completed | v0.5.3 source `621e0bc` + stable state `9c6dc2b` |
-| G6 | Published-state, tutorial, support-matrix and ledger alignment | in progress | focused contract checks pending |
+| G6 | Published-state, tutorial, support-matrix and ledger alignment | completed | `aecaadf` + CI evidence below |
 | G7 | First-screen npx path and ordinary-language result contract | pending | implementation pending |
 | G8 | Legible lightweight demo and accurate GitHub public packaging | pending | implementation pending |
 | G9 | Channel-specific generated copy and regression-accountability article | pending | implementation pending |
@@ -494,10 +494,15 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: in progress.
-- Implementation: public fact alignment and G6-G11 contract extension are being applied.
-- Tests: focused checks pending.
-- Commit / CI: pending.
+- Status: completed 2026-08-16.
+- Implementation: `docs/public-contract.json` now records v0.5.3 as published; both tutorials use
+  the verified v0.5.3 assets; the usability CLI, schema and fixture matrix use Node 22/24; this plan
+  and its checker now cover G0-G11 and distinguish completed v0.5.3 external actions from pending
+  human validation and publication.
+- Tests: `node scripts/check-adoption-contract.mjs`, `node test/usability-study.test.mjs` and
+  `git diff --check` passed. A focused stale-fact search returned no matching current surfaces.
+- Commit / CI: implementation `aecaadfd49401d2b6e6c2f315a18eccc9d06e2dc`; CI run
+  `31943146277` passed the Ubuntu/macOS Node 22/24 matrix and CodeQL run `31943146320` passed.
 - Remaining risks: npm v0.5.3 retains the README embedded at publication time; a later npm version is
   an owner decision after G10, not a G6 acceptance condition.
 
