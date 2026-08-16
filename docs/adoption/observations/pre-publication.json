@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "window": "pre_publication",
+  "capturedAt": "2026-08-16T11:35:40Z",
+  "channelContext": {
+    "state": "before_publication",
+    "channel": null,
+    "publishedAt": null,
+    "liveUrl": null,
+    "sourceDraft": null
+  },
+  "metrics": {
+    "github": {
+      "trafficWindowDays": 14,
+      "views": 147,
+      "uniqueVisitors": 14,
+      "clones": 1213,
+      "uniqueCloners": 323,
+      "stars": 4,
+      "forks": 0,
+      "watchers": 0,
+      "openIssues": 4,
+      "openPullRequests": 0
+    },
+    "npmWeeklyDownloads": null,
+    "actionMarketplaceInstalls": null,
+    "independentReferences": null
+  },
+  "missingData": [
+    "npm downloads API returned HTTP 404 for the new package at capture time",
+    "GitHub Marketplace does not expose a supported Action install-count API here",
+    "independent references require a bounded manual review and were not measured"
+  ],
+  "causalAttribution": false,
+  "limitations": [
+    "GitHub traffic is a rolling 14-day counter and includes author, CI, automation and crawler activity.",
+    "Clone and view totals are not counts of independent users or successful first reports.",
+    "A later metric change can be temporally associated with a publication window but cannot establish channel causality."
+  ]
+}

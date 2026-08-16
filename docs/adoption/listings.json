@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-08-16T11:35:40Z",
+  "projectFacts": {
+    "repository": "https://github.com/parousia8888/web-app-security-skill",
+    "firstDefaultBranchCommit": "b52288fd52af9f23195e75d6bb845f6ac2d3e8b9",
+    "firstCommitAt": "2026-08-12T15:53:35Z",
+    "stars": 4,
+    "contributors": 1,
+    "hasMcpServer": false
+  },
+  "candidates": [
+    {
+      "id": "awesome-claude-code",
+      "repository": "https://github.com/hesreallyhim/awesome-claude-code",
+      "policyCommit": "d95c1126a7a28823fe773562558ebcaa679ec03d",
+      "policyPaths": ["CONTRIBUTING.md", ".github/ISSUE_TEMPLATE/recommend-resource.yml"],
+      "submissionMethod": "human_web_issue_form_only",
+      "status": "ineligible",
+      "unmetRules": ["at_least_14_days_old_or_100_stars"],
+      "earliestAgeRecheckAt": "2026-08-26T15:53:35Z",
+      "notes": "The project has continued development after its first day and provides a Claude repository plugin, but currently meets neither the 14-day nor 100-star branch of the rule. Do not use gh CLI or a pull request for this recommendation."
+    },
+    {
+      "id": "awesome-agent-skills",
+      "repository": "https://github.com/VoltAgent/awesome-agent-skills",
+      "policyCommit": "7a7990ea8b3dc5410f20cdca6680529ff65a40b9",
+      "policyPaths": ["CONTRIBUTING.md"],
+      "submissionMethod": "pull_request",
+      "status": "ineligible",
+      "unmetRules": ["real_community_usage_not_yet_evidenced", "brand_new_skill"],
+      "earliestAgeRecheckAt": null,
+      "notes": "The policy gives no numeric maturity threshold. Repository-authored fixtures, CI traffic and release activity do not establish real community usage. Recheck only after independent usage evidence exists."
+    },
+    {
+      "id": "awesome-devsecops",
+      "repository": "https://github.com/devsecops/awesome-devsecops",
+      "policyCommit": "1704e442a30ca21caeb05e8721eb26855129c86b",
+      "policyPaths": ["README.md", "CONTRIBUTING.md"],
+      "submissionMethod": "owner_review_required",
+      "status": "eligible_on_documented_scope",
+      "unmetRules": [],
+      "earliestAgeRecheckAt": null,
+      "notes": "The published scope accepts free or open-source capabilities that support DevSecOps, which the CLI and Action can satisfy. CONTRIBUTING.md is empty and gives no current submission format, so recheck repository practice before any owner-authorized pull request."
+    },
+    {
+      "id": "static-analysis",
+      "repository": "https://github.com/analysis-tools-dev/static-analysis",
+      "policyCommit": "66668c6cc5b2db72d0233033efe7ccf2c489aaf8",
+      "policyPaths": ["CONTRIBUTING.md"],
+      "submissionMethod": "pull_request_with_data_tool_yaml",
+      "status": "ineligible",
+      "unmetRules": ["more_than_one_contributor", "more_than_20_stars", "at_least_three_months_old"],
+      "earliestAgeRecheckAt": "2026-11-12T15:53:35Z",
+      "notes": "The project currently has one contributor and four stars and is under three months old. Its built-in checks are bounded first-pass analysis, so positioning fit must also be rechecked after the numeric rules are met."
+    },
+    {
+      "id": "mcp-registry",
+      "repository": null,
+      "policyCommit": null,
+      "policyPaths": [],
+      "submissionMethod": "none",
+      "status": "out_of_scope",
+      "unmetRules": ["no_mcp_server_implemented"],
+      "earliestAgeRecheckAt": null,
+      "notes": "Do not submit a Skill or CLI to an MCP registry. Reconsider only after an MCP server exists and has its own capability and security contract."
+    }
+  ],
+  "externalState": "external_validation_pending"
+}

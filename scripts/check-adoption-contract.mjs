@@ -9,6 +9,10 @@ const releaseState = JSON.parse(readFileSync(`${ROOT}/docs/release-state.json`, 
 const sessionSchema = JSON.parse(readFileSync(`${ROOT}/docs/usability/session.schema.json`, 'utf8'));
 const tutorial = readFileSync(`${ROOT}/docs/tutorial.md`, 'utf8');
 const tutorialZh = readFileSync(`${ROOT}/docs/tutorial.zh-CN.md`, 'utf8');
+const listings = JSON.parse(readFileSync(`${ROOT}/docs/adoption/listings.json`, 'utf8'));
+const publicationSchedule = JSON.parse(readFileSync(`${ROOT}/docs/adoption/publication-schedule.json`, 'utf8'));
+const observationSchema = JSON.parse(readFileSync(`${ROOT}/docs/adoption/observation.schema.json`, 'utf8'));
+const prePublication = JSON.parse(readFileSync(`${ROOT}/docs/adoption/observations/pre-publication.json`, 'utf8'));
 const normalizedPlan = plan.replace(/\s+/g, ' ').trim();
 let failed = false;
 
@@ -79,6 +83,46 @@ for (const field of [
     console.error(`adoption contract: usability schema is missing ${field}`);
     failed = true;
   }
+}
+
+const listingIds = listings.candidates.map((item) => item.id);
+for (const id of ['awesome-claude-code', 'awesome-agent-skills', 'awesome-devsecops', 'static-analysis', 'mcp-registry']) {
+  if (!listingIds.includes(id)) {
+    console.error(`adoption contract: listing register is missing ${id}`);
+    failed = true;
+  }
+}
+const mcpListing = listings.candidates.find((item) => item.id === 'mcp-registry');
+if (listings.projectFacts.hasMcpServer !== false || mcpListing?.status !== 'out_of_scope'
+    || !mcpListing.unmetRules.includes('no_mcp_server_implemented')) {
+  console.error('adoption contract: MCP registry must remain out of scope without an MCP server');
+  failed = true;
+}
+for (const item of listings.candidates.filter((candidate) => candidate.repository)) {
+  if (!/^[a-f0-9]{40}$/.test(item.policyCommit || '') || !item.policyPaths.length) {
+    console.error(`adoption contract: ${item.id} policy review is not commit-pinned`);
+    failed = true;
+  }
+}
+if (publicationSchedule.ownerApprovalRequiredPerAction !== true
+    || publicationSchedule.automatedPostingAllowed !== false
+    || publicationSchedule.minimumGapHours !== 48
+    || publicationSchedule.maximumPlannedGapHours !== 72
+    || JSON.stringify(publicationSchedule.plannedOrder.map((item) => item.channel))
+      !== JSON.stringify(['show_hn', 'v2ex', 'zenn'])
+    || publicationSchedule.plannedOrder.some((item) =>
+      item.state !== 'external_validation_pending' || item.liveUrl !== null || item.publishedAt !== null)) {
+  console.error('adoption contract: publication order, spacing or owner gate drifted');
+  failed = true;
+}
+if (JSON.stringify(publicationSchedule.observationWindows.map((item) => item.offsetHours))
+    !== JSON.stringify([0, 24, 72, 168])
+    || observationSchema.properties.causalAttribution.const !== false
+    || prePublication.window !== 'pre_publication'
+    || prePublication.causalAttribution !== false
+    || prePublication.channelContext.state !== 'before_publication') {
+  console.error('adoption contract: non-causal observation windows drifted');
+  failed = true;
 }
 
 if (/(?:stars?|forks?)\s*(?:>=|>|=)\s*\d+|(?:stars?|forks?)\s+target\s*:\s*\d+/i.test(plan)) {

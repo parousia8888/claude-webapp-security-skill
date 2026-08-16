@@ -114,7 +114,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G8 | Legible lightweight demo and accurate GitHub public packaging | completed | `5b06863` + CI evidence below |
 | G9 | Channel-specific generated copy and regression-accountability article | completed | `41dd0b2` + CI evidence below |
 | G10 | Five-to-ten-person target-user validation kit and stop rules | completed | `e021649` + CI evidence below; sessions external |
-| G11 | Eligibility-aware listings, staggered publication and observation ledger | pending | external actions remain owner-gated |
+| G11 | Eligibility-aware listings, staggered publication and observation ledger | in progress | focused checks passed; remote gates pending |
 
 ## G0 - Adoption contract and measurable baseline
 
@@ -669,10 +669,21 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: pending; listings and publication are `external_validation_pending`.
-- Implementation: pending.
-- Tests: pending.
-- Commit / CI: pending.
+- Status: in progress; repository engineering and focused local checks completed 2026-08-16;
+  listings and publication remain `external_validation_pending`.
+- Implementation: `docs/adoption/listings.json` binds four directory reviews to immutable upstream
+  policy commits and records current eligibility without submitting. Awesome Claude Code, Awesome
+  Agent Skills and Static Analysis remain ineligible under their current age, usage, star or
+  contributor rules; Awesome DevSecOps is eligible on documented scope but requires a live practice
+  review because its contribution file is empty. MCP remains excluded without an MCP server. The
+  publication schedule requires separate owner approval, forbids automated posting and spaces Show
+  HN, V2EX and Zenn by 48-72 hours. A strict observation schema covers pre-publication, 24-hour,
+  72-hour and 7-day windows with `causalAttribution: false`.
+- Tests: `node test/adoption-discovery.test.mjs`, `node scripts/check-adoption-contract.mjs`, JSON and
+  JavaScript syntax checks and `git diff --check` passed. The pre-publication snapshot records GitHub
+  rolling traffic and public counts; unavailable npm, Marketplace and independent-reference values
+  remain null with explicit missing-data reasons.
+- Commit / CI: implementation commit and remote CI/CodeQL pending.
 - Remaining risks: external moderation, timing, audience fit and recommendation remain outside
   repository control.
 

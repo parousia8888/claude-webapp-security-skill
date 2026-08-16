@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adoption/observation.schema.json",
+  "title": "Adoption observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "window", "capturedAt", "channelContext", "metrics",
+    "missingData", "causalAttribution", "limitations"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "window": { "enum": ["pre_publication", "h24", "h72", "d7"] },
+    "capturedAt": { "type": "string", "format": "date-time" },
+    "channelContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "channel", "publishedAt", "liveUrl", "sourceDraft"],
+      "properties": {
+        "state": { "enum": ["before_publication", "channel_published"] },
+        "channel": { "type": ["string", "null"], "enum": ["show_hn", "v2ex", "zenn", null] },
+        "publishedAt": { "type": ["string", "null"], "format": "date-time" },
+        "liveUrl": { "type": ["string", "null"], "format": "uri" },
+        "sourceDraft": { "type": ["string", "null"] }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["github", "npmWeeklyDownloads", "actionMarketplaceInstalls", "independentReferences"],
+      "properties": {
+        "github": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "trafficWindowDays", "views", "uniqueVisitors", "clones", "uniqueCloners",
+            "stars", "forks", "watchers", "openIssues", "openPullRequests"
+          ],
+          "properties": {
+            "trafficWindowDays": { "const": 14 },
+            "views": { "type": ["integer", "null"], "minimum": 0 },
+            "uniqueVisitors": { "type": ["integer", "null"], "minimum": 0 },
+            "clones": { "type": ["integer", "null"], "minimum": 0 },
+            "uniqueCloners": { "type": ["integer", "null"], "minimum": 0 },
+            "stars": { "type": ["integer", "null"], "minimum": 0 },
+            "forks": { "type": ["integer", "null"], "minimum": 0 },
+            "watchers": { "type": ["integer", "null"], "minimum": 0 },
+            "openIssues": { "type": ["integer", "null"], "minimum": 0 },
+            "openPullRequests": { "type": ["integer", "null"], "minimum": 0 }
+          }
+        },
+        "npmWeeklyDownloads": { "type": ["integer", "null"], "minimum": 0 },
+        "actionMarketplaceInstalls": { "type": ["integer", "null"], "minimum": 0 },
+        "independentReferences": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "missingData": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "causalAttribution": { "const": false },
+    "limitations": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+  }
+}

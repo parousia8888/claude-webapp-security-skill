@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "ownerApprovalRequiredPerAction": true,
+  "automatedPostingAllowed": false,
+  "minimumGapHours": 48,
+  "maximumPlannedGapHours": 72,
+  "plannedOrder": [
+    {
+      "sequence": 1,
+      "channel": "show_hn",
+      "sourceDraft": "docs/adoption/channels/show-hn.md",
+      "state": "external_validation_pending",
+      "publishedAt": null,
+      "liveUrl": null
+    },
+    {
+      "sequence": 2,
+      "channel": "v2ex",
+      "sourceDraft": "docs/adoption/channels/v2ex.md",
+      "state": "external_validation_pending",
+      "publishedAt": null,
+      "liveUrl": null
+    },
+    {
+      "sequence": 3,
+      "channel": "zenn",
+      "sourceDraft": "docs/adoption/channels/zenn-ja.md",
+      "state": "external_validation_pending",
+      "publishedAt": null,
+      "liveUrl": null
+    }
+  ],
+  "observationWindows": [
+    { "id": "pre_publication", "offsetHours": 0 },
+    { "id": "h24", "offsetHours": 24 },
+    { "id": "h72", "offsetHours": 72 },
+    { "id": "d7", "offsetHours": 168 }
+  ],
+  "interpretation": "Record temporal association only. Do not claim that a channel caused a metric change.",
+  "externalState": "external_validation_pending"
+}
