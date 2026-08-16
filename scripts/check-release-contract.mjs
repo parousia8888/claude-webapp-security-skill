@@ -16,8 +16,8 @@ const workflows = [
 const RELEASE_ACTION_COMMIT = '010ef34c2e87b12b7f1e2502c0260074d131dd01';
 const BOOTSTRAP_COMMIT = 'e98779a4c52a2be38e3dfe490d0ef321eb8e80f6';
 const BOOTSTRAP_SHA256 = 'fb54e65ca2269c941fd2a13a9bce20ecb67de2789fb318527fbb86a5b3949085';
-const VERIFIER_COMMIT = 'e56a3f64de98152aa945f5a45b58f13e3cdc0bc3';
-const VERIFIER_SHA256 = '263b3fa92b07cfffef0dc1e0e4f753019bea707c95c20fcd434ce9ceba102156';
+const VERIFIER_COMMIT = '7edde5b9a3882198911e212035025be8c369c944';
+const VERIFIER_SHA256 = '6eecdf833b3ce3495c58baf161806c5c42bec9dba3837b910f213ff3881eb0f7';
 let failed = false;
 
 function requireText(path, marker) {
