@@ -113,7 +113,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G7 | First-screen npx path and ordinary-language result contract | completed | `fad6efe` + CI evidence below |
 | G8 | Legible lightweight demo and accurate GitHub public packaging | completed | `5b06863` + CI evidence below |
 | G9 | Channel-specific generated copy and regression-accountability article | completed | `41dd0b2` + CI evidence below |
-| G10 | Five-to-ten-person target-user validation kit and stop rules | in progress | focused checks passed; remote gates pending |
+| G10 | Five-to-ten-person target-user validation kit and stop rules | completed | `e021649` + CI evidence below; sessions external |
 | G11 | Eligibility-aware listings, staggered publication and observation ledger | pending | external actions remain owner-gated |
 
 ## G0 - Adoption contract and measurable baseline
@@ -632,7 +632,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: in progress; repository engineering and focused local checks completed 2026-08-16;
+- Status: repository engineering completed 2026-08-16;
   real sessions remain `external_validation_pending`.
 - Implementation: the privacy-minimal record is now `first-use-v2`, with anonymous contiguous
   session order 1-10 and explicit `npx`, `claude_repository_plugin` and `verified_installer` entry
@@ -645,7 +645,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   fixture JSON parsing, `node --check scripts/usability-study.mjs` and `git diff --check` passed.
   Fixtures cover all three entry paths, a five-record owner-review result and a five-record stop that
   independently triggers first-report, suspected-state and repeated-blockage thresholds.
-- Commit / CI: implementation commit and remote CI/CodeQL pending.
+- Commit / CI: implementation `e021649d15b0646bc1384257d359ba952ca7e9fa`; CI run
+  `31944512392` passed the Ubuntu/macOS Node 22/24 matrix and CodeQL run `31944512366` passed.
 - Remaining risks: fixture success cannot substitute for target-user comprehension.
 
 ## G11 - Eligibility-aware discovery and staggered publication
