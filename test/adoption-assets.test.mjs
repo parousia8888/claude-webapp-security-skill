@@ -29,7 +29,7 @@ function runRenderer(value, name) {
 try {
   let result = spawnSync(process.execPath, [GENERATOR, '--check'], { cwd: ROOT, encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /10 files, 24 capabilities, 5 journeys, 5 studies/);
+  assert.match(result.stdout, /11 files, 24 capabilities, 5 journeys, 5 studies/);
 
   const schema = JSON.parse(readFileSync(join(ROOT, 'docs', 'case-studies', 'template.schema.json'), 'utf8'));
   assert.equal(schema.properties.source.properties.commit.pattern, '^[a-f0-9]{40}$');
@@ -112,12 +112,14 @@ try {
     'channels/x-short-post.md',
     'channels/v2ex.md',
     'channels/chinese-developer-community.md',
+    'github-release-lead.md',
   ].map((path) => readFileSync(join(ROOT, 'docs', 'adoption', path), 'utf8')).join('\n');
   assert.doesNotMatch(generated, /precision (?:rate|score|of)|universal scanner|upstream (?:approved|validated|endorsed) us/i);
   assert.doesNotMatch(generated, /13\s+(?:high|HIGH)/);
   assert.match(generated, /OS command injection lead \(CWE-78\)/);
   assert.match(generated, /11 useful leads, 27 expected benign matches, 1 unknown and 4 confirmed/);
   assert.match(generated, /external_validation_pending|Publication status: draft|发布状态：草稿/);
+  assert.match(generated, /npx --yes web-app-security-skill@0\.5\.3 audit \. --fail-on never/);
 
   console.log('✓ adoption assets: structured claims, channel drafts, no-live-target case and fail-closed fields');
 } finally {

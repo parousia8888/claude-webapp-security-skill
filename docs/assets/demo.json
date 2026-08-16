@@ -11,8 +11,8 @@
   "height": 472,
   "frames": 5,
   "durationMilliseconds": 11000,
-  "bytes": 2742052,
-  "sha256": "b962ab1aeecac9a24756c0330cca0cbefe50e03a86e122a72c977f97117321df",
+  "bytes": 29581,
+  "sha256": "b2071d50659915b00e436379eb0ce0aa51cac22ddf385c850eac73bc774f32d1",
   "result": {
     "schemaVersion": 2,
     "generator": "scripts/demo.mjs",

@@ -111,7 +111,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G5 | Priority fail-closed correctness fixes and v0.5.3 release evidence | completed | v0.5.3 source `621e0bc` + stable state `9c6dc2b` |
 | G6 | Published-state, tutorial, support-matrix and ledger alignment | completed | `aecaadf` + CI evidence below |
 | G7 | First-screen npx path and ordinary-language result contract | completed | `fad6efe` + CI evidence below |
-| G8 | Legible lightweight demo and accurate GitHub public packaging | pending | implementation pending |
+| G8 | Legible lightweight demo and accurate GitHub public packaging | in progress | focused media checks passed; remote evidence pending |
 | G9 | Channel-specific generated copy and regression-accountability article | pending | implementation pending |
 | G10 | Five-to-ten-person target-user validation kit and stop rules | pending | real sessions remain external |
 | G11 | Eligibility-aware listings, staggered publication and observation ledger | pending | external actions remain owner-gated |
@@ -557,9 +557,17 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: pending.
-- Implementation: pending.
-- Tests: pending.
+- Status: in progress.
+- Implementation: the repository GIF encoder now uses a real bounded GIF LZW dictionary instead of
+  literal-only codes, reducing the same five-frame 840x472 demo from 2,742,052 to 29,581 bytes. A
+  deterministic indexed-PNG encoder and generator produce a 1280x640, 3,288-byte social preview
+  from the published release state. `docs/github-metadata.json` records the asset, pending live upload
+  and pending homepage owner decision. The adoption generator now prepares a human-readable GitHub
+  Release lead while retaining the existing evidence section.
+- Tests: `node test/demo-gif.test.mjs`, `node test/social-preview.test.mjs`,
+  `node test/adoption-assets.test.mjs`, the social-preview drift check and `git diff --check` passed.
+  ImageMagick and FFmpeg decoded all five GIF frames; visual inspection of the five-frame contact
+  sheet and full-resolution social preview found no clipping or incoherent overlap.
 - Commit / CI: pending.
 - Remaining risks: GitHub social-preview upload and live Release-body edits require owner-authorized
   external actions and are not completed by committing assets.

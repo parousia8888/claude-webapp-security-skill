@@ -7,6 +7,14 @@
   },
   "description": "Scope, audit, harden, and retest web projects with AI coding agents and reproducible evidence.",
   "homepage": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/tutorial.md",
+  "homepageDecision": "owner_decision_pending",
+  "socialPreview": {
+    "asset": "docs/assets/social-preview.png",
+    "metadata": "docs/assets/social-preview.json",
+    "width": 1280,
+    "height": 640,
+    "liveUpload": "external_validation_pending"
+  },
   "topics": [
     "agent-skills",
     "ai-crawlers",

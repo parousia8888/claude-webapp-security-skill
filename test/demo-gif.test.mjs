@@ -33,7 +33,7 @@ assert.equal(metadata.result.securityRetest.baselineState, 'fixed');
 assert.equal(metadata.result.functionalRetest.status, 'passed');
 assert.equal(metadata.sha256, createHash('sha256').update(gif).digest('hex'));
 assert.equal(metadata.bytes, gif.length);
-assert.ok(gif.length < 5_000_000, `demo GIF is too large: ${gif.length}`);
+assert.ok(gif.length < 250_000, `demo GIF compression regressed: ${gif.length}`);
 
 for (const readme of ['README.md', 'README.zh-CN.md']) {
   const text = readFileSync(join(ROOT, readme), 'utf8');

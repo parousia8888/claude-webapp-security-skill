@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "generator": "scripts/generate-social-preview.mjs",
+  "sources": [
+    "docs/release-state.json",
+    "docs/github-metadata.json"
+  ],
+  "width": 1280,
+  "height": 640,
+  "bytes": 3288,
+  "sha256": "bc9f20fc5abe983af3833121ca6582ab552fee8d2afb4300ff904669a0614427",
+  "version": "0.5.3",
+  "command": "npx --yes web-app-security-skill@0.5.3 audit . --fail-on never",
+  "boundary": "repository-owned-deterministic-public-metadata",
+  "liveUpload": "external_validation_pending"
+}

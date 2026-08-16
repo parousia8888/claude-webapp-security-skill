@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { deflateSync } from 'node:zlib';
 
 const FONT = {
   ' ': ['00000','00000','00000','00000','00000','00000','00000'],
@@ -54,6 +55,7 @@ const FONT = {
   ')': ['01000','00100','00010','00010','00010','00100','01000'],
   ',': ['00000','00000','00000','00000','00110','00100','01000'],
   '#': ['01010','11111','01010','01010','11111','01010','00000'],
+  '@': ['01110','10001','10111','10101','10111','10000','01110'],
 };
 
 export const PALETTE = [
@@ -123,30 +125,57 @@ function packCodes(codes) {
   return output;
 }
 
-function lzwLiteralStream(pixels, minimumCodeSize) {
+function lzwCompressedStream(pixels, minimumCodeSize) {
   const clear = 1 << minimumCodeSize;
   const end = clear + 1;
-  const codes = [{ code: clear, size: minimumCodeSize + 1 }];
-  let codeSize = minimumCodeSize + 1;
+  const rawCodes = [clear];
+  let transitions = new Map();
   let nextCode = end + 1;
-  let hasPrevious = false;
 
-  for (const pixel of pixels) {
-    codes.push({ code: pixel, size: codeSize });
-    if (hasPrevious) {
-      nextCode += 1;
-      if (nextCode === 4096) {
-        codes.push({ code: clear, size: codeSize });
-        codeSize = minimumCodeSize + 1;
-        nextCode = end + 1;
-        hasPrevious = false;
+  if (pixels.length > 0) {
+    let prefix = pixels[0];
+    for (let index = 1; index < pixels.length; index += 1) {
+      const pixel = pixels[index];
+      const key = prefix * 256 + pixel;
+      const known = transitions.get(key);
+      if (known !== undefined) {
+        prefix = known;
         continue;
       }
-      if (nextCode === (1 << codeSize) && codeSize < 12) codeSize += 1;
+      rawCodes.push(prefix);
+      if (nextCode < 4096) {
+        transitions.set(key, nextCode);
+        nextCode += 1;
+      } else {
+        rawCodes.push(clear);
+        transitions = new Map();
+        nextCode = end + 1;
+      }
+      prefix = pixel;
     }
-    hasPrevious = true;
+    rawCodes.push(prefix);
   }
-  codes.push({ code: end, size: codeSize });
+  rawCodes.push(end);
+
+  const codes = [];
+  let codeSize = minimumCodeSize + 1;
+  let decoderNextCode = end + 1;
+  let hasPrevious = false;
+
+  for (const code of rawCodes) {
+    codes.push({ code, size: codeSize });
+    if (code === clear) {
+      codeSize = minimumCodeSize + 1;
+      decoderNextCode = end + 1;
+      hasPrevious = false;
+    } else if (code !== end) {
+      if (hasPrevious && decoderNextCode < 4096) {
+        decoderNextCode += 1;
+        if (decoderNextCode === (1 << codeSize) && codeSize < 12) codeSize += 1;
+      }
+      hasPrevious = true;
+    }
+  }
   return packCodes(codes);
 }
 
@@ -177,7 +206,7 @@ export function encodeGif({ width, height, frames, palette = PALETTE, loop = 0 }
   );
   for (const frame of frames) {
     assert.equal(frame.pixels.length, width * height);
-    const compressed = lzwLiteralStream(frame.pixels, colorBits);
+    const compressed = lzwCompressedStream(frame.pixels, colorBits);
     output.push(
       0x21, 0xf9, 0x04, 0x00, ...word(frame.delay), 0, 0,
       0x2c, ...word(0), ...word(0), ...word(width), ...word(height), 0,
@@ -187,4 +216,46 @@ export function encodeGif({ width, height, frames, palette = PALETTE, loop = 0 }
   }
   output.push(0x3b);
   return Buffer.from(output);
+}
+
+function crc32(buffer) {
+  let value = 0xffffffff;
+  for (const byte of buffer) {
+    value ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      value = (value >>> 1) ^ ((value & 1) ? 0xedb88320 : 0);
+    }
+  }
+  return (value ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data = Buffer.alloc(0)) {
+  const name = Buffer.from(type, 'ascii');
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  const checksum = Buffer.alloc(4);
+  checksum.writeUInt32BE(crc32(Buffer.concat([name, data])));
+  return Buffer.concat([length, name, data, checksum]);
+}
+
+export function encodePng(canvas, palette = PALETTE) {
+  assert.equal(canvas.pixels.length, canvas.width * canvas.height);
+  assert.ok(palette.length > 0 && palette.length <= 256);
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(canvas.width, 0);
+  header.writeUInt32BE(canvas.height, 4);
+  header.set([8, 3, 0, 0, 0], 8);
+  const rows = Buffer.alloc((canvas.width + 1) * canvas.height);
+  for (let row = 0; row < canvas.height; row += 1) {
+    const outputOffset = row * (canvas.width + 1);
+    rows[outputOffset] = 0;
+    rows.set(canvas.pixels.subarray(row * canvas.width, (row + 1) * canvas.width), outputOffset + 1);
+  }
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk('IHDR', header),
+    pngChunk('PLTE', Buffer.from(palette.flat())),
+    pngChunk('IDAT', deflateSync(rows, { level: 9 })),
+    pngChunk('IEND'),
+  ]);
 }
