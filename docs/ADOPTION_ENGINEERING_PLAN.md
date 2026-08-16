@@ -112,7 +112,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G6 | Published-state, tutorial, support-matrix and ledger alignment | completed | `aecaadf` + CI evidence below |
 | G7 | First-screen npx path and ordinary-language result contract | completed | `fad6efe` + CI evidence below |
 | G8 | Legible lightweight demo and accurate GitHub public packaging | completed | `5b06863` + CI evidence below |
-| G9 | Channel-specific generated copy and regression-accountability article | in progress | focused checks passed; remote gates pending |
+| G9 | Channel-specific generated copy and regression-accountability article | completed | `41dd0b2` + CI evidence below |
 | G10 | Five-to-ten-person target-user validation kit and stop rules | pending | real sessions remain external |
 | G11 | Eligibility-aware listings, staggered publication and observation ledger | pending | external actions remain owner-gated |
 
@@ -595,7 +595,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: in progress; implementation and focused local checks completed 2026-08-16.
+- Status: completed 2026-08-16.
 - Implementation: publication schema v2 now fixes the published npx first-run command and copy
   guardrails. A structured four-case regression source generates the accountability article, each
   reproduction, repair, failure-plant expectation and remaining evidence boundary. Show HN, Reddit,
@@ -606,7 +606,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   `node test/adoption-assets.test.mjs`, `node scripts/check-adoption-contract.mjs`, forbidden-copy
   search and `git diff --check` passed. The generator now checks 13 outputs and rejects incomplete
   regression evidence or a short post over 280 characters.
-- Commit / CI: implementation commit and remote CI/CodeQL pending.
+- Commit / CI: implementation `41dd0b25d4cccf743f905f37221ceafcc7af8bef`; CI run
+  `31944149992` passed the Ubuntu/macOS Node 22/24 matrix and CodeQL run `31944150036` passed.
 - Remaining risks: prepared drafts do not establish publication, independent endorsement or adoption.
 
 ## G10 - Target-user first-use validation
