@@ -6,6 +6,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const plan = readFileSync(`${ROOT}/docs/ADOPTION_ENGINEERING_PLAN.md`, 'utf8');
 const publicContract = JSON.parse(readFileSync(`${ROOT}/docs/public-contract.json`, 'utf8'));
 const releaseState = JSON.parse(readFileSync(`${ROOT}/docs/release-state.json`, 'utf8'));
+const currentVersion = readFileSync(`${ROOT}/VERSION`, 'utf8').trim();
 const sessionSchema = JSON.parse(readFileSync(`${ROOT}/docs/usability/session.schema.json`, 'utf8'));
 const tutorial = readFileSync(`${ROOT}/docs/tutorial.md`, 'utf8');
 const tutorialZh = readFileSync(`${ROOT}/docs/tutorial.zh-CN.md`, 'utf8');
@@ -49,9 +50,15 @@ if (completionRecords !== 12) {
 }
 
 const publishedVersion = releaseState.publishedRelease.version;
-if (publicContract.currentSourceRelease.version !== publishedVersion
-    || publicContract.currentSourceRelease.status !== 'published') {
-  console.error('adoption contract: public source release must match the published release state');
+const currentSource = publicContract.currentSourceRelease;
+if (currentSource.status === 'published' && currentSource.version !== publishedVersion) {
+  console.error('adoption contract: published public source must match the published release state');
+  failed = true;
+} else if (currentSource.status === 'candidate' && currentSource.version !== currentVersion) {
+  console.error('adoption contract: candidate public source must match VERSION');
+  failed = true;
+} else if (!['published', 'candidate'].includes(currentSource.status)) {
+  console.error('adoption contract: public source status must be published or candidate');
   failed = true;
 }
 for (const [label, value] of [['English tutorial', tutorial], ['Chinese tutorial', tutorialZh]]) {

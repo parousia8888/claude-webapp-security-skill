@@ -34,7 +34,7 @@ neither is a representative accuracy benchmark.
 
 ## MCP and rule expansion
 
-No MCP server ships in v0.5.3. npm/npx, the ordinary CLI and the Claude plugin invoke the current
+No MCP server ships in v0.5.4. npm/npx, the ordinary CLI and the Claude plugin invoke the current
 runtime. Additional stable rules are also outside this release; the current count remains 20
 built-in risk rules plus two evidence-integrity rules. The documented architecture gates require a
 permission model and client evidence for MCP, and positive/negative fixtures plus false-positive

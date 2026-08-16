@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="#see-the-result">Demo</a> ·
-  <a href="#whats-new-in-v053">v0.5.3</a> ·
+  <a href="#whats-new-in-v054">v0.5.4</a> ·
   <a href="#install">Install</a> ·
   <a href="#run-the-first-project">First project</a> ·
   <a href="docs/tutorial.md">Tutorial</a> ·
@@ -27,7 +27,7 @@
 </p>
 
 ```bash
-npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+npx --yes web-app-security-skill audit . --fail-on never
 ```
 
 `--fail-on never` lets the first report finish without turning a suspected lead into a failing CI
@@ -69,25 +69,21 @@ check reruns the fixture and fails if any surface disagrees.
 For the complete install-to-uninstall path, follow the tested
 [first project tutorial](docs/tutorial.md).
 
-## What's new in v0.5.3
+## What's new in v0.5.4
 
-v0.5.3 makes the existing runtime easier to try and quieter to review without increasing the stable
-rule count:
+v0.5.4 corrects how detector evidence is named and adds executable guards for failures seen during
+real project review. It does not increase the stable detector count:
 
-- **Zero-install npm trial:** `npx web-app-security-skill@0.5.3` runs the real CLI from an explicit
-  package allowlist. The package excludes tests, engineering plans and adoption working notes.
-- **Claude plugin marketplace:** one shell line registers this repository's marketplace and installs
-  `web-app-security-skill@web-app-security`. It reuses the root `SKILL.md` and the same runtime.
-- **Review only the current change:** `--since <ref>` keeps built-in findings on added Git lines;
-  `--staged` audits an isolated index snapshot and excludes unstaged content. Both record their base
-  and selection counts. They do not support external adapters or baseline/retest claims, and a clean
-  diff does not establish whole-repository safety.
-- **Reproducible rule-contract conformance:** all 20 built-in risk and 2 evidence-integrity rules
-  publish exact planted-positive, planted-negative and evidence-state pass/fail results. All 22
-  declared contracts currently pass. The author maintains both the rules and examples, so this is
-  change-detection evidence, not production vulnerability accuracy.
-- **Limits are public:** [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) records parser boundaries,
-  recurring expected matches, incremental exclusions and conformance interpretation.
+- **Accurate evidence name:** the author-maintained planted suite is now rule-contract conformance,
+  with 22 positive/negative/state contracts. It no longer uses TP/FP language that could be quoted
+  as production accuracy.
+- **Observed failures become gates:** four historical correctness failures and one numeric-SVG DOM
+  sink review case now execute against product code. The fifth remains a visible
+  `expected_benign_match`; no blanket suppression is added.
+- **Try-now command follows npm latest:** the main-branch first trial omits a version pin. Reusable
+  CI, signed releases and verified installation remain fixed to a version or full commit.
+- **No detector-count inflation:** stable detection remains 20 built-in risk rules, 2
+  evidence-integrity rules and 8 opt-in external-adapter rules.
 
 The v0.5.0 explanation contract remains: every v3 source finding includes the professional term,
 ordinary-language meaning, realistic consequence, evidence boundary, reviewable proposal,
@@ -111,7 +107,7 @@ The signed v0.5.3 GitHub assets and provenance, verified installer, public npm p
 Try the CLI without keeping an installation:
 
 ```bash
-npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+npx --yes web-app-security-skill audit . --fail-on never
 ```
 
 ### Claude Code plugin

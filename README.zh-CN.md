@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="#查看结果">Demo</a> ·
-  <a href="#v053-新增内容">v0.5.3</a> ·
+  <a href="#v054-新增内容">v0.5.4</a> ·
   <a href="#安装">安装</a> ·
   <a href="#执行第一个项目">首个项目</a> ·
   <a href="docs/tutorial.zh-CN.md">完整教程</a> ·
@@ -29,7 +29,7 @@
 > 把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。
 
 ```bash
-npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+npx --yes web-app-security-skill audit . --fail-on never
 ```
 
 `--fail-on never` 让第一次报告完整生成，不会把 suspected 线索直接当成 CI 失败。该命令只读取本地
@@ -67,22 +67,19 @@ npm run demo -- --out ./demo-output
 
 完整的安装到卸载流程见经过测试的[第一个项目教程](docs/tutorial.zh-CN.md)。
 
-## v0.5.3 新增内容
+## v0.5.4 新增内容
 
-v0.5.3 降低首次试用和日常审查的成本，stable 规则数量不变：
+v0.5.4 修正“检测证据该叫什么”，并把真实项目审查中遇到的故障变成可执行防回退门；stable 检测
+数量没有增加：
 
-- **npx 零安装试用：**`npx web-app-security-skill@0.5.3` 直接运行真实 CLI。npm 包使用显式白名单，
-  不包含测试、工程计划和传播工作稿。
-- **Claude plugin marketplace：**一条 shell 命令注册本仓库的 marketplace 并安装
-  `web-app-security-skill@web-app-security`；复用根目录 `SKILL.md` 和同一套 runtime。
-- **只看这次改动：**`--since <ref>` 只保留 Git 新增行上的 built-in finding；`--staged` 从隔离的
-  Git index 快照审计，不读取 unstaged 内容。两者都会记录 base 和筛选数量；都不支持外部 adapter 或
-  baseline/retest 结论。diff 没有 finding 也不能说明整个仓库安全。
-- **可复现规则合同一致性检查：**20 条 built-in risk 与 2 条证据完整性规则都有固定的 planted
-  正例、负例和证据状态通过/失败结果，当前 22 条合同全部通过。规则与样例都由作者维护，因此它能
-  证明规则改动没有打破自己声明的行为，不能证明真实项目漏洞检出率。
-- **公开当前限制：**[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md)列出 parser 边界、常见良性命中、
-  增量模式排除项和合同一致性证据的解读边界。
+- **证据名称改准确：**作者自己维护的 planted suite 现在叫“规则合同一致性检查”，覆盖 22 条
+  正例/负例/证据状态合同；不再使用容易被引用成真实准确率的 TP/FP 表述。
+- **真实遇到的问题变成机器门：**4 个历史正确性故障和 1 个数值 SVG DOM sink 审查案例会直接执行
+  产品代码。第 5 个仍是需要人工关闭的 `expected_benign_match`，没有加入一刀切静音。
+- **首次试用跟随 npm latest：**主分支首个 npx 命令不固定版本；可复用 CI、签名 release 和可信
+  安装仍固定到版本或完整 commit。
+- **不靠规则数制造升级感：**stable 检测仍是 20 条 built-in risk、2 条证据完整性规则和 8 条
+  opt-in 外部 adapter 规则。
 
 v0.5.0 的解释合同继续保留：每个 v3 源码 finding 同时给出行业术语、白话含义、实际后果、证据边界、
 待审查提案、替代方案、可能副作用、需要用户决定的事项、安全复测、功能复测和回滚条件。CLI 不直接
@@ -104,7 +101,7 @@ provenance、可信安装器、公开 npm 包和签名 `v1` Action 别名都已�
 不保留安装，直接试跑 CLI：
 
 ```bash
-npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+npx --yes web-app-security-skill audit . --fail-on never
 ```
 
 ### Claude Code plugin

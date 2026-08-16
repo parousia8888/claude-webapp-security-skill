@@ -11,7 +11,7 @@ const demo = JSON.parse(read('docs/assets/demo.json')).result;
 const en = read('README.md');
 const zh = read('README.zh-CN.md');
 const evidence = read('docs/demo-evidence.md');
-const firstTrial = 'npx --yes web-app-security-skill@0.5.3 audit . --fail-on never';
+const firstTrial = 'npx --yes web-app-security-skill audit . --fail-on never';
 
 function fail(message) {
   console.error(`public surfaces: ${message}`);
@@ -63,9 +63,9 @@ for (const [path, text] of [['README.md', en], ['README.zh-CN.md', zh]]) {
 }
 
 for (const [path, text, releaseHeading, explanationMarkers] of [
-  ['README.md', en, "## What's new in v0.5.3",
+  ['README.md', en, "## What's new in v0.5.4",
     ['plain-language explanation', 'what the evidence proves', 'likely product side effects', 'normal-behavior retests']],
-  ['README.zh-CN.md', zh, '## v0.5.3 新增内容',
+  ['README.zh-CN.md', zh, '## v0.5.4 新增内容',
     ['白话解释', '当前证据证明了什么', '可能影响的正常功能', '功能复测']],
 ]) {
   const trialIndex = text.indexOf(firstTrial);
