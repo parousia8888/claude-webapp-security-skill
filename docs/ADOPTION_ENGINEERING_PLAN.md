@@ -114,7 +114,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G8 | Legible lightweight demo and accurate GitHub public packaging | completed | `5b06863` + CI evidence below |
 | G9 | Channel-specific generated copy and regression-accountability article | completed | `41dd0b2` + CI evidence below |
 | G10 | Five-to-ten-person target-user validation kit and stop rules | completed | `e021649` + CI evidence below; sessions external |
-| G11 | Eligibility-aware listings, staggered publication and observation ledger | in progress | focused checks passed; remote gates pending |
+| G11 | Eligibility-aware listings, staggered publication and observation ledger | completed | `eb2d38a` + CI evidence below; external actions pending |
 
 ## G0 - Adoption contract and measurable baseline
 
@@ -669,7 +669,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: in progress; repository engineering and focused local checks completed 2026-08-16;
+- Status: repository engineering completed 2026-08-16;
   listings and publication remain `external_validation_pending`.
 - Implementation: `docs/adoption/listings.json` binds four directory reviews to immutable upstream
   policy commits and records current eligibility without submitting. Awesome Claude Code, Awesome
@@ -683,7 +683,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   JavaScript syntax checks and `git diff --check` passed. The pre-publication snapshot records GitHub
   rolling traffic and public counts; unavailable npm, Marketplace and independent-reference values
   remain null with explicit missing-data reasons.
-- Commit / CI: implementation commit and remote CI/CodeQL pending.
+- Commit / CI: implementation `eb2d38a766dcc7a0e2ce95ad9f39bc0b7110ab18`; CI run
+  `31944915130` passed the Ubuntu/macOS Node 22/24 matrix and CodeQL run `31944914966` passed.
 - Remaining risks: external moderation, timing, audience fit and recommendation remain outside
   repository control.
 
