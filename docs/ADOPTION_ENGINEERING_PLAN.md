@@ -110,7 +110,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G4 | Reusable English/Chinese publication and upstream case-study kit | completed | `2618447` + checks below |
 | G5 | Priority fail-closed correctness fixes and v0.5.3 release evidence | completed | v0.5.3 source `621e0bc` + stable state `9c6dc2b` |
 | G6 | Published-state, tutorial, support-matrix and ledger alignment | completed | `aecaadf` + CI evidence below |
-| G7 | First-screen npx path and ordinary-language result contract | in progress | focused checks passed; remote evidence pending |
+| G7 | First-screen npx path and ordinary-language result contract | completed | `fad6efe` + CI evidence below |
 | G8 | Legible lightweight demo and accurate GitHub public packaging | pending | implementation pending |
 | G9 | Channel-specific generated copy and regression-accountability article | pending | implementation pending |
 | G10 | Five-to-ten-person target-user validation kit and stop rules | pending | real sessions remain external |
@@ -525,7 +525,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: in progress.
+- Status: completed 2026-08-16.
 - Implementation: both READMEs now put the complete explicit-version npx audit before the demo and
   explain, in ordinary language, the problem, consequence, evidence boundary, proposed change,
   likely product side effects, rollback and separate security/functional retests. Release notes now
@@ -534,7 +534,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   explanation contract.
 - Tests: `node scripts/check-public-surfaces.mjs`, `node scripts/check-release-contract.mjs` and
   `git diff --check` passed.
-- Commit / CI: pending.
+- Commit / CI: implementation `fad6efeb7df363ca998aaf6d84b779e001928907`; CI run
+  `31943382713` passed the Ubuntu/macOS Node 22/24 matrix and CodeQL run `31943382738` passed.
 - Remaining risks: first-screen comprehension remains a design hypothesis until G10 sessions.
 
 ## G8 - Demo weight and GitHub public packaging
