@@ -4,8 +4,8 @@ README 推荐命令包含三个可独立审查的阶段，不会因为代码和 
 执行代码。
 
 1. README 把 `bootstrap-install.sh` 固定到提交
-   `e98779a4c52a2be38e3dfe490d0ef321eb8e80f6`，并在交给 `sh` 前验证 SHA-256
-   `fb54e65ca2269c941fd2a13a9bce20ecb67de2789fb318527fbb86a5b3949085`。
+   `cf6bca040dc1d78587f04ded2ace10a08312f0c5`，并在交给 `sh` 前验证 SHA-256
+   `0f203b986f75f1359fee0c0c5251ba0dbeec08a857b67415702d5f05f73f2faf`。
 2. bootstrap 把 `install-verified.mjs` 固定到提交
    `7edde5b9a3882198911e212035025be8c369c944`，并在交给 Node 前验证 SHA-256
    `6eecdf833b3ce3495c58baf161806c5c42bec9dba3837b910f213ff3881eb0f7`。
