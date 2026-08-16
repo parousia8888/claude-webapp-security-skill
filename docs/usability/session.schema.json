@@ -5,14 +5,17 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schemaVersion", "study", "sessionId", "consent", "fixture", "environment",
+    "schemaVersion", "study", "sessionId", "sessionSequence", "entryPath", "consent", "fixture", "environment",
     "installation", "firstReport", "firstBlockage", "resultStateComprehension",
-    "patchConfidence", "retest", "sessionOutcome", "manualNotesPresent"
+    "suspectedMeaning", "patchConfidence", "sideEffectComprehension", "retest",
+    "retestDistinctionComprehension", "sessionOutcome", "manualNotesPresent"
   ],
   "properties": {
-    "schemaVersion": { "const": 1 },
-    "study": { "const": "first-use-v1" },
+    "schemaVersion": { "const": 2 },
+    "study": { "const": "first-use-v2" },
     "sessionId": { "type": "string", "pattern": "^S-[A-F0-9]{8}$" },
+    "sessionSequence": { "type": "integer", "minimum": 1, "maximum": 10 },
+    "entryPath": { "enum": ["npx", "claude_repository_plugin", "verified_installer"] },
     "consent": {
       "type": "object",
       "additionalProperties": false,
@@ -52,11 +55,20 @@
       ]
     },
     "resultStateComprehension": { "enum": ["correct", "partial", "incorrect", "not_reached"] },
+    "suspectedMeaning": { "enum": ["lead_requires_confirmation", "confirmed_vulnerability", "unclear", "not_reached"] },
     "patchConfidence": { "enum": ["ready_with_review", "needs_help", "would_not_apply", "not_reached"] },
+    "sideEffectComprehension": { "enum": ["correct", "partial", "incorrect", "not_reached"] },
     "retest": { "$ref": "#/$defs/timedOutcome" },
+    "retestDistinctionComprehension": { "enum": ["correct", "partial", "incorrect", "not_reached"] },
     "sessionOutcome": { "enum": ["completed", "abandoned", "incomplete"] },
     "manualNotesPresent": { "type": "boolean" }
   },
+  "allOf": [
+    {
+      "if": { "properties": { "entryPath": { "const": "claude_repository_plugin" } } },
+      "then": { "properties": { "environment": { "properties": { "surface": { "const": "claude" } } } } }
+    }
+  ],
   "$defs": {
     "timedOutcome": {
       "type": "object",

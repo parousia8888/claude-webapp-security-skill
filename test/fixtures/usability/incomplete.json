@@ -1,7 +1,9 @@
 {
-  "schemaVersion": 1,
-  "study": "first-use-v1",
+  "schemaVersion": 2,
+  "study": "first-use-v2",
   "sessionId": "S-00000003",
+  "sessionSequence": 3,
+  "entryPath": "verified_installer",
   "consent": { "observationAccepted": true, "dataBoundaryAccepted": true },
   "fixture": { "id": "first-use-clean-room-v1", "repositoryDataShared": false, "networkRequired": false },
   "environment": { "surface": "cli", "os": "wsl2", "nodeMajor": 22 },
@@ -9,8 +11,11 @@
   "firstReport": { "status": "blocked", "seconds": 420 },
   "firstBlockage": "command_discovery",
   "resultStateComprehension": "not_reached",
+  "suspectedMeaning": "not_reached",
   "patchConfidence": "not_reached",
+  "sideEffectComprehension": "not_reached",
   "retest": { "status": "not_attempted", "seconds": null },
+  "retestDistinctionComprehension": "not_reached",
   "sessionOutcome": "incomplete",
   "manualNotesPresent": false
 }

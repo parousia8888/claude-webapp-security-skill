@@ -113,7 +113,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G7 | First-screen npx path and ordinary-language result contract | completed | `fad6efe` + CI evidence below |
 | G8 | Legible lightweight demo and accurate GitHub public packaging | completed | `5b06863` + CI evidence below |
 | G9 | Channel-specific generated copy and regression-accountability article | completed | `41dd0b2` + CI evidence below |
-| G10 | Five-to-ten-person target-user validation kit and stop rules | pending | real sessions remain external |
+| G10 | Five-to-ten-person target-user validation kit and stop rules | in progress | focused checks passed; remote gates pending |
 | G11 | Eligibility-aware listings, staggered publication and observation ledger | pending | external actions remain owner-gated |
 
 ## G0 - Adoption contract and measurable baseline
@@ -632,10 +632,20 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: pending; real sessions are `external_validation_pending`.
-- Implementation: pending.
-- Tests: pending.
-- Commit / CI: pending.
+- Status: in progress; repository engineering and focused local checks completed 2026-08-16;
+  real sessions remain `external_validation_pending`.
+- Implementation: the privacy-minimal record is now `first-use-v2`, with anonymous contiguous
+  session order 1-10 and explicit `npx`, `claude_repository_plugin` and `verified_installer` entry
+  paths. It directly records whether a participant treats suspected as confirmed, understands one
+  patch side effect and distinguishes security from product-function retesting. Aggregation reports
+  per-path observations and a non-publishing gate of `insufficient_data`, `stop` or
+  `owner_review_required`. The three specified thresholds are computed without collecting identity,
+  source, repository paths, terminal logs or free text.
+- Tests: `node test/usability-study.test.mjs`, `node scripts/check-adoption-contract.mjs`, schema and
+  fixture JSON parsing, `node --check scripts/usability-study.mjs` and `git diff --check` passed.
+  Fixtures cover all three entry paths, a five-record owner-review result and a five-record stop that
+  independently triggers first-report, suspected-state and repeated-blockage thresholds.
+- Commit / CI: implementation commit and remote CI/CodeQL pending.
 - Remaining risks: fixture success cannot substitute for target-user comprehension.
 
 ## G11 - Eligibility-aware discovery and staggered publication

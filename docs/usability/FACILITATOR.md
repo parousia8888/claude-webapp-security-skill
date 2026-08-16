@@ -11,6 +11,10 @@
    be manually redacted before publication.
 4. Obtain both observation and data-boundary consent. If either is declined, stop without creating a
    record. Run `init` only after consent.
+5. Assign one entry path before the session: `npx`, `claude_repository_plugin` or
+   `verified_installer`. Record recruitment order as `sessionSequence` 1 through 10. Do not reveal a
+   hidden command; the participant uses the public README. The repository plugin path requires the
+   Claude surface.
 
 ## Observation sequence
 
@@ -20,9 +24,12 @@ the enumerated outcome:
 1. Install the supported surfaces and show `webapp-security version`.
 2. Start and audit the clean-room fixture until a first JSON/Markdown report exists.
 3. Explain the distinction among confirmed, suspected, unknown and not_applicable using that report.
-4. Inspect the proposed patch and state whether it is ready with review, needs help or would not be
-   applied.
-5. Apply only the fixture's documented safe change and produce retest evidence.
+   Separately record whether `suspected` is understood as a lead requiring confirmation, a confirmed
+   vulnerability, unclear or not reached.
+4. Inspect the proposed patch, explain one likely normal-product side effect and state whether the
+   patch is ready with review, needs help or would not be applied.
+5. Apply only the fixture's documented safe change, produce retest evidence and ask the participant
+   to distinguish the security retest from the normal-function retest.
 
 Record the earliest blockage category. Do not convert a participant's words into a more favorable
 enum. `manualNotesPresent` means only that separate notes need human review; their content must not be
@@ -38,6 +45,6 @@ approval, or the session reaches two hours. Mark reached steps accurately and th
 ## After the session
 
 Validate the record before the participant leaves. Store it in a private directory with mode 0600.
-Do not commit real records by default. After five independent sessions, generate the aggregate and
-review any offline notes separately for identifying data before deciding whether any excerpt can be
-published.
+Do not commit real records by default. After each session, regenerate the aggregate and obey an early
+`stop` result. At five independent sessions, review the three publication-stop rules and any offline
+notes separately for identifying data. `owner_review_required` authorizes no post by itself.

@@ -61,6 +61,25 @@ if (JSON.stringify(supportedNodeMajors) !== JSON.stringify([22, 24])) {
   console.error('adoption contract: usability schema must match the supported Node 22/24 matrix');
   failed = true;
 }
+if (sessionSchema.properties.schemaVersion.const !== 2
+    || sessionSchema.properties.study.const !== 'first-use-v2') {
+  console.error('adoption contract: usability schema must use the first-use-v2 contract');
+  failed = true;
+}
+if (JSON.stringify(sessionSchema.properties.entryPath.enum)
+    !== JSON.stringify(['npx', 'claude_repository_plugin', 'verified_installer'])) {
+  console.error('adoption contract: usability entry paths are incomplete');
+  failed = true;
+}
+for (const field of [
+  'sessionSequence', 'suspectedMeaning', 'sideEffectComprehension',
+  'retestDistinctionComprehension',
+]) {
+  if (!sessionSchema.required.includes(field)) {
+    console.error(`adoption contract: usability schema is missing ${field}`);
+    failed = true;
+  }
+}
 
 if (/(?:stars?|forks?)\s*(?:>=|>|=)\s*\d+|(?:stars?|forks?)\s+target\s*:\s*\d+/i.test(plan)) {
   console.error('adoption contract: star/fork targets cannot be phase acceptance criteria');
