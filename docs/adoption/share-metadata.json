@@ -4,7 +4,7 @@
   "product": "Web App Security Skill",
   "repository": "https://github.com/parousia8888/web-app-security-skill",
   "marketplace": "https://github.com/marketplace/actions/web-app-security-skill",
-  "productVersion": "0.5.2",
+  "productVersion": "0.5.3",
   "release": {
     "version": "0.5.2",
     "url": "https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.5.2",
@@ -15,10 +15,10 @@
     "zh-CN": "把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。"
   },
   "capabilityContract": {
-    "total": 22,
+    "total": 24,
     "stableDetection": 9,
     "plannedDetection": 0,
-    "evidenceReporting": 6,
+    "evidenceReporting": 8,
     "lifecycleDistribution": 1,
     "agentGuided": 6,
     "evidence": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md"

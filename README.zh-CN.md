@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="#查看结果">Demo</a> ·
-  <a href="#v052-新增内容">v0.5.2</a> ·
+  <a href="#v053-新增内容">v0.5.3</a> ·
   <a href="#安装">安装</a> ·
   <a href="#执行第一个项目">首个项目</a> ·
   <a href="docs/tutorial.zh-CN.md">完整教程</a> ·
@@ -33,35 +33,33 @@
 
 <p align="center"><a href="docs/demo-evidence.md">查看该演示对应的生成报告与补丁证据。</a></p>
 
-## v0.5.2 新增内容
+## v0.5.3 新增内容
 
-v0.5.2 是基于 v0.5.1 证据与源码检测边界的正确性补丁：
+v0.5.3 降低首次试用和日常审查的成本，stable 规则数量不变：
 
-- **报告恢复可读：**v3 Markdown 和 HTML 的风险摘要会显示真实的状态总数与严重性分布，不再输出
-  `[object Object]`。
-- **pnpm workspace 证据正确：**被根目录 `pnpm-lock.yaml` 覆盖的包不会再被确认成缺少 lockfile；
-  include/exclude pattern 都会处理，无法解析的 workspace 元数据会变成证据不完整，而不是 clean 或
-  confirmed finding。
-- **SSR 与 TSX 覆盖更可靠：**嵌套模板字符串不会再中断整个文件的分析，同时 `${...}` 内的可执行
-  代码仍会进入规则检查。
-- **复测能识别改名：**能唯一对应的风险条件移动到其他文件后会保持
-  `unchanged / condition_moved`，只改文件名不能让风险看起来已经修复。
+- **npx 零安装试用：**`npx web-app-security-skill@0.5.3` 直接运行真实 CLI。npm 包使用显式白名单，
+  不包含测试、工程计划和传播工作稿。
+- **Claude plugin marketplace：**一条 shell 命令注册本仓库的 marketplace 并安装
+  `web-app-security-skill@web-app-security`；复用根目录 `SKILL.md` 和同一套 runtime。
+- **只看这次改动：**`--since <ref>` 只保留 Git 新增行上的 built-in finding；`--staged` 从隔离的
+  Git index 快照审计，不读取 unstaged 内容。两者都会记录 base 和筛选数量；都不支持外部 adapter 或
+  baseline/retest 结论。diff 没有 finding 也不能说明整个仓库安全。
+- **可复现 planted benchmark：**20 条 built-in risk 与 2 条证据完整性规则都有固定 TP/FP/FN 的
+  JSON/Markdown 结果。当前 planted case 为 TP=22、FN=0、TN=22、FP=0，证据状态没有错配。这是
+  fixture 合同证据，不是真实项目漏洞检出率。
+- **公开当前限制：**[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md)列出 parser 边界、常见良性命中、
+  增量模式排除项和 benchmark 解读边界。
 
-检测和解释能力继续遵守 v0.5.0 合同：
+v0.5.0 的解释合同继续保留：每个 v3 源码 finding 同时给出行业术语、白话含义、实际后果、证据边界、
+待审查提案、替代方案、可能副作用、需要用户决定的事项、安全复测、功能复测和回滚条件。CLI 不直接
+修改项目。stable 检测仍为 20 条 built-in risk、2 条证据完整性规则和 8 条 opt-in 外部 adapter
+规则，内置深度集中在 JavaScript/TypeScript 与 Python Web 代码。
 
-- **自动源码规则增加：**20 条 stable built-in risk、2 条证据完整性规则、8 条 opt-in 外部 adapter
-  规则。内置深度明确集中在 JavaScript/TypeScript 与 Python Web 代码。
-- **同一问题讲两遍：**v3 源码 finding 保留行业术语和标准映射，同时用白话说明问题、可能后果，以及
-  当前证据不能证明什么。
-- **先给提案，不盲改：**报告列出替代方案、可能副作用、需要用户决定的事项、安全复测、功能复测和
-  回滚条件。`repair-plan` 只创建私有审查记录，CLI 不直接修改项目。
-- **普通项目证据：**v0.5.0 在 5 个固定 commit 项目上得到 43 条 pattern finding，人工逐条复核为
-  11 条有用线索、27 条预期良性命中、1 条 unknown、4 条已确认的缺 lockfile 事实。这不等于 43 个
-  漏洞，也不构成 precision/recall 指标。
-
-准确支持范围见[兼容矩阵](docs/compatibility.md)、[稳定规则语料](docs/stable-rule-corpus.json)和
-[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。下面的可信安装器默认选择已发布的
-v0.5.2，并保留可显式安装的 v0.3.0、v0.4.0、v0.5.0 与 v0.5.1 信任路径。
+准确支持范围见[兼容矩阵](docs/compatibility.md)、[稳定规则语料](docs/stable-rule-corpus.json)、
+[ground-truth pattern benchmark](docs/benchmarks/v0.5.3-ground-truth.md)和
+[普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。MCP 与新增 stable 规则需要先满足
+[架构决策中的门槛](docs/architecture/mcp-and-rule-expansion.md)。在 v0.5.3 资产与公网 consumer 完成
+验证前，下面的可信安装器继续默认使用已发布的 v0.5.2。
 
 ## 查看结果
 
@@ -87,7 +85,27 @@ npm run demo -- --out ./demo-output
 
 ## 安装
 
-这条命令同时安装 Claude Code skill、Codex skill 和 `~/.local/bin/webapp-security` 普通 CLI。
+不保留安装，直接试跑 CLI：
+
+```bash
+npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+```
+
+一条 shell 命令从本仓库 marketplace 安装 Claude Code plugin：
+
+```bash
+claude plugin marketplace add parousia8888/web-app-security-skill --scope user && claude plugin install web-app-security-skill@web-app-security --scope user
+```
+
+已经进入 Claude Code session 时，对应的 slash command 是：
+
+```text
+/plugin marketplace add parousia8888/web-app-security-skill
+/plugin install web-app-security-skill@web-app-security
+```
+
+如需签名与 checksum 验证的多入口安装，下面的命令会同时安装 Claude Code skill、Codex skill 和
+`~/.local/bin/webapp-security` 普通 CLI。
 若已有安装会直接拒绝；只有显式加入 `--force` 才会先生成带时间戳的备份再替换。该命令下载不可变
 bootstrap 并在执行前验证 SHA-256，然后验证选定 release 的 manifest、checksums、SBOM、源码提交和
 归档，再进入安装。
@@ -147,7 +165,14 @@ webapp-security repair-plan <finding-id> \
 webapp-security start . --run-id <retest-run-id>
 webapp-security retest .webapp-security/runs/<retest-run-id> \
   --baseline .webapp-security/runs/<run-id>/report.json
+
+# 仅用于 built-in adapter 的审查降噪
+webapp-security audit . --since HEAD~1 --fail-on never
+webapp-security audit . --staged --fail-on never
 ```
+
+`--since` 不包含 untracked 文件；`--staged` 读取 Git index，不读取 unstaged 工作区内容。两种模式
+都不能与外部 adapter 或 baseline/retest 对比组合。
 
 默认使用内置、无网络的源码 adapter。外部 adapter 必须显式选择：
 
@@ -204,6 +229,9 @@ Action 虽然都有测试，但不构成更多 detector 家族。API 授权、�
 
 [生成的能力矩阵](docs/capabilities.md)为每项类别与成熟度声明链接证据。结果只使用 `confirmed`、
 `suspected`、`unknown`、`not_applicable`；无法执行的检查不是通过。安装 Skill 不代表项目已经安全。
+当前检测盲区、预期误报类别和增量模式限制公开在
+[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md)。MCP 和 stable 规则扩张的进入条件记录在
+[`docs/architecture/mcp-and-rule-expansion.md`](docs/architecture/mcp-and-rule-expansion.md)。
 
 ## 确定性工具
 
@@ -221,6 +249,10 @@ webapp-security explain <finding-id> --report <report.json>
 webapp-security start . --run-id <retest-run-id>
 webapp-security retest .webapp-security/runs/<retest-run-id> \
   --baseline <report.json> --fail-on high
+
+# 只看某个 commit 之后新增行，或只审 Git index 中已暂存的内容
+webapp-security audit . --since HEAD~1 --fail-on never
+webapp-security audit . --staged --fail-on never
 
 # 历史 v1 报告保持不可比较；移动/clone 的项目必须显式绑定
 webapp-security migrate-report <v1-report.json> --scope <security-scope.yml> \

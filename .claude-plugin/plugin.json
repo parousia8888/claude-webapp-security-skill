@@ -1,0 +1,18 @@
+{
+  "name": "web-app-security-skill",
+  "description": "Audit and harden authorized Web projects with explainable, reproducible evidence.",
+  "version": "0.5.3",
+  "author": {
+    "name": "parousia8888",
+    "url": "https://github.com/parousia8888"
+  },
+  "homepage": "https://github.com/parousia8888/web-app-security-skill",
+  "repository": "https://github.com/parousia8888/web-app-security-skill",
+  "license": "MIT",
+  "keywords": [
+    "web-security",
+    "security-audit",
+    "hardening",
+    "retest"
+  ]
+}

@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="#see-the-result">Demo</a> ·
-  <a href="#whats-new-in-v052">v0.5.2</a> ·
+  <a href="#whats-new-in-v053">v0.5.3</a> ·
   <a href="#install">Install</a> ·
   <a href="#run-the-first-project">First project</a> ·
   <a href="docs/tutorial.md">Tutorial</a> ·
@@ -31,38 +31,39 @@
 
 <p align="center"><a href="docs/demo-evidence.md">Read the generated reports and patch behind this demo.</a></p>
 
-## What's new in v0.5.2
+## What's new in v0.5.3
 
-v0.5.2 is a correctness patch over the v0.5.1 evidence and source-detection boundary:
+v0.5.3 makes the existing runtime easier to try and quieter to review without increasing the stable
+rule count:
 
-- **Readable reports again:** v3 Markdown and HTML risk summaries show real state totals and
-  severity breakdowns instead of `[object Object]`.
-- **Correct pnpm workspace evidence:** a package covered by the root `pnpm-lock.yaml` is not called a
-  confirmed missing-lockfile fact. Include/exclude patterns are honored; workspace metadata that
-  cannot be parsed becomes incomplete evidence, not a clean result or a confirmed finding.
-- **More reliable SSR and TSX coverage:** nested template literals no longer stop analysis of the
-  whole file, while executable code inside `${...}` remains scanned.
-- **Rename-aware retesting:** a uniquely matched condition moved to another file stays
-  `unchanged / condition_moved`; a file rename alone cannot make that condition look fixed.
+- **Zero-install npm trial:** `npx web-app-security-skill@0.5.3` runs the real CLI from an explicit
+  package allowlist. The package excludes tests, engineering plans and adoption working notes.
+- **Claude plugin marketplace:** one shell line registers this repository's marketplace and installs
+  `web-app-security-skill@web-app-security`. It reuses the root `SKILL.md` and the same runtime.
+- **Review only the current change:** `--since <ref>` keeps built-in findings on added Git lines;
+  `--staged` audits an isolated index snapshot and excludes unstaged content. Both record their base
+  and selection counts. They do not support external adapters or baseline/retest claims, and a clean
+  diff does not establish whole-repository safety.
+- **Reproducible planted benchmark:** all 20 built-in risk and 2 evidence-integrity rule contracts
+  publish exact TP/FP/FN JSON and Markdown. The current planted cases are TP=22, FN=0, TN=22 and
+  FP=0, with no state mismatch. This is fixture evidence, not production vulnerability precision or
+  recall.
+- **Limits are public:** [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) records parser boundaries,
+  recurring expected matches, incremental exclusions and benchmark interpretation.
 
-The detection and explanation boundary remains the v0.5.0 contract:
-
-- **More automatic source rules:** 20 stable built-in risk rules, 2 evidence-integrity rules and 8
-  opt-in external-adapter rules. Built-in depth targets JavaScript/TypeScript and Python Web code.
-- **Two explanations for one finding:** every v3 source result retains the professional term and
-  standards mapping, then explains the same issue in ordinary language, including realistic impact
-  and what the evidence does not prove.
-- **A change proposal, not a blind fix:** reports include alternatives, likely side effects, owner
-  decisions, security retest, functional retest and rollback. `repair-plan` creates a private review
-  record; the CLI does not edit the project.
-- **Evidence from ordinary projects:** the five-project v0.5.0 pass produced 43 pattern findings,
-  manually reviewed as 11 useful leads, 27 expected benign matches, 1 unknown and 4 confirmed
-  missing-lockfile facts. This is not 43 vulnerabilities or a precision/recall claim.
+The v0.5.0 explanation contract remains: every v3 source finding includes the professional term,
+ordinary-language meaning, realistic consequence, evidence boundary, reviewable proposal,
+alternatives, likely side effects, owner decisions, separate security/functional retests and
+rollback. The CLI does not edit the project. Stable detection remains 20 built-in risk rules, 2
+evidence-integrity rules and 8 opt-in external-adapter rules, with built-in depth concentrated on
+JavaScript/TypeScript and Python Web code.
 
 Exact support and limits are in the [compatibility matrix](docs/compatibility.md), [stable rule
-corpus](docs/stable-rule-corpus.json) and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md).
-The verified installer below defaults to published v0.5.2 and retains explicit trusted paths for
-v0.3.0, v0.4.0, v0.5.0 and v0.5.1.
+corpus](docs/stable-rule-corpus.json), [ground-truth pattern benchmark](docs/benchmarks/v0.5.3-ground-truth.md)
+and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md). MCP and additional stable
+rules are deferred behind the [documented architecture gates](docs/architecture/mcp-and-rule-expansion.md).
+Until v0.5.3 assets and public consumers pass release verification, the verified installer below
+continues to default to published v0.5.2.
 
 ## See the result
 
@@ -90,7 +91,27 @@ For the complete install-to-uninstall path, follow the tested
 
 ## Install
 
-This one command installs the skill for Claude Code and Codex, plus the ordinary CLI under
+Try the CLI without keeping an installation:
+
+```bash
+npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+```
+
+Install the Claude Code plugin from this repository marketplace in one shell line:
+
+```bash
+claude plugin marketplace add parousia8888/web-app-security-skill --scope user && claude plugin install web-app-security-skill@web-app-security --scope user
+```
+
+Inside an existing Claude Code session, the equivalent commands are:
+
+```text
+/plugin marketplace add parousia8888/web-app-security-skill
+/plugin install web-app-security-skill@web-app-security
+```
+
+For a signature- and checksum-verified multi-surface installation, the command below installs the
+skill for Claude Code and Codex, plus the ordinary CLI under
 `~/.local/bin`. Existing installs are refused unless you explicitly pass `--force`, which creates
 timestamped backups before replacement. It downloads an immutable bootstrap, verifies its SHA-256
 before execution, then verifies the selected release manifest, checksums, SBOM, source commit and
@@ -154,7 +175,14 @@ webapp-security repair-plan <finding-id> \
 webapp-security start . --run-id <retest-run-id>
 webapp-security retest .webapp-security/runs/<retest-run-id> \
   --baseline .webapp-security/runs/<run-id>/report.json
+
+# Review-noise filters for the built-in adapter only
+webapp-security audit . --since HEAD~1 --fail-on never
+webapp-security audit . --staged --fail-on never
 ```
+
+`--since` excludes untracked files. `--staged` reads the Git index, not unstaged working-tree
+content. Neither mode can be combined with external adapters or baseline/retest comparison.
 
 The default is the bundled, network-free source adapter. Optional external adapters are explicit:
 
@@ -226,6 +254,10 @@ to evidence. Results
 are `confirmed`, `suspected`, `unknown`, or `not_applicable`; a check that could not run is never a
 pass. Installing the Skill does not prove a project secure.
 
+Current detector and workflow constraints are listed in [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md).
+The [MCP and stable-rule expansion decision](docs/architecture/mcp-and-rule-expansion.md) is a future
+gate, not shipped behavior.
+
 ## Deterministic tools
 
 Ask Claude Code or Codex to use `web-app-security`, or run the same deterministic tools
@@ -237,6 +269,8 @@ webapp-security start .
 
 # Source-only audit, explain and required-baseline retest
 webapp-security audit .webapp-security/runs/<run-id> --fail-on high
+webapp-security audit . --since HEAD~1 --fail-on never
+webapp-security audit . --staged --fail-on never
 webapp-security doctor . --adapter all
 webapp-security audit . --adapter checkov --adapter gitleaks --adapter opengrep --adapter osv --fail-on never
 webapp-security explain <finding-id> --report <report.json>

@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.3] — 2026-08-16
+
+### Added
+- The public npm package exposes both `web-app-security-skill` and `webapp-security` executables, so
+  `npx web-app-security-skill@0.5.3` can run the real CLI without a persistent installation. An
+  explicit package allowlist excludes tests, engineering plans and adoption working notes.
+- Claude Code plugin and marketplace manifests support repository marketplace registration and
+  `web-app-security-skill@web-app-security` installation while reusing the root `SKILL.md`.
+- `--since <ref>` filters built-in source findings to added Git lines, and `--staged` audits an
+  isolated Git index snapshot. Reports record the immutable base, snapshot kind, changed-file and
+  added-line counts, plus excluded untracked files.
+- A reproducible ground-truth runner publishes JSON and Markdown TP/FP/FN results for all 20 built-in
+  risk-rule and two evidence-integrity planted pattern contracts; CI compares committed bytes and
+  tests planted missing-positive and unexpected-negative failures.
+- `KNOWN_LIMITATIONS.md` publishes detector, parser, incremental, external-adapter, recurring-match
+  and benchmark interpretation boundaries.
+
+### Changed
+- npm/npx, Claude plugin and existing CLI installations invoke the same runtime and skill body.
+- The roadmap now records explicit permission, demand, transport and regression gates for any future
+  MCP adapter, and evidence/fixture/false-positive gates for future stable rule expansion. Neither
+  MCP nor additional stable detection rules ships in this release.
+
+### Security boundary
+- Diff-scoped runs support the built-in adapter only and cannot participate in baseline/retest
+  lifecycle claims. `--since` excludes untracked files; `--staged` excludes unstaged content. A clean
+  diff does not establish whole-repository safety.
+- The benchmark measures planted rule contracts, not production vulnerability precision, recall,
+  reachability or exploitability. The stable rule count and evidence-state definitions remain
+  unchanged from v0.5.2.
+
 ## [0.5.2] — 2026-08-16
 
 ### Fixed

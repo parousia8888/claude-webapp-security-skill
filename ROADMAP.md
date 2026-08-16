@@ -75,6 +75,18 @@ unique path-only move no longer makes a condition look fixed. Ambiguous movement
 unreconciled, and unavailable workspace or tokenizer evidence continues to fail closed. Exact
 release progress and evidence are in the [v0.5.2 patch plan](docs/V0.5.2_PATCH_PLAN.md).
 
+## v0.5.3 distribution and review-noise release
+
+The v0.5.3 candidate adds a zero-install npm/npx path, a Claude Code plugin marketplace manifest,
+public known limitations, Git-aware `--since` and `--staged` built-in audit scopes, and a
+reproducible planted pattern-contract benchmark for all 20 built-in risk rules plus two evidence-
+integrity rules. The benchmark is fixture evidence, not a production precision/recall claim.
+
+MCP and a larger stable rule catalogue are intentionally outside v0.5.3. Their entry conditions,
+permission boundaries and evidence requirements are recorded in the
+[MCP and rule-expansion decision](docs/architecture/mcp-and-rule-expansion.md). Exact implementation
+and release progress lives in the [v0.5.3 engineering plan](docs/V0.5.3_ENGINEERING_PLAN.md).
+
 ## Correctness backlog
 
 Included in the published v0.4.0 release:
@@ -103,6 +115,10 @@ Still open:
 - Add source adapters only with planted failure fixtures and stable evidence output.
 - Add policy packs for common deployment controls only when their patch and rollback behavior can be
   retested without claiming broad scanner coverage.
+- Reconsider a local stdio MCP adapter only after the documented demand, permission, schema,
+  distribution and regression gates are satisfied.
+- Promote additional detection rules only through planted positive/negative fixtures, ordinary-code
+  false-positive review and explicit fail-closed evidence behavior.
 
 Tracked, contributor-ready items and acceptance tests live in
 [`docs/GOOD_FIRST_ISSUES.md`](docs/GOOD_FIRST_ISSUES.md). The GitHub issue, not this summary, owns

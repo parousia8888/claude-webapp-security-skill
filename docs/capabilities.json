@@ -108,6 +108,22 @@
       "evidence": ["scripts/project-start.mjs", "scripts/lib/project-discovery.mjs", "test/project-discovery.test.mjs", "docs/security-scope.schema.json"]
     },
     {
+      "id": "git-diff-source-selection",
+      "name": "Git diff source-audit selection",
+      "category": "evidence_reporting",
+      "maturity": "stable",
+      "scope": "Reduces built-in source-audit review noise with added-line --since selection or an isolated --staged Git index snapshot. It records the immutable base and selection counts, preserves relevant incomplete evidence, excludes external adapters and cannot establish whole-repository safety or baseline/retest state.",
+      "evidence": ["scripts/lib/git-diff-scope.mjs", "scripts/project-audit.mjs", "test/incremental-source-audit.test.mjs"]
+    },
+    {
+      "id": "ground-truth-pattern-benchmark",
+      "name": "Reproducible planted pattern benchmark",
+      "category": "evidence_reporting",
+      "maturity": "stable",
+      "scope": "Regenerates exact JSON and Markdown TP/FP/FN evidence for 20 built-in risk and two evidence-integrity planted positive/negative contracts. It is not a production-vulnerability precision, recall, reachability or exploitability measurement.",
+      "evidence": ["scripts/run-ground-truth-benchmark.mjs", "scripts/lib/ground-truth-benchmark.mjs", "test/ground-truth-benchmark.test.mjs", "docs/benchmarks/v0.5.3-ground-truth.json"]
+    },
+    {
       "id": "structured-reports",
       "name": "Stable multi-format finding reports",
       "category": "evidence_reporting",
@@ -141,11 +157,11 @@
     },
     {
       "id": "distribution-surfaces",
-      "name": "Installer and GitHub Action",
+      "name": "npm, plugin, installer and GitHub Action distribution",
       "category": "lifecycle_distribution",
       "maturity": "stable",
-      "scope": "Installs Claude Code, Codex and CLI surfaces with conflict preflight/backups, and runs a composite Action with backward-compatible crawl mode plus built-in or caller-provided source adapters.",
-      "evidence": ["scripts/webapp-security.mjs", "action.yml", "test/product-surfaces.test.mjs"]
+      "scope": "Runs the same runtime through npm/npx and a Claude plugin marketplace, installs Claude Code, Codex and CLI surfaces with conflict preflight/backups, and runs a composite Action with backward-compatible crawl mode plus built-in or caller-provided source adapters.",
+      "evidence": ["scripts/webapp-security.mjs", "scripts/check-distribution-contract.mjs", "action.yml", "test/distribution.test.mjs", "test/product-surfaces.test.mjs"]
     },
     {
       "id": "frontend-review",

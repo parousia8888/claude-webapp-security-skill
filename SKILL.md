@@ -61,6 +61,11 @@ match or scanner lead directly to `confirmed`, and never convert unavailable evi
 4. **Phase 7 last but continuously** — detection is what catches everything the audit missed.
 5. **Phase 8 closes the loop**: every finding gets a retest, and the retest result is recorded.
 
+For review-noise reduction, `audit <project> --since <ref>` keeps built-in findings on added Git
+lines while retaining changed-file evidence failures; `audit <project> --staged` scans an isolated
+index snapshot. These modes do not support external adapters or baseline/retest comparison. A clean
+diff does not establish whole-repository safety, and `--since` excludes untracked files.
+
 Do not run all phases just because they exist. Pick from the task:
 
 | The user says | Go to |
@@ -89,6 +94,8 @@ node "$S/scripts/webapp-security.mjs" audit /path/to/project/.webapp-security/ru
 node "$S/scripts/webapp-security.mjs" doctor /path/to/project --adapter all
 node "$S/scripts/webapp-security.mjs" audit /path/to/project \
   --adapter gitleaks --adapter osv --fail-on never
+node "$S/scripts/webapp-security.mjs" audit /path/to/project --since HEAD~1 --fail-on never
+node "$S/scripts/webapp-security.mjs" audit /path/to/project --staged --fail-on never
 node "$S/scripts/webapp-security.mjs" explain <finding-id> --report <report.json>
 node "$S/scripts/webapp-security.mjs" repair-plan <finding-id> \
   --report <report.json> --out <new-private-directory>

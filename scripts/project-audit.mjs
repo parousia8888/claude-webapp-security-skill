@@ -17,6 +17,7 @@ import {
 } from './lib/project-identity.mjs';
 import { sourceCoverage, sourceRuleForAdapter, sourceRuleset } from './lib/source-rules.mjs';
 import { sourceRuleExplanation } from './lib/source-rule-registry.mjs';
+import { createGitDiffScope, selectDiffFindings } from './lib/git-diff-scope.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
@@ -30,6 +31,8 @@ Options:
   --out <directory>       Output directory (default: run directory or a new project run)
   --name <basename>       Report basename (default: report)
   --baseline <report>     Required by retest; optional comparison for audit
+  --since <git-ref>       Show built-in findings on lines added since a commit
+  --staged                Audit the Git index and show findings in staged changes
   --fail-on <severity>    critical, high, medium, low, or never (default: high)
   --fail-on-domain <d=t> Override one domain threshold; may be repeated
   --max-depth <n>         Maximum directory depth, 1..64 (default: 12)
@@ -64,6 +67,9 @@ if (args.includes('-h') || args.includes('--help')) usage(0);
 const outArg = take('--out');
 const name = take('--name', 'report');
 const baselinePath = take('--baseline');
+const sinceRef = take('--since');
+const staged = args.includes('--staged');
+if (staged) args.splice(args.indexOf('--staged'), 1);
 const failOn = take('--fail-on', 'high');
 const failOnDomains = takeAll('--fail-on-domain');
 const adapterValues = takeAll('--adapter');
@@ -82,6 +88,9 @@ if (args.length) usage(2, `unknown argument ${args[0]}`);
 if (!/^[a-zA-Z0-9._-]+$/.test(name)) usage(2, '--name contains unsupported characters');
 if (!['critical', 'high', 'medium', 'low', 'never'].includes(failOn)) usage(2, '--fail-on is invalid');
 if (mode === 'retest' && !baselinePath) usage(2, 'retest requires --baseline <report>');
+if (sinceRef !== null && staged) usage(2, '--since and --staged are mutually exclusive');
+if ((sinceRef !== null || staged) && mode !== 'audit') usage(2, 'diff scope is only supported by audit');
+if ((sinceRef !== null || staged) && baselinePath) usage(2, 'diff scope cannot be combined with --baseline');
 
 function timestamp() {
   const now = process.env.SOURCE_DATE_EPOCH ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000) : new Date();
@@ -96,6 +105,7 @@ function evidenceConflicts(output, reportName) {
   ].filter((file) => existsSync(join(output, file)));
 }
 
+let activeDiffScope = null;
 try {
   const target = resolve(targetArg);
   if (!existsSync(target) || !statSync(target).isDirectory()) throw new Error(`target must be an existing directory: ${targetArg}`);
@@ -109,6 +119,7 @@ try {
   let limits;
   let selectedAdapters;
   let adapterTimeoutSeconds;
+  let diffScope = null;
 
   if (existsSync(scopePath)) {
     localScope = validatePersistedScope(JSON.parse(readFileSync(scopePath, 'utf8')));
@@ -163,6 +174,14 @@ try {
   }
 
   if (!existsSync(projectRoot) || !statSync(projectRoot).isDirectory()) throw new Error('scope projectRoot no longer exists');
+  const diffMode = sinceRef !== null || staged;
+  if (diffMode && selectedAdapters.some((adapter) => adapter !== 'builtin')) {
+    throw new Error('diff scope supports the built-in adapter only');
+  }
+  if (diffMode) diffScope = createGitDiffScope(projectRoot, {
+    mode: staged ? 'staged' : 'since', ref: sinceRef,
+  });
+  activeDiffScope = diffScope;
   const externalGateEnabled = failOn !== 'never'
     || failOnDomains.some((value) => !value.endsWith('=never'));
   if (selectedAdapters.some((adapter) => adapter !== 'builtin') && externalGateEnabled && !acknowledgeAlertPolicy) {
@@ -173,12 +192,12 @@ try {
 
   const ruleset = sourceRuleset(selectedAdapters);
   const audit = selectedAdapters.includes('builtin')
-    ? auditSource(projectRoot, limits)
+    ? auditSource(diffScope?.auditRoot || projectRoot, limits)
     : { findings: [], coverage: {}, traversal: null };
-  const rawFindings = audit.findings;
-  const external = runExternalAdapters(projectRoot, localScope.target.lockfiles || [], selectedAdapters, {
-    timeoutSeconds: adapterTimeoutSeconds,
-  });
+  const rawFindings = diffScope ? selectDiffFindings(audit, diffScope) : audit.findings;
+  const external = diffScope ? [] : runExternalAdapters(
+    projectRoot, localScope.target.lockfiles || [], selectedAdapters, { timeoutSeconds: adapterTimeoutSeconds },
+  );
   const coverage = [
     ...(selectedAdapters.includes('builtin') ? sourceCoverage(audit) : []),
     ...external.flatMap((result) => result.coverage),
@@ -227,6 +246,7 @@ try {
       networkAccessPerformed: external.some((result) => result.networkAccessPerformed),
       runId: localScope.run?.id || null,
       traversal: audit.traversal,
+      selection: diffScope?.selection || null,
       adapters: external.map((result) => ({
         id: result.adapter.id,
         expectedVersion: result.adapter.version,
@@ -244,6 +264,13 @@ try {
         ? 'OSV-Scanner may query the public OSV service and Checkov may query PyPI for version metadata when selected; no project dependency was executed and Checkov was not given project source over the network.'
         : 'No network request or dependency execution was performed.',
       'Suspected findings require deployment or runtime evidence before confirmation.',
+      ...(diffScope ? [
+        `This ${diffScope.selection.mode} report filters built-in findings to changed inputs; a clean result does not establish whole-repository safety.`,
+        diffScope.selection.mode === 'since'
+          ? `Untracked files are outside the Git diff and were excluded (${diffScope.selection.untrackedFilesExcluded} observed).`
+          : 'The audit used an isolated Git index snapshot; unstaged working-tree content was excluded.',
+        'Diff-scoped audit does not support baseline/retest lifecycle claims or external adapters.',
+      ] : []),
     ],
   });
 
@@ -257,7 +284,10 @@ try {
   console.log(`states:    confirmed=${report.summary.byState.confirmed}, suspected=${report.summary.byState.suspected}, unknown=${report.summary.byState.unknown}`);
   console.log(`baseline:  new=${report.summary.byBaseline.new}, fixed=${report.summary.byBaseline.fixed}, unchanged=${report.summary.byBaseline.unchanged}, regressed=${report.summary.byBaseline.regressed}, unretested=${report.summary.byBaseline.unretested}, not_comparable=${report.summary.byBaseline.not_comparable}`);
   console.log(`network:   ${external.some((result) => result.networkAccessPerformed) ? 'selected adapter metadata/advisory query may occur' : 'none'}`);
+  diffScope?.cleanup();
+  activeDiffScope = null;
   process.exit(exitCodeV3(report));
 } catch (error) {
+  activeDiffScope?.cleanup();
   usage(2, error.message);
 }

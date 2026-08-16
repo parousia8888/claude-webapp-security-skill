@@ -535,6 +535,7 @@ export function auditSource(projectRoot, limits = DEFAULT_SOURCE_TRAVERSAL_LIMIT
 
   return {
     findings,
+    integrityIssues: [...integrityIssues.values()],
     coverage: Object.fromEntries(Object.entries(trackers).map(([ruleId, state]) => [ruleId, resultFor(state)])),
     traversal: {
       effectiveLimits,

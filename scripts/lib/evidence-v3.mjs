@@ -229,6 +229,9 @@ export function renderMarkdownV3(report, options = {}) {
   const traversal = report.scope?.traversal
     ? [`- Traversal: entries=${report.scope.traversal.entriesSeen}, files=${report.scope.traversal.filesDiscovered}, stopped=${report.scope.traversal.stopped}; limits=${JSON.stringify(report.scope.traversal.effectiveLimits)}`]
     : [];
+  const selection = report.scope?.selection
+    ? [`- Selection: mode=${report.scope.selection.mode}; base=${report.scope.selection.baseCommit}; snapshot=${report.scope.selection.snapshotKind}; changedFiles=${report.scope.selection.changedFileCount}; addedLines=${report.scope.selection.addedLineCount}; untrackedExcluded=${report.scope.selection.untrackedFilesExcluded}`]
+    : [];
   const lines = [
     '# Web App Security report', '',
     `- Schema: \`v${report.schemaVersion}\``,
@@ -242,6 +245,7 @@ export function renderMarkdownV3(report, options = {}) {
     '', '## Adapters', '',
     ...adapterLines,
     '', '## Coverage', '',
+    ...selection,
     ...traversal,
     ...report.coverage.map((entry) =>
       `- \`${entry.adapterId}/${entry.ruleId}@${entry.ruleRevision}\`: ${coverageLine(entry)}`),
@@ -262,6 +266,9 @@ export function renderHtmlV3(report) {
   const traversal = report.scope?.traversal
     ? `<p>Traversal: <code>${escapeHtml(JSON.stringify(report.scope.traversal))}</code></p>`
     : '';
+  const selection = report.scope?.selection
+    ? `<p>Selection: <code>${escapeHtml(JSON.stringify(report.scope.selection))}</code></p>`
+    : '';
   const summary = domainSummaryLines(report).map((line) => `<li>${escapeHtml(line)}</li>`).join('');
   const rows = report.findings.map((finding) => {
     const x = finding.explanation;
@@ -273,7 +280,7 @@ export function renderHtmlV3(report) {
       : '<p>None recorded.</p>';
     return `<article data-finding-id="${escapeHtml(finding.id)}"><h2>${escapeHtml(finding.title)}</h2><p><strong>${escapeHtml(`${finding.domain} / ${finding.severity} / ${finding.state} (${evidenceLabels[finding.state]}) / ${finding.baseline.state || 'none'}`)}</strong></p><dl><dt>Professional term</dt><dd>${escapeHtml(x.technicalTerm)}</dd><dt>What this means</dt><dd>${escapeHtml(x.plainLanguage)}</dd><dt>What could happen</dt><dd>${escapeHtml(x.consequence)}</dd><dt>What the evidence proves</dt><dd>${escapeHtml(x.evidenceBoundary)}</dd><dt>Proposed change (${escapeHtml(`${x.proposal.status}: ${proposalLabels[x.proposal.status]}`)})</dt><dd>${escapeHtml(x.proposal.summary)}</dd><dt>Alternatives</dt><dd>${list(x.alternatives)}</dd><dt>Possible side effects</dt><dd>${list(x.sideEffects)}</dd><dt>Security retest</dt><dd>${escapeHtml(x.securityRetest)}</dd><dt>Functional retest</dt><dd>${escapeHtml(x.functionalRetest)}</dd><dt>Rollback</dt><dd>${escapeHtml(x.rollback)}</dd><dt>Decisions needed from you</dt><dd>${list(x.userDecisions)}</dd><dt>Standards</dt><dd>${standards}</dd></dl></article>`;
   }).join('\n');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:12px}dd{margin-left:0}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><h2>Risk summary</h2>${summary ? `<ul>${summary}</ul>` : '<p>No findings were produced by the checks that ran.</p>'}<h2>Adapters</h2><ul>${adapters}</ul><h2>Coverage</h2>${traversal}<ul>${coverage}</ul><h2>Findings</h2>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Web App Security report</title><style>body{font:16px/1.5 system-ui;max-width:960px;margin:40px auto;padding:0 20px;color:#171717}article{border-top:1px solid #bbb;padding:16px 0}code{overflow-wrap:anywhere}dt{font-weight:700;margin-top:12px}dd{margin-left:0}</style></head><body><h1>Web App Security report</h1><p>Mode: ${escapeHtml(report.mode)} · Findings: ${report.summary.total}</p><h2>Risk summary</h2>${summary ? `<ul>${summary}</ul>` : '<p>No findings were produced by the checks that ran.</p>'}<h2>Adapters</h2><ul>${adapters}</ul><h2>Coverage</h2>${selection}${traversal}<ul>${coverage}</ul><h2>Findings</h2>${rows || '<p>No findings were produced by the checks that ran.</p>'}<h2>Limitations</h2><ul>${report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></body></html>\n`;
 }
 
 export function renderSarifV3(report) {
