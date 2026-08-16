@@ -4,24 +4,26 @@
 
 ## 标题
 
-做了一个 Web App Security Skill：让 AI coding agent 留下可审查的检查、补丁和复测证据
+做了一个 Web App Security Skill：一条命令检查 AI coding 后的 Web 项目
 
 ## 正文
 
-项目地址：https://github.com/parousia8888/web-app-security-skill
+先给能直接运行的入口：
 
-这个项目把 Web 安全加固拆成范围确认、证据分类、最小补丁和双重复测。自有本地源码 fixture 的 demo 为 OS command injection lead (CWE-78)，suspected HIGH，应用可审查补丁后记录 security fixed；functional passed；证据边界、副作用、报告、补丁和生成方式都可以检查。
+```bash
+npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+```
 
-目前能力合同明确列出 9 个 stable 窄检测家族、0 项 planned 检测能力和 6 项 agent-guided 方法；证据/报告与分发能力不计入检测覆盖。另有 5 个固定 commit 的普通开源项目旅程，保留零 finding、误报关闭和 unknown 结果，未探测线上实例。
+主要给使用 AI coding 工具做 Web 产品、但没有专门安全流程的人。报告不会只扔一个漏洞名，而是同时写清楚：行业术语、白话解释、问题成立时的后果、当前证据没有证明什么、准备怎么改、可能影响哪些正常功能，以及安全复测和功能复测分别怎么做。CLI 不会直接改项目。
 
-v0.5.3 release 提供签名 tag、可复现归档、SPDX SBOM、校验和、manifest 与 provenance。安装路径会先固定并校验 bootstrap，再校验 release 资产。
+自有本地 demo 的结果是 OS command injection lead (CWE-78)，suspected HIGH，修改提案后记录 security fixed；functional passed。原始报告、补丁和生成脚本都能查看。
 
-Demo 证据：https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md
+我也把 v0.5.1 中四个 correctness regression 的最小复现、修法、回归门和剩余边界整理成了一篇记录：https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adoption/regression-accountability.md
 
-能力边界：https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md
+项目：https://github.com/parousia8888/web-app-security-skill
 
-想重点讨论三个工程问题：证据状态是否足够严格、怎样降低误报但不把 unknown 当安全、verified install 的信任链还缺什么。
+Demo：https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md
 
-边界：不是通用 SAST 或全覆盖漏洞扫描器，安装后也不能证明项目安全；案例不声称得到上游验证。
+当前边界：内置源码深度主要在 JavaScript/TypeScript 与 Python；静态命中通常只是 suspected；diff 模式只减少噪音；fixture benchmark 不等于真实项目检出率。
 
 > 发布状态：草稿；节点选择、标题和发布时间需发布时检查。

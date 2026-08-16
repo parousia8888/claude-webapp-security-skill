@@ -4,23 +4,25 @@
 
 ## Suggested title
 
-I built an open-source inspect -> patch -> retest security skill for AI coding agents; feedback on the evidence model?
+I built a local Web-security first pass that explains findings before proposing changes
 
 ## Post
 
-I am working on [Web App Security Skill](https://github.com/parousia8888/web-app-security-skill). It combines an agent workflow with deterministic local tooling: record scope, classify results as confirmed/suspected/unknown/not_applicable, produce a patch for review, then require baseline retest evidence before marking anything fixed.
+I am working on [Web App Security Skill](https://github.com/parousia8888/web-app-security-skill) for people who build Web products with AI coding tools but do not have a dedicated AppSec workflow. The first run is:
 
-The reproducible owned-source demo shows OS command injection lead (CWE-78), SUSPECTED HIGH -> security fixed; functional passed and keeps the evidence boundary, side effect, reports and patch in the repository. The rule corpus identifies 30 stable source/deployment rules by category, while agent-guided methods remain separate.
+```bash
+npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+```
 
-I kept the 5 ordinary-project source journeys at immutable commits and included zero-finding, false-positive and unknown results. No hosted instance was probed. Release v0.5.3 adds a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
+For each lead, the report gives the technical term, a plain explanation, a realistic consequence, the missing evidence, a reviewable proposal, alternatives, likely side effects, rollback, and separate security/product retests. Static matches stay suspected unless stronger evidence exists.
 
-Evidence inventory: https://github.com/parousia8888/web-app-security-skill/blob/main/docs/launch-evidence.md
+The demo is owned and local: OS command injection lead (CWE-78), SUSPECTED HIGH -> security fixed; functional passed. I also documented four correctness regressions and the tests added after them: https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adoption/regression-accountability.md
 
 Questions for review:
 
-- Are the four evidence states sufficient for keeping source leads separate from reproduced findings?
-- Which failure modes should the patch/retest contract reject before a result can be called fixed?
-- What would you need to inspect before trusting the verified installer?
+- Does the ordinary-language explanation give enough information to review a proposed change?
+- Which side effects or retest instructions are still too generic?
+- Where would you expect a local first pass to stop and hand off to deeper tooling or a specialist?
 
 This is not positioned as a general scanner, a precision benchmark or proof that an application is secure.
 

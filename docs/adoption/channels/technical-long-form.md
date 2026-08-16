@@ -4,21 +4,23 @@
 
 ## Title
 
-Building a reviewable web-security loop for AI coding agents
+A readable web-security first pass after AI-assisted coding
 
 ## Draft
 
-I built [Web App Security Skill](https://github.com/parousia8888/web-app-security-skill) around one constraint: a security workflow should leave reviewable evidence instead of ending at a list of warnings. The workflow records scope, classifies evidence, proposes a minimal patch, and requires a retest before calling a finding fixed.
+After an AI coding session, run one local command from the project root:
 
-The repository-owned source demo starts with OS command injection lead (CWE-78), SUSPECTED HIGH. It keeps the evidence boundary visible, shows the shell-free patch and records security fixed; functional passed. [The generated reports and patch are public](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md).
+```bash
+npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+```
 
-The current contract names 9 stable narrow detection families and keeps 8 evidence/reporting plus 1 lifecycle/distribution capabilities outside that detection count. Context-heavy API, identity, data and cloud review still depends on 6 agent-guided methods and human review. [The full category-by-maturity matrix links each claim to evidence](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/capabilities.md).
+Web App Security Skill turns each actionable lead into five review questions: what is the security term, what could happen, what did the evidence actually prove, what change is proposed, and what normal behavior could that change break? It keeps security retesting separate from product-function testing and does not edit the project.
 
-I also ran the v0.5.0 built-in path over 5 ordinary projects at immutable commits. No hosted project was contacted, no dependency executed and no network request made. All 43 findings were reviewed as 11 useful leads, 27 expected benign matches, 1 unknown and 4 confirmed facts. A separate 5-study corpus exercises broader source review. [Classification and reproduction](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/v0.5.0-review.md).
+The owned demo shows OS command injection lead (CWE-78), SUSPECTED HIGH, a reviewable shell-free proposal, and security fixed; functional passed. [Inspect the exact reports and patch](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md).
 
-Distribution is part of the threat model. [v0.5.3](https://github.com/parousia8888/web-app-security-skill/releases/tag/v0.5.3) includes a signed tag, reproducible archive, SPDX SBOM, checksums, manifest and provenance. The recommended installer verifies an immutable bootstrap before execution, then verifies the release it installs.
+Four correctness regressions in v0.5.1 changed the test strategy: a broken human-readable summary, a false confirmed pnpm lockfile absence, incomplete nested-template coverage, and a rename that could look fixed. [The reproductions, repairs and remaining boundaries are recorded here](https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adoption/regression-accountability.md).
 
-The useful review question is not whether this replaces an AppSec team or a general scanner; it does not. The question is whether the evidence states, patch boundary, retest contract and installation chain are strict enough to make an agent-assisted first pass safer and easier to review.
+Current limits remain explicit: static matches are usually suspected leads, parser failures become unknown, diff mode reduces review noise without proving whole-repository safety, and the planted benchmark is not production precision or recall.
 
 Repository: https://github.com/parousia8888/web-app-security-skill
 

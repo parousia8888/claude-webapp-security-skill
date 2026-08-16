@@ -4,28 +4,29 @@
 
 ## 标题
 
-Web App Security Skill：把 AI 辅助安全加固变成可复核的证据闭环
+AI coding 后怎样做一次看得懂的 Web 安全检查
 
 ## 摘要
 
-Web App Security Skill 是一个开源 agent skill 与 CLI，目标是让 Web 项目的首次安全加固形成“范围确认 -> 结果分级 -> 最小补丁 -> 复测”的可审查记录。
+Web App Security Skill 是一个开源 Skill 与 CLI，用一条命令生成本地源码安全初检，再把每条线索翻译成能审查的修改和复测问题。
 
 ## 正文
 
-项目没有把一次扫描结果当成安全结论。每项结果必须处于 confirmed、suspected、unknown 或 not_applicable；补丁默认只输出供审查，只有沿基线复测后才可记录为 fixed。
+```bash
+npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+```
 
-可复现 demo 使用仓库自有本地源码 fixture，初始结果是 OS command injection lead (CWE-78)，suspected HIGH，展示补丁后记录 security fixed；functional passed。它不请求第三方目标、不执行项目依赖，证据边界、副作用、生成脚本、JSON/Markdown 报告和 patch 都在仓库中。
+第一次报告会同时给出安全术语和白话解释，并区分“代码里看到了什么”与“还没有证明什么”。修改建议默认只供审查，同时列出替代方案、可能副作用、回滚条件、安全复测和产品功能复测。
 
-当前能力合同按 category 与 maturity 分开记录：9 个 stable 窄检测家族、0 项 planned 检测能力、8 项证据/报告能力、1 项生命周期/分发能力和 6 项 agent-guided 方法。这个分层避免把 demo、报告、安装器或强上下文审查描述成检测覆盖。
+仓库自有 demo 从 OS command injection lead (CWE-78)，suspected HIGH 开始，应用待审查提案后记录 security fixed；functional passed。它不访问部署实例，也不执行目标项目依赖；报告、补丁和生成方式都在仓库。
 
-案例证据包括 5 个固定 commit 的普通项目旅程和 5 个源码方法论案例，其中两个项目按设计重叠。普通项目旅程不探测托管实例、不执行项目依赖；仅 OSV-Scanner 可查询公共 advisory 服务，并公开 confirmed 事实、误报关闭、suspected 与 unknown。
+在 v0.5.2 之前，四个可复现的正确性问题暴露了证据链的薄弱处：报告摘要输出 [object Object]、pnpm workspace 被误判为 confirmed 缺锁文件、嵌套模板让整文件 coverage 变成 partial、纯改名让 retest 看起来成功。这四项的修复和测试门记录在：https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adoption/regression-accountability.md
 
-供应链方面，v0.5.3 提供签名 tag、可复现源码包、SPDX SBOM、SHA-256 校验和、release manifest 与构建 provenance；推荐安装路径在执行前校验固定 bootstrap，再验证 release。
+现在仍有明确限制：静态规则通常只能给 suspected 线索；parser 遇到不支持的语法会 fail closed 为 unknown；diff clean 不代表全仓库安全；planted benchmark 也不是真实漏洞 precision/recall。
 
 - 项目：https://github.com/parousia8888/web-app-security-skill
 - Demo：https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md
-- 可信安装：https://github.com/parousia8888/web-app-security-skill/blob/main/docs/verified-installation.zh-CN.md
-- 完整证据清单：https://github.com/parousia8888/web-app-security-skill/blob/main/docs/launch-evidence.md
+- 当前限制：https://github.com/parousia8888/web-app-security-skill/blob/main/KNOWN_LIMITATIONS.md
 
 ### 需要保留的限制
 

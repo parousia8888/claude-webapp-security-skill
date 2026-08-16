@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "generatedBy": "scripts/generate-adoption-assets.mjs",
   "product": "Web App Security Skill",
   "repository": "https://github.com/parousia8888/web-app-security-skill",
@@ -13,6 +13,15 @@
   "promise": {
     "en": "Scope, audit, harden, and retest web projects with AI coding agents and reproducible evidence.",
     "zh-CN": "把 Web 项目交给 AI coding agent，完成范围确认、风险检查、最小加固、复测和证据交付。"
+  },
+  "firstRun": {
+    "command": "npx --yes web-app-security-skill@0.5.3 audit . --fail-on never",
+    "explanation": {
+      "command": "npx --yes web-app-security-skill@0.5.3 audit . --fail-on never",
+      "en": "Run a local source-only first pass, then review the problem, evidence boundary, proposed change, likely side effects and separate security and product retests.",
+      "zh-CN": "先执行一次只读本地源码的检查，再逐项审查问题、证据边界、修改建议、可能副作用，以及分开的安全复测和产品功能复测。",
+      "ja": "ローカルソースだけを対象に最初の確認を実行し、問題、証拠の限界、修正案、副作用、セキュリティと通常機能の再テストを分けて確認する。"
+    }
   },
   "capabilityContract": {
     "total": 24,
@@ -54,6 +63,19 @@
       "confirmedFacts": 4
     },
     "evidence": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/case-studies/journeys/README.md"
+  },
+  "correctnessRegressions": {
+    "reviewedVersion": "0.5.1",
+    "fixedVersion": "0.5.2",
+    "count": 4,
+    "ids": [
+      "v3-summary-object-coercion",
+      "pnpm-workspace-lockfile-evidence",
+      "nested-template-coverage",
+      "path-rename-retest"
+    ],
+    "fixCommit": "a0cb518da23043e549b84f6f4c9cc39726d7c602",
+    "evidence": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adoption/regression-accountability.md"
   },
   "externalState": {
     "communityPublication": "external_validation_pending",

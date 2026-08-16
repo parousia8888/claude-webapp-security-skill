@@ -29,7 +29,7 @@ function runRenderer(value, name) {
 try {
   let result = spawnSync(process.execPath, [GENERATOR, '--check'], { cwd: ROOT, encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /11 files, 24 capabilities, 5 journeys, 5 studies/);
+  assert.match(result.stdout, /13 files, 24 capabilities, 5 journeys, 5 studies/);
 
   const schema = JSON.parse(readFileSync(join(ROOT, 'docs', 'case-studies', 'template.schema.json'), 'utf8'));
   assert.equal(schema.properties.source.properties.commit.pattern, '^[a-f0-9]{40}$');
@@ -97,6 +97,11 @@ try {
   assert.equal(share.ownedLocalDemo.finding.state, 'suspected');
   assert.equal(share.ownedLocalDemo.retest.security, 'fixed');
   assert.equal(share.ownedLocalDemo.retest.functional, 'passed');
+  assert.equal(share.firstRun.command,
+    'npx --yes web-app-security-skill@0.5.3 audit . --fail-on never');
+  assert.equal(share.correctnessRegressions.count, 4);
+  assert.equal(share.correctnessRegressions.fixCommit,
+    'a0cb518da23043e549b84f6f4c9cc39726d7c602');
   assert.equal(share.caseEvidence.v050Review.usefulLeads, 11);
   assert.equal(share.caseEvidence.v050Review.expectedBenignMatches, 27);
   assert.equal(share.caseEvidence.upstreamValidationClaimed, false);
@@ -112,12 +117,17 @@ try {
     'channels/x-short-post.md',
     'channels/v2ex.md',
     'channels/chinese-developer-community.md',
+    'channels/zenn-ja.md',
+    'regression-accountability.md',
     'github-release-lead.md',
   ].map((path) => readFileSync(join(ROOT, 'docs', 'adoption', path), 'utf8')).join('\n');
   assert.doesNotMatch(generated, /precision (?:rate|score|of)|universal scanner|upstream (?:approved|validated|endorsed) us/i);
   assert.doesNotMatch(generated, /13\s+(?:high|HIGH)/);
+  assert.doesNotMatch(generated, /four P0s|external audit|highest-risk files/i);
   assert.match(generated, /OS command injection lead \(CWE-78\)/);
-  assert.match(generated, /11 useful leads, 27 expected benign matches, 1 unknown and 4 confirmed/);
+  assert.match(generated, /Four correctness regressions|four correctness regressions/i);
+  assert.match(generated, /Restoring the v0\.5\.1 renderer must make the golden Markdown and HTML assertions fail/);
+  assert.match(generated, /Zenn への投稿と公開日時は owner の判断事項/);
   assert.match(generated, /external_validation_pending|Publication status: draft|发布状态：草稿/);
   assert.match(generated, /npx --yes web-app-security-skill@0\.5\.3 audit \. --fail-on never/);
 

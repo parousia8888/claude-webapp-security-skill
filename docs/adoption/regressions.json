@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "reviewedVersion": "0.5.1",
+  "fixedVersion": "0.5.2",
+  "fixCommit": "a0cb518da23043e549b84f6f4c9cc39726d7c602",
+  "releaseEvidence": "docs/releases/v0.5.2.md",
+  "cases": [
+    {
+      "id": "v3-summary-object-coercion",
+      "title": "The main risk summary rendered JavaScript objects",
+      "reproduction": "A v3 report with risk-domain state totals rendered [object Object] in Markdown and HTML.",
+      "impact": "The first human-readable summary was damaged even though the structured JSON remained available.",
+      "repair": "Render byState[state].total and bySeverity explicitly and omit zero-count states.",
+      "test": "test/report-v3-contract.test.mjs",
+      "plantedFailure": "Restoring the v0.5.1 renderer must make the golden Markdown and HTML assertions fail.",
+      "remainingBoundary": "Golden rendering tests protect the current fixture shapes; they do not prove every future presentation is understandable."
+    },
+    {
+      "id": "pnpm-workspace-lockfile-evidence",
+      "title": "A pnpm workspace could receive a false confirmed lockfile absence",
+      "reproduction": "A root pnpm-lock.yaml and pnpm-workspace.yaml covering apps/* still allowed a child package.json to be reported as confirmed missing-lockfile evidence.",
+      "impact": "The strongest evidence state was assigned without actually resolving the applicable workspace boundary.",
+      "repair": "Parse bounded pnpm workspace includes and exclusions; malformed or unsupported metadata becomes incomplete evidence and unknown instead of confirmed absence.",
+      "test": "test/source-coverage-ledger.test.mjs",
+      "plantedFailure": "Restoring the adjacent-lockfile-only decision must make the covered pnpm workspace fixture fail.",
+      "remainingBoundary": "The parser supports the documented bounded subset and is not a general YAML evaluator."
+    },
+    {
+      "id": "nested-template-coverage",
+      "title": "Nested JS/TS templates could make a whole file partial",
+      "reproduction": "A nested template such as const html = `${`</b>`}</div>` produced unterminated_string_literal and stopped normal source-rule coverage for that file.",
+      "impact": "The tool failed closed as unknown, but relevant server-rendered code was left unexamined until the user noticed the coverage warning.",
+      "repair": "Track nested template and expression depth while continuing to inspect executable expressions, including TSX braces.",
+      "test": "test/js-ts-source-audit.test.mjs",
+      "plantedFailure": "Restoring the v0.5.1 tokenizer must make the nested-template coverage fixture fail.",
+      "remainingBoundary": "The tokenizer is still bounded and reports unsupported syntax as incomplete evidence rather than silently passing it."
+    },
+    {
+      "id": "path-rename-retest",
+      "title": "A path-only rename could make a retest exit successfully",
+      "reproduction": "Renaming a file without removing its condition produced one fixed and one new finding, allowing the compatible baseline gate to exit successfully.",
+      "impact": "The condition still existed, while the baseline presentation implied that the old condition had been fixed.",
+      "repair": "Pair only one-to-one path-independent equivalents and keep them unchanged with condition_moved; ambiguous duplicates remain unmatched.",
+      "test": "test/report-v3-contract.test.mjs",
+      "plantedFailure": "Restoring path-bound-only matching must make the rename retest assertion fail.",
+      "remainingBoundary": "condition_moved means an equivalent condition exists elsewhere; it does not prove historical identity or that a git move caused it."
+    }
+  ]
+}

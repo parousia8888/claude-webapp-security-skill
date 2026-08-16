@@ -4,20 +4,22 @@
 
 ## Title
 
-Show HN: Web App Security Skill - inspect, patch, and retest with coding agents
+Show HN: Web App Security Skill - one command, readable findings, and retests
 
 ## Submission text
 
-I built Web App Security Skill, an open-source skill and CLI for recording scope, running narrow deterministic checks, proposing reviewable hardening patches, and retesting applied changes.
+I built Web App Security Skill for Web builders using AI coding agents who need a local security first pass they can actually review. From a project root:
 
-The local demo is generated from a repository-owned source fixture: OS command injection lead (CWE-78), SUSPECTED HIGH, then a reviewable patch, then security fixed; functional passed. The repository records 20 built-in risk, 2 evidence-integrity and 8 external-adapter stable rules, and a fully classified 5-project review.
+```bash
+npx --yes web-app-security-skill@0.5.3 audit . --fail-on never
+```
 
-The installer verifies pinned bootstrap bytes and release assets; v0.5.3 includes a signed tag, reproducible archive, SBOM, checksums, manifest and provenance.
+The report pairs the security term with a plain-language consequence, says what the evidence does not prove, proposes a change for review, names likely side effects, and asks for separate security and normal-behavior retests. It does not edit the project or contact a deployment.
 
-Demo evidence: https://github.com/parousia8888/web-app-security-skill/blob/main/docs/demo-evidence.md
+I also published how four correctness regressions were reproduced and turned into regression gates: https://github.com/parousia8888/web-app-security-skill/blob/main/docs/adoption/regression-accountability.md
 
 Repository: https://github.com/parousia8888/web-app-security-skill
 
-It is not a general SAST engine or proof that a project is secure. I am looking for technical review of the evidence-state model, false-positive handling, retest semantics and verified install path.
+The built-in checks are a bounded first pass, mainly for JavaScript/TypeScript and Python. A clean report does not prove a project secure. I would value feedback on whether the explanations and evidence boundaries help non-specialists decide what to review next.
 
 > Publication status: draft; submitting to Hacker News remains an owner action.
