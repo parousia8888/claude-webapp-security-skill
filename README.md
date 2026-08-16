@@ -63,8 +63,8 @@ corpus](docs/stable-rule-corpus.json), [ground-truth pattern benchmark](docs/ben
 and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md). MCP and additional stable
 rules are deferred behind the [documented architecture gates](docs/architecture/mcp-and-rule-expansion.md).
 The signed v0.5.3 GitHub assets and provenance have passed public verification, so the verified
-installer below now defaults to v0.5.3. npm and the moving `v1` Action alias remain separately gated
-until their public consumers pass.
+installer below now defaults to v0.5.3. The signed `v1` Action alias has passed its public consumer;
+npm publication remains gated on a public-registry consumer.
 
 ## See the result
 
@@ -323,7 +323,7 @@ requires deployment authorization acknowledgement:
 
 ```yaml
 - name: Audit public crawl boundary
-  uses: parousia8888/web-app-security-skill@010ef34c2e87b12b7f1e2502c0260074d131dd01
+  uses: parousia8888/web-app-security-skill@621e0bc2ad044f9390fa9d567bf4b9fca138a959
   with:
     site: https://example.com
     acknowledge-authorization: true
@@ -331,20 +331,21 @@ requires deployment authorization acknowledgement:
     fail-on: high
 ```
 
-For repeatable CI, use the immutable v0.5.2 commit above. The signed stable major-version alias now
-resolves to the same v0.5.2 source after its public passive and authorization consumer passed:
+For repeatable CI, use the immutable v0.5.3 commit above. The signed stable major-version alias now
+resolves to the same v0.5.3 source after its public passive and authorization consumer passed:
 
 ```yaml
 uses: parousia8888/web-app-security-skill@v1
 ```
 
-Source mode defaults to the bundled adapter. The immutable v0.5.2 Action runs the v3 source
-contract, the stable v0.5.0 rule corpus and the v0.5.1/v0.5.2 correctness fixes. External binaries must be
+Source mode defaults to the bundled adapter. The immutable v0.5.3 Action runs the v3 source
+contract, the stable v0.5.0 rule corpus, the v0.5.1/v0.5.2 correctness fixes and the v0.5.3
+distribution, diff-scope and benchmark surfaces. External binaries must be
 installed and pinned by the caller; the Action never downloads them:
 
 ```yaml
 - name: Audit source
-  uses: parousia8888/web-app-security-skill@010ef34c2e87b12b7f1e2502c0260074d131dd01
+  uses: parousia8888/web-app-security-skill@621e0bc2ad044f9390fa9d567bf4b9fca138a959
   with:
     mode: source
     project: .
@@ -375,7 +376,7 @@ Verify downloaded release assets:
 sha256sum -c SHA256SUMS
 gh attestation verify web-app-security-skill-*.tar.gz \
   --repo parousia8888/web-app-security-skill
-git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.2
+git -c gpg.ssh.allowedSignersFile=.github/release-signers verify-tag v0.5.3
 ```
 
 ## 5 ordinary project journeys

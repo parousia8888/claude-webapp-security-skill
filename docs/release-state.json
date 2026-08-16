@@ -10,7 +10,7 @@
   },
   "stableAction": {
     "tag": "v1",
-    "sourceCommit": "010ef34c2e87b12b7f1e2502c0260074d131dd01"
+    "sourceCommit": "621e0bc2ad044f9390fa9d567bf4b9fca138a959"
   },
   "verifiedInstaller": {
     "defaultVersion": "0.5.3",

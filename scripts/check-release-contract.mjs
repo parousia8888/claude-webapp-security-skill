@@ -13,7 +13,7 @@ const workflows = [
   '.github/workflows/release.yml',
   '.github/workflows/action-v1-consumer.yml',
 ];
-const RELEASE_ACTION_COMMIT = '010ef34c2e87b12b7f1e2502c0260074d131dd01';
+const RELEASE_ACTION_COMMIT = '621e0bc2ad044f9390fa9d567bf4b9fca138a959';
 const BOOTSTRAP_COMMIT = 'cf6bca040dc1d78587f04ded2ace10a08312f0c5';
 const BOOTSTRAP_SHA256 = '0f203b986f75f1359fee0c0c5251ba0dbeec08a857b67415702d5f05f73f2faf';
 const VERIFIER_COMMIT = '7edde5b9a3882198911e212035025be8c369c944';
