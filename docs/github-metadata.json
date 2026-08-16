@@ -8,6 +8,11 @@
   "description": "Scope, audit, harden, and retest web projects with AI coding agents and reproducible evidence.",
   "homepage": "https://github.com/parousia8888/web-app-security-skill/blob/main/docs/tutorial.md",
   "homepageDecision": "owner_decision_pending",
+  "discussions": {
+    "status": "enabled",
+    "verifiedAt": "2026-08-16T12:45:22Z",
+    "url": "https://github.com/parousia8888/web-app-security-skill/discussions"
+  },
   "socialPreview": {
     "asset": "docs/assets/social-preview.png",
     "metadata": "docs/assets/social-preview.json",

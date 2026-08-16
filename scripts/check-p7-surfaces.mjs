@@ -44,6 +44,11 @@ function fail(message) {
 
 if (metadata.schemaVersion !== 1) fail('metadata schemaVersion must be 1');
 if (metadata.repository !== 'parousia8888/web-app-security-skill') fail('repository identity drifted');
+if (metadata.discussions?.status !== 'enabled'
+    || metadata.discussions.url !== `https://github.com/${metadata.repository}/discussions`
+    || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(metadata.discussions.verifiedAt || '')) {
+  fail('Discussions metadata is not verified');
+}
 if (metadata.description !== metadata.promise?.en || metadata.description.length > 160) {
   fail('GitHub description must be the canonical short promise and fit the GitHub limit');
 }
@@ -117,7 +122,7 @@ for (const issue of metadata.roadmapIssues || []) {
 }
 
 if (live) {
-  const repoResult = spawnSync('gh', ['repo', 'view', metadata.repository, '--json', 'description,homepageUrl,repositoryTopics'], { encoding: 'utf8' });
+  const repoResult = spawnSync('gh', ['repo', 'view', metadata.repository, '--json', 'description,homepageUrl,repositoryTopics,hasDiscussionsEnabled'], { encoding: 'utf8' });
   if (repoResult.status !== 0) fail(repoResult.stderr || 'unable to read live GitHub metadata');
   else {
     const repo = JSON.parse(repoResult.stdout);
@@ -125,6 +130,7 @@ if (live) {
     if (repo.description !== metadata.description) fail('live GitHub description differs from source');
     if (repo.homepageUrl !== metadata.homepage) fail('live GitHub homepage differs from source');
     if (topics.join('\n') !== metadata.topics.join('\n')) fail('live GitHub topics differ from source');
+    if (repo.hasDiscussionsEnabled !== true) fail('live GitHub Discussions is not enabled');
   }
   const labelResult = spawnSync('gh', ['label', 'list', '--repo', metadata.repository, '--limit', '100', '--json', 'name,color,description'], { encoding: 'utf8' });
   if (labelResult.status !== 0) fail(labelResult.stderr || 'unable to read live GitHub labels');

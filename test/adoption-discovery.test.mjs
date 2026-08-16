@@ -26,7 +26,11 @@ const byId = Object.fromEntries(listings.candidates.map((item) => [item.id, item
 assert.equal(byId['awesome-claude-code'].status, 'ineligible');
 assert.deepEqual(byId['awesome-claude-code'].unmetRules, ['at_least_14_days_old_or_100_stars']);
 assert.equal(byId['awesome-agent-skills'].status, 'ineligible');
-assert.equal(byId['awesome-devsecops'].status, 'eligible_on_documented_scope');
+assert.equal(byId['awesome-devsecops'].status, 'submitted_pending_review');
+assert.equal(byId['awesome-devsecops'].submission.url,
+  'https://github.com/devsecops/awesome-devsecops/pull/172');
+assert.equal(byId['awesome-devsecops'].submission.state, 'open');
+assert.equal(byId['awesome-devsecops'].submission.accepted, false);
 assert.deepEqual(byId['static-analysis'].unmetRules,
   ['more_than_one_contributor', 'more_than_20_stars', 'at_least_three_months_old']);
 assert.equal(byId['mcp-registry'].status, 'out_of_scope');

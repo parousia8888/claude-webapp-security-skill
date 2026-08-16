@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-08-16T11:35:40Z",
+  "reviewedAt": "2026-08-16T12:47:09Z",
   "projectFacts": {
     "repository": "https://github.com/parousia8888/web-app-security-skill",
     "firstDefaultBranchCommit": "b52288fd52af9f23195e75d6bb845f6ac2d3e8b9",
@@ -37,11 +37,21 @@
       "repository": "https://github.com/devsecops/awesome-devsecops",
       "policyCommit": "1704e442a30ca21caeb05e8721eb26855129c86b",
       "policyPaths": ["README.md", "CONTRIBUTING.md"],
-      "submissionMethod": "owner_review_required",
-      "status": "eligible_on_documented_scope",
+      "submissionMethod": "pull_request",
+      "status": "submitted_pending_review",
       "unmetRules": [],
       "earliestAgeRecheckAt": null,
-      "notes": "The published scope accepts free or open-source capabilities that support DevSecOps, which the CLI and Action can satisfy. CONTRIBUTING.md is empty and gives no current submission format, so recheck repository practice before any owner-authorized pull request."
+      "notes": "The policy commit remains current and accepts free or open-source DevSecOps capabilities. CONTRIBUTING.md is empty; recent merged additions change one README list item. PR 172 adds one Testing entry and makes no accuracy, adoption or endorsement claim.",
+      "submission": {
+        "url": "https://github.com/devsecops/awesome-devsecops/pull/172",
+        "state": "open",
+        "createdAt": "2026-08-16T12:47:09Z",
+        "headCommit": "b24339b5ac2e16cda9eca5e92ecd847493bd38bc",
+        "upstreamBaseCommit": "1704e442a30ca21caeb05e8721eb26855129c86b",
+        "filesChanged": 1,
+        "linesAdded": 1,
+        "accepted": false
+      }
     },
     {
       "id": "static-analysis",

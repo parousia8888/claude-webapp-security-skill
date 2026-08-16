@@ -105,6 +105,17 @@ if (listings.projectFacts.hasMcpServer !== false || mcpListing?.status !== 'out_
   console.error('adoption contract: MCP registry must remain out of scope without an MCP server');
   failed = true;
 }
+const awesomeDevsecops = listings.candidates.find((item) => item.id === 'awesome-devsecops');
+if (awesomeDevsecops?.status !== 'submitted_pending_review'
+    || awesomeDevsecops.submissionMethod !== 'pull_request'
+    || awesomeDevsecops.submission?.state !== 'open'
+    || awesomeDevsecops.submission?.accepted !== false
+    || !/^https:\/\/github\.com\/devsecops\/awesome-devsecops\/pull\/\d+$/.test(
+      awesomeDevsecops.submission?.url || '',
+    )) {
+  console.error('adoption contract: awesome-devsecops submission state is incomplete or overstated');
+  failed = true;
+}
 for (const item of listings.candidates.filter((candidate) => candidate.repository)) {
   if (!/^[a-f0-9]{40}$/.test(item.policyCommit || '') || !item.policyPaths.length) {
     console.error(`adoption contract: ${item.id} policy review is not commit-pinned`);
