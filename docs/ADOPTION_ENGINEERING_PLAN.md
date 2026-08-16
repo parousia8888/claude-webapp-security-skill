@@ -111,7 +111,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 | G5 | Priority fail-closed correctness fixes and v0.5.3 release evidence | completed | v0.5.3 source `621e0bc` + stable state `9c6dc2b` |
 | G6 | Published-state, tutorial, support-matrix and ledger alignment | completed | `aecaadf` + CI evidence below |
 | G7 | First-screen npx path and ordinary-language result contract | completed | `fad6efe` + CI evidence below |
-| G8 | Legible lightweight demo and accurate GitHub public packaging | in progress | focused media checks passed; remote evidence pending |
+| G8 | Legible lightweight demo and accurate GitHub public packaging | completed | `5b06863` + CI evidence below |
 | G9 | Channel-specific generated copy and regression-accountability article | pending | implementation pending |
 | G10 | Five-to-ten-person target-user validation kit and stop rules | pending | real sessions remain external |
 | G11 | Eligibility-aware listings, staggered publication and observation ledger | pending | external actions remain owner-gated |
@@ -557,7 +557,7 @@ timing, author network, topic demand, or unrelated GitHub discovery.
 
 ### Completion record
 
-- Status: in progress.
+- Status: completed 2026-08-16.
 - Implementation: the repository GIF encoder now uses a real bounded GIF LZW dictionary instead of
   literal-only codes, reducing the same five-frame 840x472 demo from 2,742,052 to 29,581 bytes. A
   deterministic indexed-PNG encoder and generator produce a 1280x640, 3,288-byte social preview
@@ -568,7 +568,8 @@ timing, author network, topic demand, or unrelated GitHub discovery.
   `node test/adoption-assets.test.mjs`, the social-preview drift check and `git diff --check` passed.
   ImageMagick and FFmpeg decoded all five GIF frames; visual inspection of the five-frame contact
   sheet and full-resolution social preview found no clipping or incoherent overlap.
-- Commit / CI: pending.
+- Commit / CI: implementation `5b0686360668535fdaa2ed868e886495f0a3d96e`; CI run
+  `31943711488` passed the Ubuntu/macOS Node 22/24 matrix and CodeQL run `31943711476` passed.
 - Remaining risks: GitHub social-preview upload and live Release-body edits require owner-authorized
   external actions and are not completed by committing assets.
 
