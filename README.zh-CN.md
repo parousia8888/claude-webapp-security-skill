@@ -90,7 +90,8 @@ v0.5.0 的解释合同继续保留：每个 v3 源码 finding 同时给出行业
 规则，内置深度集中在 JavaScript/TypeScript 与 Python Web 代码。
 
 准确支持范围见[兼容矩阵](docs/compatibility.md)、[稳定规则语料](docs/stable-rule-corpus.json)、
-[规则合同一致性结果](docs/conformance/v0.5.4-rule-contract-conformance.md)和
+[规则合同一致性结果](docs/conformance/v0.5.4-rule-contract-conformance.md)、
+[历史真实回归语料](docs/regressions/v0.5.4-real-world-regressions.md)和
 [普通项目复核](docs/case-studies/journeys/v0.5.0-review.md)。MCP 与新增 stable 规则需要先满足
 [架构决策中的门槛](docs/architecture/mcp-and-rule-expansion.md)。v0.5.3 的签名 GitHub 资产与
 provenance、可信安装器、公开 npm 包和签名 `v1` Action 别名都已通过各自的公网检查；下面的

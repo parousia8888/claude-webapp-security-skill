@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "release": "v0.5.4",
+  "evidenceType": "historical_real_world_regression_corpus",
+  "limitation": "Minimized cases derived from observed project failures and review noise; they prove only that the named historical conditions remain guarded. They are not a representative vulnerability benchmark or a production precision/recall measurement.",
+  "sourceInventory": "docs/adoption/regressions.json",
+  "summary": {
+    "cases": 5,
+    "passed": 5,
+    "failed": 0,
+    "resolvedRegressions": 4,
+    "expectedBenignMatches": 1
+  },
+  "cases": [
+    {
+      "id": "v3-summary-object-coercion",
+      "title": "The main risk summary rendered JavaScript objects",
+      "classification": "resolved_regression",
+      "source": {
+        "kind": "historical_regression",
+        "reference": "docs/adoption/regressions.json#v3-summary-object-coercion",
+        "fixedVersion": "0.5.2",
+        "fixCommit": "a0cb518da23043e549b84f6f4c9cc39726d7c602"
+      },
+      "observedFailure": "A v3 report with risk-domain state totals rendered [object Object] in Markdown and HTML.",
+      "protectedContract": "Markdown and HTML risk summaries render numeric state and severity totals.",
+      "status": "passed",
+      "evidence": {
+        "findingCount": 1,
+        "markdownNumericSummary": true,
+        "htmlNumericSummary": true,
+        "objectCoercionObserved": false
+      },
+      "remainingBoundary": "Golden rendering tests protect the current fixture shapes; they do not prove every future presentation is understandable."
+    },
+    {
+      "id": "pnpm-workspace-lockfile-evidence",
+      "title": "A pnpm workspace could receive a false confirmed lockfile absence",
+      "classification": "resolved_regression",
+      "source": {
+        "kind": "historical_regression",
+        "reference": "docs/adoption/regressions.json#pnpm-workspace-lockfile-evidence",
+        "fixedVersion": "0.5.2",
+        "fixCommit": "a0cb518da23043e549b84f6f4c9cc39726d7c602"
+      },
+      "observedFailure": "A root pnpm-lock.yaml and pnpm-workspace.yaml covering apps/* still allowed a child package.json to be reported as confirmed missing-lockfile evidence.",
+      "protectedContract": "A covered pnpm package inherits its workspace lockfile; only proven uncovered manifests may be confirmed.",
+      "status": "passed",
+      "evidence": {
+        "coveredPackage": "apps/web/package.json",
+        "coveredPackageFindingCount": 0,
+        "outsidePackage": "tools/outside/package.json",
+        "outsidePackageState": "confirmed"
+      },
+      "remainingBoundary": "The parser supports the documented bounded subset and is not a general YAML evaluator."
+    },
+    {
+      "id": "nested-template-coverage",
+      "title": "Nested JS/TS templates could make a whole file partial",
+      "classification": "resolved_regression",
+      "source": {
+        "kind": "historical_regression",
+        "reference": "docs/adoption/regressions.json#nested-template-coverage",
+        "fixedVersion": "0.5.2",
+        "fixCommit": "a0cb518da23043e549b84f6f4c9cc39726d7c602"
+      },
+      "observedFailure": "A nested template such as const html = `${`</b>`}</div>` produced unterminated_string_literal and stopped normal source-rule coverage for that file.",
+      "protectedContract": "Nested template literals do not silently remove normal JS/TS source-rule coverage.",
+      "status": "passed",
+      "evidence": {
+        "sourcePath": "src/server.ts",
+        "browserSinkCoverage": "completed",
+        "incompleteEvidenceFindingCount": 0
+      },
+      "remainingBoundary": "The tokenizer is still bounded and reports unsupported syntax as incomplete evidence rather than silently passing it."
+    },
+    {
+      "id": "path-rename-retest",
+      "title": "A path-only rename could make a retest exit successfully",
+      "classification": "resolved_regression",
+      "source": {
+        "kind": "historical_regression",
+        "reference": "docs/adoption/regressions.json#path-rename-retest",
+        "fixedVersion": "0.5.2",
+        "fixCommit": "a0cb518da23043e549b84f6f4c9cc39726d7c602"
+      },
+      "observedFailure": "Renaming a file without removing its condition produced one fixed and one new finding, allowing the compatible baseline gate to exit successfully.",
+      "protectedContract": "A unique path-equivalent condition remains unresolved instead of becoming fixed plus new.",
+      "status": "passed",
+      "evidence": {
+        "priorPath": "src/old.js",
+        "currentPath": "src/renamed.js",
+        "baselineState": "unchanged",
+        "reasonCode": "condition_moved",
+        "fixedCount": 0,
+        "newCount": 0
+      },
+      "remainingBoundary": "condition_moved means an equivalent condition exists elsewhere; it does not prove historical identity or that a git move caused it."
+    },
+    {
+      "id": "numeric-svg-innerhtml-review",
+      "title": "Numeric SVG innerHTML remains a review-visible expected match",
+      "classification": "expected_benign_match",
+      "source": {
+        "kind": "external_review_minimized",
+        "reference": "KNOWN_LIMITATIONS.md#recurring-expected-matches",
+        "note": "Minimized from an external real-project review; original project content is not included."
+      },
+      "observedFailure": "A numeric-only SVG string assembled with innerHTML matched the intentionally broad DOM-sink rule.",
+      "protectedContract": "Context-dependent DOM sinks stay visible for human closure and are not silently suppressed.",
+      "status": "passed",
+      "evidence": {
+        "sourcePath": "src/charts.ts",
+        "ruleId": "browser-html-injection-sink",
+        "evidenceState": "suspected",
+        "manualClassification": "expected_benign_match",
+        "requiredClosure": "Confirm that every interpolated value remains numeric and no untrusted markup reaches the sink.",
+        "suppressionApplied": false
+      },
+      "remainingBoundary": "This fixture is benign only because its constructed values are numeric. The detector does not trace arbitrary input or prove other innerHTML assignments safe."
+    }
+  ]
+}

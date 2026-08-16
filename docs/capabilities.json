@@ -124,6 +124,14 @@
       "evidence": ["scripts/run-rule-contract-conformance.mjs", "scripts/lib/rule-contract-conformance.mjs", "test/rule-contract-conformance.test.mjs", "docs/conformance/v0.5.4-rule-contract-conformance.json"]
     },
     {
+      "id": "real-world-regression-corpus",
+      "name": "Historical real-world regression corpus",
+      "category": "evidence_reporting",
+      "maturity": "stable",
+      "scope": "Re-executes four minimized historical correctness failures and one review-visible benign DOM-sink match against product code. It guards named regressions and does not provide representative production-vulnerability accuracy.",
+      "evidence": ["scripts/run-real-world-regressions.mjs", "scripts/lib/real-world-regressions.mjs", "test/real-world-regressions.test.mjs", "docs/regressions/v0.5.4-real-world-regressions.json"]
+    },
+    {
       "id": "structured-reports",
       "name": "Stable multi-format finding reports",
       "category": "evidence_reporting",

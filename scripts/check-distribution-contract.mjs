@@ -21,6 +21,8 @@ for (const entry of [
   'SKILL.md', 'VERSION', 'KNOWN_LIMITATIONS.md', 'scripts', 'references', 'rules',
   'docs/conformance/v0.5.4-rule-contract-conformance.json',
   'docs/conformance/v0.5.4-rule-contract-conformance.md',
+  'docs/regressions/v0.5.4-real-world-regressions.json',
+  'docs/regressions/v0.5.4-real-world-regressions.md',
 ]) {
   assert.ok(pkg.files.includes(entry), `npm files is missing ${entry}`);
 }

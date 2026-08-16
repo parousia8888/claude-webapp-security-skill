@@ -97,8 +97,9 @@ evidence-integrity rules and 8 opt-in external-adapter rules, with built-in dept
 JavaScript/TypeScript and Python Web code.
 
 Exact support and limits are in the [compatibility matrix](docs/compatibility.md), [stable rule
-corpus](docs/stable-rule-corpus.json), [rule-contract conformance](docs/conformance/v0.5.4-rule-contract-conformance.md)
-and [ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md). MCP and additional stable
+corpus](docs/stable-rule-corpus.json), [rule-contract conformance](docs/conformance/v0.5.4-rule-contract-conformance.md),
+[historical real-world regressions](docs/regressions/v0.5.4-real-world-regressions.md) and
+[ordinary-project review](docs/case-studies/journeys/v0.5.0-review.md). MCP and additional stable
 rules are deferred behind the [documented architecture gates](docs/architecture/mcp-and-rule-expansion.md).
 The signed v0.5.3 GitHub assets and provenance, verified installer, public npm package and signed
 `v1` Action alias have passed their public checks. The installer below defaults to v0.5.3.

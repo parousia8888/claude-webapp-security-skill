@@ -28,8 +28,9 @@ The rule-contract conformance suite uses author-maintained planted examples. Its
 answer whether each named built-in rule recognizes its declared positive example in the expected
 evidence state and stays quiet on its declared safe neighbour. They do not measure whole-project
 vulnerability precision or recall, production reachability, exploitability, language coverage or
-the agent-guided methodology. Historical real-world regressions and ordinary-project review remain
-separate evidence sets.
+the agent-guided methodology. The [historical real-world regression corpus](docs/regressions/v0.5.4-real-world-regressions.md)
+guards named minimized failures, while ordinary-project review remains a separate evidence set;
+neither is a representative accuracy benchmark.
 
 ## MCP and rule expansion
 

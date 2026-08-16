@@ -148,6 +148,8 @@ const include = [
   'docs/stable-source-rules.json', 'docs/stable-rule-corpus.json',
   'docs/conformance/v0.5.4-rule-contract-conformance.json',
   'docs/conformance/v0.5.4-rule-contract-conformance.md',
+  'docs/regressions/v0.5.4-real-world-regressions.json',
+  'docs/regressions/v0.5.4-real-world-regressions.md',
 ];
 
 function stagePayload(spec) {
